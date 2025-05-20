@@ -1,12 +1,16 @@
 作成中
 ## AI関連の処理を行うPythonライブラリ
 
-
+## 機能
+* OpenAIまたはAzureOpenAIを使用したチャット機能
+* ベクトル検索機能
+* ベクトル登録機能
+* チャット機能とベクトル検索機能を組み合わせたRAGによるチャット
 
 ## APIの説明
 
 ### request
-この説明はJSONC形式(コメント付きJOSN)で記載していますが、実際のリクエストはJSON形式で記述してください。
+この説明はJSONC形式(コメント付きJOSN)で記載していますが、実際のリクエストはコメントを除去して、JSON形式で記述してください。
 ```jsonc
 {
     // -----------------------------------------------------------
@@ -51,12 +55,12 @@
     // リクエスト毎のディクショナリ
     // -----------------------------------------------------------
     // OpenAIチャット、AutoGenチャットで使用するリクエスト用のディクショナリ。
+    // フォーマットは https://platform.openai.com/docs/guides/text?api-mode=chat を参照
     "chat_request": {
-        // チャットに使用するモデル
         "model": "gpt-4o-mini",
         "messages": [
         {
-            "role": "user",
+            "role": "user", 
             "content": [
             {
                 "type": "text",
@@ -67,14 +71,30 @@
         ],
         "temperature": 0.5
     },
-    // マージチャット(複数のドキュメントに同一のプロンプトを与えた結果をマージ)やサイズの大きいドキュメントを分割する場合の
     // chat_requestの補助的なディクショナリ。
+    // マージチャット(複数のドキュメントに同一のプロンプトを与えた結果をマージ)やサイズの大きいドキュメントを分割する場合などに使用.
     "chat_request_context": {
-        "prompt_template_text": "",
         "chat_mode": "Normal",
+        // 分割処理を行うかどうか。
+        // * None:   
+        //   何もしない。 入力のサイズが最大トークン数を超えた場合はエラーとなる。
+        // * NormalSplit:  
+        //   指定したトークンサイズで入力を分割して処理を行い、最後にマージする。
+        //   分割した入力にはprompt_template_textで指定したプロンプトが適用される。
+        // * SplitAndSummarize: 
+        //   NormalSplit分割&マージした後、サマリーの生成を行う。サマリー生成にはsummarize_prompt_textで指定したプロンプトが適用される。
         "split_mode": "None",
-        "summarize_prompt_text": "単純に結合しただけなので、文章のつながりがよくない箇所があるかもしれません。 文章のつながりがよくなるように整形してください。 出力言語は日本語にしてください。\n",
-        "related_information_prompt_text": "------ 以下は本文に関連する情報をベクトルDBから検索した結果です。---\n",
+        "prompt_template_text": "",
+        "summarize_prompt_text": "",
+        // RAGを有効にするかどうか。
+        // * None:  
+        //   RAGを使用しない。
+        // * NormalSearch:  
+        //   入力を元にベクトル検索を実行。チャット内で関連情報として使用。
+        // * PrompSearch
+        //   rag_prompt_textで指示した内容を入力に適用した結果を元にベクトル検索を行う。
+        "rag_mode": "None",
+        "rag_mode_prompt_text": "",
     },
     // ベクトル検索を行う場合のディクショナリ。ベクトル検索APIを実行する場合に使用する。
     "vector_search_requests": [

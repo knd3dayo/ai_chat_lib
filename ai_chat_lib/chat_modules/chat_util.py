@@ -29,18 +29,38 @@ class RequestContext:
         result = RequestContext(chat_request_context_dict)
         return result
 
-    prompt_template_text_name = "prompt_template_text"
     chat_mode_name = "chat_mode" 
+    prompt_template_text_name = "prompt_template_text"
     summarize_prompt_text_name = "summarize_prompt_text"
     related_information_prompt_text_name = "related_information_prompt_text"
+
+    # split_mode
+    split_mode_name = "split_mode"
+    split_mode_name_split_and_summarize = "SplitAndSummarize"
+    split_mode_name_none = "None"
+    split_mode_name_normal = "NormalSplit"
+
     split_token_count_name = "split_token_count"
+
+    # rag_mode
+    rag_mode_name = "rag_mode"
+    rag_mode_name_none = "None"
+    rag_mode_name_normal_search = "NormalSearch"
+    rag_mode_name_prompt_search = "PromptSearch"
+    rag_mode_prompt_text_name = "rag_mode_prompt_text"
+
+
     def __init__(self, request_context_dict: dict):
         self.PromptTemplateText = request_context_dict.get(RequestContext.prompt_template_text_name, "")
         self.ChatMode = request_context_dict.get(RequestContext.chat_mode_name, "Normal")
-        self.SplitMode = request_context_dict.get("split_mode", "None")
+        self.SplitMode = request_context_dict.get(RequestContext.split_mode_name, "None")
         self.SplitTokenCount = request_context_dict.get(RequestContext.split_token_count_name, 8000)
         self.SummarizePromptText = request_context_dict.get(RequestContext.summarize_prompt_text_name, "")
-        self.RelatedInformationPromptText = request_context_dict.get(RequestContext.related_information_prompt_text_name, "")
+
+        self.RAGMode = request_context_dict.get(RequestContext.rag_mode_name, RequestContext.rag_mode_name_none)
+        self.RAGModePrompt = request_context_dict.get(RequestContext.rag_mode_prompt_text_name, "")
+
+        self.RelatedInformationPromptText = "Below are the results retrieved from the vector database related to the main content.\n---\n"
 
 
 class ChatUtil:
@@ -59,16 +79,7 @@ class ChatUtil:
         if not chat_request_dict:
             raise ValueError("chat_request is not set")
 
-        openai_client = OpenAIClient(openai_props)
-        # ベクトル検索関数
-        def vector_search(query: str) -> dict:
-            from ai_chat_lib.langchain_modules.langchain_vector_db import LangChainVectorDB
-            # vector_db_itemsの各要素にinput_textを設定
-            return LangChainUtil.vector_search(openai_props, vector_search_requests)
-
-        # vector_db_itemsが空の場合はNoneを設定
-        vector_search_function: Union[Callable, None] = None if len(vector_search_requests) == 0 else vector_search
-        return await cls.run_openai_chat_async(openai_client, chat_request_context, chat_request_dict, vector_search_function)
+        return await cls.run_openai_chat_async(openai_props, chat_request_context, chat_request_dict, vector_search_requests)
 
     token_count_request_name = "token_count_request"
     @classmethod
@@ -128,30 +139,65 @@ class ChatUtil:
             result_message_list.append("\n".join(temp_message_list))
         # result_message_listを返す
         return result_message_list
-    
+
+
     @classmethod
-    def pre_process_input(
-            cls, client: OpenAIClient, model: str, request_context:RequestContext, last_message_dict: dict, 
-            vector_search_function : Union[Callable, None]) -> tuple[list[dict], list[dict]]:
-        # "messages"の最後のtext要素を取得する       
-        last_text_content_index = -1
-        for i in range(0, len(last_message_dict["content"])):
-            if last_message_dict["content"][i]["type"] == "text":
-                last_text_content_index = i
+    def __get_last_message_dict(cls, input_dict: dict) -> dict:
+        '''
+        input_dictのmessagesのtext要素を取得する
+        '''
+        return input_dict["messages"][-1]
+
+    @classmethod
+    def __get_last_message(cls, message_dict: dict) -> tuple[int, str]:
+        '''
+        message_dictのmessagesの最後のtext要素を取得する
+    
+        '''
+        # "messages"のtext要素を取得する       
+        text_content_index = -1
+        for i in range(0, len(message_dict["content"])):
+            if message_dict["content"][i]["type"] == "text":
+                text_content_index = i
                 break
         # last_text_content_indexが-1の場合はエラーをraiseする
-        if last_text_content_index == -1:
+        if text_content_index == -1:
             raise ValueError("last_text_content_index is -1")
         # queryとして最後のtextを取得する
-        original_last_message = last_message_dict["content"][last_text_content_index]["text"]
+        last_message = message_dict["content"][text_content_index]["text"]
+        return text_content_index, last_message
+
+
+    @classmethod
+    def __exec_vector_search(cls, vector_search_function: Callable, query: str) -> tuple[str, dict[str, dict]]:  
+        # ベクトル検索結果のdocumentを格納するdictを作成する
+        result_documents_dict: dict[str, dict] = {}
+        vector_search_result = vector_search_function(query) 
+        # vector_search_resultのcontentを取得する
+        vector_search_result_contents_text = "\n".join([ document["content"] for document in vector_search_result["documents"]])
+
+        # 参考ドキュメント一覧用のdocument一覧の作成。source_idが重複しているdocumentを排除する。
+        for document in vector_search_result["documents"]:
+            logger.info(document)
+            result_documents_dict[document["doc_id"]] = document
+
+        return vector_search_result_contents_text, result_documents_dict
+
+    @classmethod
+    def __pre_process_input(
+            cls, client: OpenAIClient, model: str, request_context:RequestContext, last_message_dict: dict, 
+            vector_search_function : Union[Callable, None]) -> tuple[list[dict], list[dict]]:
+
+        # "messages"の最後のtext要素を取得する       
+        last_text_content_index, original_last_message = cls.__get_last_message(last_message_dict)
+
         # request_contextのSplitModeがNone以外の場合はoriginal_last_messageを改行毎にtokenをカウントして、
         # 80KBを超える場合は分割する
         # 結果はresult_messagesに格納する
-        result_messages = []
-        # ベクトル検索結果のdocumentを格納するdictを作成する
-        result_documents_dict: dict[str, dict] = {}
 
-        if request_context.SplitMode != "None":
+        result_messages = []
+        # SplitoModeの処理 SplitModeがNone以外の場合は分割する
+        if request_context.SplitMode != RequestContext.split_mode_name_none:
             splited_messages = cls.split_message(original_last_message.split("\n"), model, request_context.SplitTokenCount)
         else:
             splited_messages = [original_last_message]
@@ -159,24 +205,19 @@ class ChatUtil:
         for i in range(0, len(splited_messages)):
             # 分割したメッセージを取得する毎に、プロンプトテンプレートと関連情報を取得する
             target_message = splited_messages[i]
-            # ベクトル検索用の文字列としてqueryにtarget_messageを設定する
-            query = target_message
             # context_message 
             context_message = ""
             if i > 0 and len(request_context.PromptTemplateText) > 0:
                 context_message = request_context.PromptTemplateText + "\n\n"
-            # vector_search_functionがNoneでない場合はベクトル検索を実施
+
+            # RAGモードの処理
+            # None以外の場合はvector_search_functionが設定されているので、ベクトル検索を実行する
             if vector_search_function:
-                vector_search_result = vector_search_function(query) 
-                # vector_search_resultのcontentを取得する
-                vector_search_result_contents = [ document["content"] for document in vector_search_result["documents"]]
-
-                # source_pathを取得する
-                for document in vector_search_result["documents"]:
-                    logger.info(document)
-                    result_documents_dict[document["source_id"]] = document
-
-                context_message += request_context.RelatedInformationPromptText + "\n".join(vector_search_result_contents)
+                # ベクトル検索用の文字列としてqueryにtarget_messageを設定する
+                query = target_message
+                vector_search_result_contents_text, result_documents_dict = cls.__exec_vector_search(vector_search_function, query)
+                # ベクトル検索結果をcontext_messageに追加する
+                context_message += request_context.RelatedInformationPromptText + vector_search_result_contents_text
 
             # last_messageをdeepcopyする
             result_last_message = copy.deepcopy(last_message_dict)
@@ -188,12 +229,12 @@ class ChatUtil:
         return result_messages, [ value for value in result_documents_dict.values()]
 
     @classmethod
-    async def post_process_output_async(cls, client: OpenAIClient, request_context: RequestContext, 
+    async def __post_process_output_async(cls, client: OpenAIClient, request_context: RequestContext, 
                             input_dict: dict, chat_result_dict_list: list[dict],
                             docs_list: list[dict]) -> dict:
 
         # RequestContextのSplitModeがNormalSplitの場合はchat_result_dict_listのoutputを結合した文字列とtotal_tokensを集計した結果を返す
-        if request_context.SplitMode == "NormalSplit":
+        if request_context.SplitMode == RequestContext.split_mode_name_normal:
             output = "\n".join([chat_result_dict["output"] for chat_result_dict in chat_result_dict_list])
             total_tokens = sum([chat_result_dict["total_tokens"] for chat_result_dict in chat_result_dict_list])
             return {"output": output, "total_tokens": total_tokens, 
@@ -201,7 +242,7 @@ class ChatUtil:
                     }
         
         # RequestContextのSplitModeがSplitAndSummarizeの場合はSummarize用のoutputを作成する
-        if request_context.SplitMode == "SplitAndSummarize":
+        if request_context.SplitMode == RequestContext.split_mode_name_split_and_summarize:
             summary_prompt_text = ""
             if len(request_context.PromptTemplateText) > 0:
                 summary_prompt_text = f"""
@@ -230,25 +271,34 @@ class ChatUtil:
         result_dict = chat_result_dict_list[0]
         result_dict["documents"] = docs_list
         return result_dict 
-
-    @classmethod
-    def get_last_message(cls, input_dict: dict) -> dict:
-        return input_dict["messages"][-1]
     
     @classmethod
-    async def run_openai_chat_async(cls, client: OpenAIClient, request_context: RequestContext ,input_dict: dict, vector_search_function : Union[Callable, None]) -> dict:
+    async def run_openai_chat_async(cls, openai_props: OpenAIProps, request_context: RequestContext ,input_dict: dict, vector_search_requests : list[VectorSearchRequest]) -> dict:
         # ★TODO 分割モードの場合とそうでない場合で処理を分ける
         # 分割モードの場合はそれまでのチャット履歴をどうするか？
         
         # pre_process_inputを実行する
-        last_message_dict = cls.get_last_message(input_dict)
+        last_message_dict = cls.__get_last_message_dict(input_dict)
         # modelを取得する
         model = input_dict.get("model", None)
         if not model:
             raise ValueError("model is not set")
         
         # 最後のメッセージの分割処理、ベクトル検索処理を行う
-        pre_processed_input_list, docs_list = cls.pre_process_input(client, model, request_context, last_message_dict, vector_search_function)
+        # OpenAIClientを取得する
+        client = OpenAIClient(openai_props)
+
+        # ベクトル検索関数
+        def vector_search(query: str) -> dict:
+            # vector_db_itemsの各要素にqueryを設定
+            for vector_search_request in vector_search_requests:
+                vector_search_request.query = query
+            return LangChainUtil.vector_search(openai_props, vector_search_requests)
+
+        # vector_db_itemsが空の場合はNoneを設定
+        vector_search_function: Union[Callable, None] = None if request_context.RAGMode == RequestContext.rag_mode_name_none or (vector_search_requests) == 0 else vector_search
+
+        pre_processed_input_list, docs_list = cls.__pre_process_input(client, model, request_context, last_message_dict, vector_search_function)
         chat_result_dict_list = []
 
         for pre_processed_input in pre_processed_input_list:
@@ -267,7 +317,7 @@ class ChatUtil:
             chat_result_dict_list.append(chat_result_dict)
 
         # post_process_outputを実行する
-        result_dict = await cls.post_process_output_async(client, request_context, input_dict, chat_result_dict_list, docs_list)
+        result_dict = await cls.__post_process_output_async(client, request_context, input_dict, chat_result_dict_list, docs_list)
         return result_dict
     
     @classmethod
