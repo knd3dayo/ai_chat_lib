@@ -84,6 +84,7 @@
         "query": "str: 検索文字列",
         "search_kwargs": {
             "k": "int: ベクトル検索結果の数",
+            "score_threshold": "コサイン類似度の閾値",
             "filter": {
                 "folder_id": "検索対象のフォルダのID. folder_id、folder_pathが指定されていない場合はDB内を全検索",
                 "folder_path" : "フォルダのパス.指定されている場合はfolder_idよりも優先される"

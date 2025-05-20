@@ -326,7 +326,8 @@ class VectorDBItem:
         self.VectorDBType = vector_db_item_dict.get("vector_db_type", 0)
         self.CollectionName = vector_db_item_dict.get("collection_name", "")
         self.ChunkSize = vector_db_item_dict.get("chunk_size", 0)
-        self.DefaultSearchResultLimit = vector_db_item_dict.get("default_search_result_limit", 0)
+        self.DefaultSearchResultLimit = vector_db_item_dict.get("default_search_result_limit", 10)
+        self.DefaultScoreThreshold = vector_db_item_dict.get("default_score_threshold", 0.5)
         IsEnabled = vector_db_item_dict.get("is_enabled", 0)
         IsSystem = vector_db_item_dict.get("is_system", 0)
         # is_enabledがintの場合
@@ -380,6 +381,7 @@ class VectorDBItem:
             "collection_name": self.CollectionName,
             "chunk_size": self.ChunkSize,
             "default_search_result_limit": self.DefaultSearchResultLimit,
+            "default_score_threshold": self.DefaultScoreThreshold,
             "is_enabled": self.IsEnabled,
             "is_system": self.IsSystem,
         }
@@ -1583,21 +1585,24 @@ class MainDB:
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         if self.get_vector_db_by_id(vector_db_item.Id) is None:
-            cur.execute("INSERT INTO VectorDBItems VALUES (?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            cur.execute("INSERT INTO VectorDBItems VALUES (?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                          (vector_db_item.Id, vector_db_item.Name, vector_db_item.Description, 
                           vector_db_item.VectorDBURL, vector_db_item.IsUseMultiVectorRetriever, 
                           vector_db_item.DocStoreURL, vector_db_item.VectorDBType, 
                           vector_db_item.CollectionName, 
                           vector_db_item.ChunkSize, vector_db_item.DefaultSearchResultLimit, 
+                          vector_db_item.DefaultScoreThreshold,
                           vector_db_item.IsEnabled, vector_db_item.IsSystem)
                           )
         else:
-            cur.execute("UPDATE VectorDBItems SET name=?, description=?, vector_db_url=?, is_use_multi_vector_retriever=?, doc_store_url=?, vector_db_type=?, collection_name=?, chunk_size=?, default_search_result_limit=?, is_enabled=?, is_system=? WHERE id=?",
+            cur.execute("UPDATE VectorDBItems SET name=?, description=?, vector_db_url=?, is_use_multi_vector_retriever=?, doc_store_url=?, vector_db_type=?, collection_name=?, chunk_size=?, default_search_result_limit=?, default_score_threshold=?, is_enabled=?, is_system=? WHERE id=?",
                          (vector_db_item.Name, vector_db_item.Description, vector_db_item.VectorDBURL, 
                           vector_db_item.IsUseMultiVectorRetriever, vector_db_item.DocStoreURL, 
                           vector_db_item.VectorDBType, vector_db_item.CollectionName, 
                           vector_db_item.ChunkSize, 
-                          vector_db_item.DefaultSearchResultLimit, vector_db_item.IsEnabled, 
+                          vector_db_item.DefaultSearchResultLimit, 
+                          vector_db_item.DefaultScoreThreshold,                          
+                          vector_db_item.IsEnabled, 
                           vector_db_item.IsSystem, vector_db_item.Id)
                           )
         conn.commit()
