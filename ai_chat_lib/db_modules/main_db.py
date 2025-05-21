@@ -1,6 +1,6 @@
 import sqlite3
 import json
-from typing import List, Union
+from typing import List, Union, Optional
 import uuid
 import os
 
@@ -29,7 +29,7 @@ class ContentFoldersCatalog:
         {"content_folder_requsts": [] }の形式で渡される
         '''
         # contextを取得
-        content_folders: list[dict] = request_dict.get(cls.get_content_folder_requelsts_name, None)
+        content_folders = request_dict.get(cls.get_content_folder_requelsts_name, None)
         if not content_folders:
             raise ValueError("content_folder is not set.")
         
@@ -240,7 +240,8 @@ class VectorDBItem:
         # vector_dbを削除
         main_db = MainDB()
         # ベクトルDBを削除する
-        result: dict = main_db.delete_vector_db_item(vector_db_item)
+        main_db.delete_vector_db_item(vector_db_item)
+        result: dict = {}
         result["vector_db_item"] = vector_db_item.to_dict()
         return result
 
@@ -297,7 +298,7 @@ class VectorDBItem:
         {"vector_db_item_request": {}}の形式で渡される
         '''
         # vector_db_item_requestを取得
-        vector_db_item_request: dict = request_dict.get(cls.vector_db_item_request_name, None)
+        vector_db_item_request = request_dict.get(cls.vector_db_item_request_name, None)
         if not vector_db_item_request:
             raise ValueError("vector_db_item_request is not set.")
 
@@ -396,7 +397,7 @@ class VectorSearchRequest:
         {"vector_search_request": {}}の形式で渡される
         '''
         # contextを取得
-        request:list[dict] = request_dict.get(cls.vector_search_requests_name, None)
+        request: Union[list[dict], None] = request_dict.get(cls.vector_search_requests_name, None)
         if not request:
             logger.info("vector search request is not set. skipping.")
             return []
@@ -471,7 +472,8 @@ class EmbeddingData:
         {"embedding_request": {}}の形式で渡される
         '''
         # contextを取得
-        request: dict = request_dict.get(cls.embedding_request_name, None)
+
+        request: Optional[dict] = request_dict.get(cls.embedding_request_name, None)
         if not request:
             raise ValueError("request is not set.")
         # MainDBを取得
@@ -516,7 +518,7 @@ class TagItem:
         {"tag_item_requests": []}の形式で渡される
         '''
         # contextを取得
-        tag_items: list[dict] = request_dict.get("tag_item_requests", None)
+        tag_items: Optional[list[dict]] = request_dict.get("tag_item_requests", None)
         if not tag_items:
             raise ValueError("tag_items is not set.")
         
@@ -680,7 +682,7 @@ class AutogentLLMConfig:
         {"autogen_llm_config_request": {}}の形式で渡される
         '''
         # autogen_llm_config_requestを取得
-        request:dict = request_dict.get(cls.autogen_llm_config_request_name, None)
+        request: Optional[dict] = request_dict.get(cls.autogen_llm_config_request_name, None)
         if not request:
             raise ValueError("request is not set.")
         result = AutogentLLMConfig(request)
@@ -782,7 +784,7 @@ class AutogenTools:
         {"autogen_tool_request": {}}の形式で渡される
         '''
         # autogen_tool_requestを取得
-        request:dict = request_dict.get(cls.autogen_tool_request_name, None)
+        request: Optional[dict] = request_dict.get(cls.autogen_tool_request_name, None)
         if not request:
             raise ValueError("request is not set.")
         # autogen_toolを生成
@@ -881,7 +883,7 @@ class AutogenAgent:
         {"autogen_agent_request": {}}の形式で渡される
         '''
         # autogen_agent_requestを取得
-        request:dict = request_dict.get(cls.autogen_agent_request_name, None)
+        request: Optional[dict] = request_dict.get(cls.autogen_agent_request_name, None)
         if not request:
             raise ValueError("request is not set.")
         # autogen_agentを生成
@@ -958,7 +960,7 @@ class AutogenGroupChat:
         {"autogen_group_chat_request": {}}の形式で渡される
         '''
         # autogen_group_chat_requestを取得
-        request:dict = request_dict.get(cls.autogen_group_chat_request_name, None)
+        request: Optional[dict] = request_dict.get(cls.autogen_group_chat_request_name, None)
         if not request:
             raise ValueError("request is not set.")
         # autogen_group_chatを生成
@@ -1040,10 +1042,10 @@ class AutogenGroupChat:
 class MainDB:
 
     @classmethod
-    def init(cls):
+    def init(cls, upgrade: bool = False):
         # main_dbへのパスを取得
         app_db_path = MainDB.get_main_db_path()
-        cls.__init_database(app_db_path)
+        cls.__init_database(app_db_path, upgrade)
 
     # main_dbへのパスを取得
     @classmethod
@@ -1069,9 +1071,9 @@ class MainDB:
             cls.__init_tables(main_db)
 
         if upgrade:
-            # テーブルの初期化
             main_db = MainDB(app_db_path)
-            cls.__init_tables(main_db)
+            # DBのアップグレード処理
+            cls.__update_database(main_db)
 
     @classmethod
     def __init_tables(cls, main_db: "MainDB"):
@@ -1079,6 +1081,8 @@ class MainDB:
         main_db.init_db_properties_table()
         # ContentFoldersテーブルを初期化
         main_db.__init_content_folder_catalog_table()
+        # ContentFoldersCatalogにindexを追加
+        main_db.__init_content_folder_catalog_index()
         # TagItemsテーブルを初期化
         main_db.__init_tag_item_table()
         # VectorDBItemsテーブルを初期化
@@ -1093,8 +1097,11 @@ class MainDB:
         main_db.__init_autogen_group_chats_table()
 
     @classmethod
-    def __update_database(cls, app_db_path: str):
-        pass
+    def __update_database(cls, db: "MainDB"):
+        # DBのアップグレード処理
+        # ContentFoldersCatalogにindexを追加
+        db.__init_content_folder_catalog_index()
+        
 
     def __init__(self, db_path = ""):
         # db_pathが指定されている場合は、指定されたパスを使用する
@@ -1140,9 +1147,26 @@ class MainDB:
                 extended_properties_json TEXT NOT NULL
             )
         ''')
+
         conn.commit()
         conn.close()
-    
+
+    def __init_content_folder_catalog_index(self):
+        # parent_idにインデックスを追加
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute('''
+            CREATE INDEX IF NOT EXISTS idx_parent_id ON ContentFoldersCatalog (parent_id)
+        ''')
+        # folder_nameにインデックスを追加
+        cur.execute('''
+            CREATE INDEX IF NOT EXISTS idx_folder_name ON ContentFoldersCatalog (folder_name)
+        ''')
+
+        conn.commit()
+        conn.close()
+
     def __init_tag_item_table(self):
         # TagItemsテーブルが存在しない場合は作成する
         conn = sqlite3.connect(self.db_path)
@@ -1385,22 +1409,15 @@ class MainDB:
 
         return self.get_content_folder_by_id(folder_id)
 
-    # FolderTypeStringを指定してContentFolderのRootFolderを取得する
-    def get_root_content_folders(self) -> Union[ContentFoldersCatalog, None]:
+    def get_root_content_folders(self) -> list[ContentFoldersCatalog]:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row 
         cur = conn.cursor()
         cur.execute("SELECT * FROM ContentFoldersCatalog WHERE parent_id IS NULL")
-        row = cur.fetchone()
-
-        # データが存在しない場合はNoneを返す
-        if row is None or len(row) == 0:
-            return None
-
-        folder_dict = dict(row)
+        rows = cur.fetchall()
+        root_folders = [ContentFoldersCatalog(dict(row)) for row in rows]
         conn.close()
-
-        return ContentFoldersCatalog(folder_dict)
+        return root_folders
     
     def get_content_folders(self) -> List[ContentFoldersCatalog]:
         conn = sqlite3.connect(self.db_path)

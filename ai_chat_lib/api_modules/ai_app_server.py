@@ -1,8 +1,8 @@
 import os, sys
 from typing import Any
 
-from aiohttp import web, WSMsgType
-from aiohttp.web import WebSocketResponse, Request, Response
+from aiohttp import web
+from aiohttp.web import Request, Response
 import socketio # type: ignore
 from ai_chat_lib.autogen_modules import AutoGenProps
 from ai_chat_lib.api_modules import ai_app_wrapper
@@ -328,7 +328,7 @@ async def extract_text_from_file(request: Request) -> Response:
 @routes.post('/api/extract_base64_to_text')
 async def extract_base64_to_text(request: Request) -> Response:
     request_json = await request.text()
-    response: dict = await ai_app_wrapper.extract_base64_to_text_async(request_json)
+    response = await ai_app_wrapper.extract_base64_to_text_async(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -378,7 +378,7 @@ async def cancel_autogen_chat(request: Request) -> Response:
     AutoGenProps.remove_session_token(session_token)
     return web.Response(body="{}", status=200, content_type='application/json')
 
-@sio.on('autogen_chat')
+@sio.on('autogen_chat') # type: ignore
 async def autogen_group_chat(sid, request_json: str):
     try:
         async for response in ai_app_wrapper.autogen_chat(request_json):

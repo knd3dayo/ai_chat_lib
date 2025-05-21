@@ -10,7 +10,7 @@ logger = log_settings.getLogger(__name__)
 
 # アプリケーション初期化時に呼び出される関数
 def init_app() -> None:
-    MainDB.init()
+    MainDB.init(True)
 
 # stdout,stderrを文字列として取得するためラッパー関数を定義
 def capture_stdout_stderr(func):
