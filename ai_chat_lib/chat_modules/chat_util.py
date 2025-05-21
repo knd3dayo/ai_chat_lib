@@ -22,7 +22,7 @@ class RequestContext:
         {"chat_request_context": {}}の形式で渡される
         '''
         # chat_request_contextを取得
-        chat_request_context_dict: dict[Any, Any] = request_dict.get(cls.chat_request_context_name, None)
+        chat_request_context_dict = request_dict.get(cls.chat_request_context_name, None)
         if not chat_request_context_dict:
             raise ValueError("request_context is not set.")
 
@@ -196,6 +196,7 @@ class ChatUtil:
         # 結果はresult_messagesに格納する
 
         result_messages = []
+        result_documents_dict = {}  # Ensure this is always defined
         # SplitoModeの処理 SplitModeがNone以外の場合は分割する
         if request_context.SplitMode != RequestContext.split_mode_name_none:
             splited_messages = cls.split_message(original_last_message.split("\n"), model, request_context.SplitTokenCount)
@@ -331,6 +332,7 @@ class ChatUtil:
         # OpenAIのchatを実行する
         completion_client = client.get_completion_client()
         count = 0
+        response = None
         while count < 3:
             try:
                 response = await completion_client.chat.completions.create(
@@ -344,7 +346,8 @@ class ChatUtil:
                 time.sleep(count*30)
                 if count == 5:
                     raise e
-                            
+        if response is None:
+            raise RuntimeError("Failed to get a response from OpenAI after retries.")
         # token情報を取得する
         total_tokens = response.usage.total_tokens
         # contentを取得する
