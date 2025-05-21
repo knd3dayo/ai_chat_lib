@@ -97,7 +97,15 @@ class ContentFoldersCatalog:
         main_db = MainDB()
         # フォルダの情報を更新
         for content_folder in content_folders:
-            main_db.update_content_folder(content_folder)
+            # idがある場合
+            if content_folder.Id:
+                main_db.update_content_folder(content_folder)
+            # idがない場合でfolder_pathがある場合
+            elif content_folder.FolderPath:
+                # folder_pathからidを取得
+                content_folder.Id = main_db.get_content_folder_by_path(content_folder.FolderPath)
+                # idがある場合は更新、ない場合は新規作成
+                main_db.update_content_folder(content_folder)
 
         result: dict = {}
         return result
@@ -115,7 +123,16 @@ class ContentFoldersCatalog:
         main_db = MainDB()
         # フォルダの情報を削除
         for content_folder in content_folders:
-            main_db.delete_content_folder(content_folder)
+            # idがある場合
+            if content_folder.Id:
+                main_db.delete_content_folder(content_folder)
+            # idがない場合でfolder_pathがある場合
+            elif content_folder.FolderPath:
+                # folder_pathからidを取得
+                content_folder.Id = main_db.get_content_folder_by_path(content_folder.FolderPath)
+                # idがある場合は削除
+                if content_folder.Id:
+                    main_db.delete_content_folder(content_folder)
 
         result: dict = {}
         return result
@@ -167,6 +184,7 @@ class ContentFoldersCatalog:
         self.ExtendedPropertiesJson = content_folder_dict.get("extended_properties_json", "")
         self.FolderPath = content_folder_dict.get("folder_path", "")
         IsRootFolder = content_folder_dict.get("is_root_folder", 0)
+
         # is_root_folderがintの場合
         if type(IsRootFolder) == int:
             self.IsRootFolder = bool(IsRootFolder)
@@ -191,11 +209,15 @@ class ContentFoldersCatalog:
         }
         if self.FolderPath:
             result["folder_path"] = self.FolderPath
+        else:
+            # MainDBを取得
+            main_db = MainDB()
+            # フォルダの情報を取得
+            content_folder_path = main_db.get_content_folder_path_by_id(self.Id)
+            result["folder_path"] = content_folder_path
         return result
 
 class VectorDBItem:
-
-
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE "VectorDBItems" (

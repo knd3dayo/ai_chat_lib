@@ -20,7 +20,7 @@ def usage():
     print("  -d <app_data_path>     : アプリケーションデータのパス")
     print("  -i                     : インタラクティブモード")
     print("  -m <message>           : メッセージ")
-    print("  init                   : アプリケーションの初期化")
+    print("  init                   : アプリケーション環境の初期設定を実施")
     print("  -h                     : ヘルプ")
 
 def __process_arguments(sys_args: list[str]) -> tuple:

@@ -1,10 +1,11 @@
 import os, json
 from typing import Any
-import ai_chat_lib.api_modules.ai_app_wrapper as ai_app_wrapper
 import asyncio
 import sys
 import getopt
 import ai_chat_lib.log_modules.log_settings as log_settings
+from ai_chat_lib.autogen_modules.autogen_props import AutoGenProps
+
 logger = log_settings.getLogger(__name__)
 
 async def main():
@@ -20,6 +21,8 @@ async def main():
     output_file = None
     props_file = None
     work_dir = None
+    autogen_props = None
+    input_text = None
 
     opts, args = getopt.getopt(sys.argv[1:], "m:o:p:d")
     for opt, arg in opts:
@@ -40,7 +43,7 @@ async def main():
                 raise ValueError("request is not found in props.")
             
             # autogen_props 
-            autogen_props = ai_app_wrapper.get_autogen_objects(props_dict)
+            autogen_props = AutoGenProps.get_autogen_objects(props_dict)
 
 
             # メッセージを取得
@@ -51,6 +54,8 @@ async def main():
 
             last_content = messages[-1].get("content",[])[-1]
             input_text = last_content.get("text", "")
+    else:
+        raise ValueError("props_file must be specified with -p option.")
 
     # メッセージを表示
     print(f"Input message: {input_text}")

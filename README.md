@@ -3,9 +3,51 @@
 
 ## 機能
 * OpenAIまたはAzureOpenAIを使用したチャット機能
+  * 生成AIを使用した通常のチャット
+  * 大きなサイズの文章を分割してプロンプトで指示を与えた結果をマージ、マージをサマライズする機能
+  * ベクトルDB(chroma + sqlite3)に格納したデータを用いたRAG機能
 * ベクトル検索機能
+  ベクトルDBに格納されたデータのベクトル検索
 * ベクトル登録機能
-* チャット機能とベクトル検索機能を組み合わせたRAGによるチャット
+  文章をベクトル化してベクトルDBに格納する。
+
+## APIサーバー
+
+## コマンドラインツール(APIクライアント版)
+### 生成AIチャット
+```
+Usage: python normal_chat_api.py -f <request_json_file> [-s <api_base>] [-i] [-m <message>]
+Options:
+  -f <request_json_file> : リクエストJSONファイル
+  -s <api_base>          : APIのURL
+  -i                     : インタラクティブモード
+  -m <message>           : メッセージ
+  -h                     : ヘルプ
+```
+### ベクトル検索
+```
+Usage: python vector_search_api.py  -s <api_base> [-f <request_json_file>] [-k <search_result_count>] [-p <vector_db_folder>] [-m <message>]
+Options:
+  -f <request_json_file>   : リクエストJSONファイル
+  -s <api_base>            : APIのURL
+  -p <vector_db_folder>    : ベクトルDBの検索対象フォルダ
+  -k <search_result_count> : 検索結果の数
+  -m <message>             : メッセージ
+  -h                       : ヘルプ
+```
+
+## コマンドラインツール(ローカル実行版)
+### 生成AIチャット
+```
+Usage: python normal_chat_local.py -f <request_json_file> [-d <app_data_path>] [-i] [-m <message>]
+Options:
+  -f <request_json_file> : リクエストJSONファイル
+  -d <app_data_path>     : アプリケーションデータのパス
+  -i                     : インタラクティブモード
+  -m <message>           : メッセージ
+  init                   : アプリケーション環境の初期設定を実施
+  -h                     : ヘルプ
+```
 
 ## APIの説明
 
@@ -143,6 +185,18 @@
         "default_search_result_limit": "デフォルトの検索結果表示数",
         "is_enabled": "このベクトルDBを有効にするか否か。",
         "is_system": "システム用のベクトルDBか否か"
+    },
+    // フォルダ
+    "content_folder_request": {
+        "id" : "フォルダのID",
+        "folder_name" : "フォルダ名",
+        "folder_type_string": "フォルダの種別",
+        "description": "フォルダの説明",
+        // ルートフォルダか否か
+        "is_root_folder": false,
+        "extended_properties_json" : "",
+        "parent_id": "",
+        "folder_path": ""
     },
 
     // AutoGenのLLM設定の参照、編集のためのディクショナリ。

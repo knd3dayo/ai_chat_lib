@@ -13,12 +13,14 @@ def usage():
     コマンドライン引数の使い方を表示する関数
     :return: None
     """
-    print("Usage: python normal_chat_api.py  -s <api_base> [-f <request_json_file>] [-k <search_result_count>] [-p <vector_db_folder>] [-m <message>]")
+    # usage
+    print("Usage: python vector_search_api.py  -s <api_base> [-f <request_json_file>] [-k <search_result_count>] [-t score_threshold] [-p <vector_db_folder>] [-m <message>]")
     print("Options:")
     print("  -f <request_json_file>   : リクエストJSONファイル")
     print("  -s <api_base>            : APIのURL")
     print("  -p <vector_db_folder>    : ベクトルDBの検索対象フォルダ")
     print("  -k <search_result_count> : 検索結果の数")
+    print("  -t <score_threshold>     : スコアの閾値")
     print("  -m <message>             : メッセージ")
     print("  -h                       : ヘルプ")
 
@@ -36,10 +38,13 @@ def __process_arguments(sys_args: list[str]) -> tuple:
     api_base = None
     # 検索結果の数の指定
     search_result_count = 10
+    # Scoreの閾値の指定
+    score_threshold = 0.5
+
     # ベクトルDBの検索対象フォルダ
     vector_db_folder = None
 
-    opts, args = getopt.getopt(sys_args[1:], "f:s:m:k:p:h")
+    opts, args = getopt.getopt(sys_args[1:], "f:s:m:k:t:p:h")
     for opt, arg in opts:
         if opt == "-f":
             # リクエストJSONファイルの指定
@@ -55,6 +60,11 @@ def __process_arguments(sys_args: list[str]) -> tuple:
             search_result_count = int(arg)
             if search_result_count <= 0:
                 raise ValueError("Search result count must be greater than 0.")
+        elif opt == "-t":
+            # スコアの閾値の指定
+            score_threshold = float(arg)
+            if score_threshold < 0.0 or score_threshold > 1.0:
+                raise ValueError("Score threshold must be between 0.0 and 1.0.")
         elif opt == "-p":
             # ベクトルDBの検索対象フォルダの指定
             vector_db_folder = arg
@@ -63,16 +73,30 @@ def __process_arguments(sys_args: list[str]) -> tuple:
             usage()
             sys.exit(0)
 
-    return request_json_file, api_base, message, search_result_count, vector_db_folder
+    # APIのURLが指定されていない場合はエラー
+    if not api_base:
+        print("API base URL must be specified with -s option.")
+        usage()
+        sys.exit(1)
+    # request_json_fileまたはmessageのいずれかが指定されていない場合はエラー
+    if not request_json_file and not message:
+        print("Either request_json_file or message must be specified.")
+        usage()
+        sys.exit(1)
 
-async def call_api(request_dict: dict, api_endpoint: str):
+    return request_json_file, api_base, message, search_result_count, score_threshold, vector_db_folder
+
+async def call_vector_search_api(request_dict: dict, api_base: str) -> None:
     """
     APIを呼び出す関数
     :param request_dict: リクエスト辞書
-    :param api_endpoint: APIのURL
+    :param api_base: APIのBaseURL
     :return: なし
     """
-    response_dict =  await send_request(request_dict, api_endpoint)
+    # APIエンドポイント
+    vector_search_api_endpoint = api_base + "/vector_search"
+
+    response_dict =  await send_request(request_dict, vector_search_api_endpoint)
         # outputの取得
     logger.debug(f"Response data: {response_dict}")
     documents: list[dict] = response_dict.get("documents",[])
@@ -90,15 +114,13 @@ async def call_api(request_dict: dict, api_endpoint: str):
 async def main():
 
     # コマンドライン引数の処理
-    request_json_file, api_base,  message, search_result_count, vector_db_folder = __process_arguments(sys.argv)
+    request_json_file, api_base,  message, search_result_count, score_threshold, vector_db_folder = __process_arguments(sys.argv)
         
     # リクエストの準備
-    request_dict = prepare_vector_search_request(request_json_file, message, search_result_count, vector_db_folder)
+    request_dict = prepare_vector_search_request(request_json_file, message, search_result_count, score_threshold, vector_db_folder)
 
-    # APIエンドポイント
-    api_endpoint = api_base + "/vector_search"
-
-    await call_api(request_dict, api_endpoint)
+    # APIを呼び出す
+    await call_vector_search_api(request_dict, api_base)
 
 if __name__ == '__main__':
     import asyncio

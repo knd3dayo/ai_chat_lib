@@ -68,7 +68,7 @@ def __update_openai_props_by_envvars(json_template):
     json_template["openai_props"]["AzureOpenAIEndpoint"] = AZURE_OPENAI_ENDPOINT
     json_template["openai_props"]["OpenAIBaseURL"] = OPENAI_BASE_URL
 
-def create_vector_search_request_from_envvars( top_k: int = 10, folder_path: Optional[str] = None) -> dict:
+def create_vector_search_request_from_envvars() -> dict:
     json_template = load_default_json_template()
     # 環境変数から情報を取得する
     # openai_propsの設定
@@ -87,32 +87,53 @@ def create_vector_search_request_from_envvars( top_k: int = 10, folder_path: Opt
     request["name"] = VECTOR_DB_NAME
     request["model"] = OPENAI_EMBEDDING_MODEL
     request["search_kwargs"] = {}
-    request["search_kwargs"]["k"] = top_k
-    if folder_path:
-        request["search_kwargs"]["filter"] = {"folder_path": folder_path}
     json_template["vector_search_requests"].append(request)
 
     return json_template
 
-
-def prepare_vector_search_request(request_json_file: Union[str, None], message: Union[str, None], search_result_count, vector_db_folder: str) -> dict:
+def prepare_vector_search_request(request_json_file: Union[str, None], query: Union[str, None], search_result_count: int, score_threshold: float, vector_db_folder: str) -> dict:
     """
     ベクトル検索リクエストを準備する関数
     :param request_json_file: JSONファイルのパス
-    :param message: メッセージ
+    :param query: 検索文字列
     :param search_result_count: 検索結果の数
+    :param score_threshold: スコアの閾値
     :param vector_db_folder: ベクトルDBの検索対象フォルダ
     :return: リクエスト辞書
     """
     
     if request_json_file:
         # JSONファイルからリクエストを作成する
-        request_dict = create_normal_chat_request_from_json_file(request_json_file)
+        request_dict = create_base_request_from_json_file(request_json_file)
     else:
         # 環境変数からリクエストを作成する
-        request_dict = create_vector_search_request_from_envvars(search_result_count, vector_db_folder)
+        request_dict = create_vector_search_request_from_envvars()
+    # queryを設定する
+    if query:
+        # queryを設定する
+        for i in range(len(request_dict["vector_search_requests"])):
+            request_dict["vector_search_requests"][i]["query"] = query
+
+    if search_result_count:
+        # search_result_countを設定する
+        for i in range(len(request_dict["vector_search_requests"])):
+            request_dict["vector_search_requests"][i]["search_kwargs"]["k"] = search_result_count
+
+    if score_threshold:
+        # score_thresholdを設定する
+        for i in range(len(request_dict["vector_search_requests"])):
+            request_dict["vector_search_requests"][i]["search_kwargs"]["score_threshold"] = score_threshold
+
+    if vector_db_folder:
+        # vector_db_folderを設定する
+        for i in range(len(request_dict["vector_search_requests"])):
+            request_dict["vector_search_requests"][i]["search_kwargs"]["filter"] = {"folder_path": vector_db_folder}
+
 
     return request_dict
+
+def prepare_folders_request(request_json_file: Union[str, None], ) -> dict:
+    return {}
 
 def add_normal_chat_message(role: str, message: str, json_template: dict):
     """
@@ -133,7 +154,7 @@ def clear_normal_chat_messages(json_template: dict):
     # メッセージをクリアする
     json_template["chat_request"]["messages"] = []
 
-def create_normal_chat_request_from_json_file(request_json_file: str) -> dict:
+def create_base_request_from_json_file(request_json_file: str) -> dict:
     """
     JSONファイルからリクエストを作成する関数
     :param request_json_file: JSONファイルのパス
@@ -159,7 +180,6 @@ def create_normal_chat_request_from_envvars() -> dict:
     # vector_search_requestsの解除
     json_template["vector_search_requests"] = None
 
-
     return json_template
 
 def prepare_normal_chat_request(request_json_file: Union[str, None], interactive_mode: bool, message: Union[str, None]) -> dict:
@@ -173,7 +193,7 @@ def prepare_normal_chat_request(request_json_file: Union[str, None], interactive
     
     if request_json_file:
         # JSONファイルからリクエストを作成する
-        request_dict = create_normal_chat_request_from_json_file(request_json_file)
+        request_dict = create_base_request_from_json_file(request_json_file)
     else:
         # 環境変数からリクエストを作成する
         request_dict = create_normal_chat_request_from_envvars()

@@ -95,13 +95,13 @@ class AutoGenProps:
             raise ValueError("tool_dir is None")
 
         # venv_path
-        self.venv_path = os.getenv("VIRTUAL_ENV", None)
+        self.venv_path = os.getenv("VIRTUAL_ENV", "")
 
         # chat_tpe
-        self.chat_type = props_dict.get("chat_type", None)
+        self.chat_type = props_dict.get("chat_type", "")
         
         # chat_name
-        self.chat_name = props_dict.get("chat_name", None)
+        self.chat_name = props_dict.get("chat_name", "")
 
         # terminate_msg
         self.terminate_msg = props_dict.get("terminate_msg", "TERMINATE")
@@ -131,7 +131,7 @@ class AutoGenProps:
         self.default_tools_path = default_tools.__file__
 
         # chat_object
-        self.chat_object: Union[SelectorGroupChat, None] = None
+        self.chat_object: Union[AssistantAgent, CodeExecutorAgent, None] = None
 
         # quit_flag 
         self.quit_flag = False
@@ -158,8 +158,13 @@ class AutoGenProps:
 
     def __prepare_autogen_agent_chat(self):
 
+        if self.chat_name is None:
+            raise ValueError("chat_name is None")
         agent = self.__load_agent(self.chat_name, self.openai_props)
-        logger.debug(f"agent:{agent.name}")
+        if agent is not None:
+            logger.debug(f"agent:{agent.name}")
+        else:
+            logger.debug("agent is None")
 
         self.chat_object = agent
 
@@ -168,6 +173,8 @@ class AutoGenProps:
         main_db = MainDB(self.autogen_db_path)
         # chat_objectを取得
         chat_dict = main_db.get_autogen_group_chat(self.chat_name)
+        if chat_dict is None:
+            raise ValueError(f"GroupChat {self.chat_name} not found in the database.")
 
         # agent_namesを取得
         agent_names = chat_dict.agent_names
@@ -407,11 +414,12 @@ class AutoGenProps:
             raise ValueError(f"Agent {agent_name} not found in the database.")
 
         # session_tokenを登録
-        AutoGenProps.register_session_token(self.session_token)
+        if self.session_token is not None:
+            AutoGenProps.register_session_token(self.session_token)
         cancel_token: CancellationToken = CancellationToken()
         async for message in agent.run_stream(task=initial_message, cancellation_token=cancel_token):
             # session_tokensにsesson_tokenがない場合は、処理を中断
-            if AutoGenProps.session_tokens.get(self.session_token) is None:
+            if self.session_token is None or AutoGenProps.session_tokens.get(self.session_token) is None:
                 logger.debug("request cancel")
                 cancel_token.cancel()    
                 break
