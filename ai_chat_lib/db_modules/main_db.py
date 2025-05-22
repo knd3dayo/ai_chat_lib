@@ -1484,12 +1484,62 @@ class MainDB:
         conn.close()
 
     def delete_content_folder(self, folder: ContentFoldersCatalog):
+        # childrenのidを取得する
+        children_ids = self.get_content_folder_child_ids(folder.Id)
+        delete_ids = [folder.Id] + children_ids
+        # データベースへ接続
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
-        cur.execute("DELETE FROM ContentFolders WHERE id=?", (folder.Id,))
+        # delete_idsを削除する
+        for delete_id in delete_ids:
+            cur.execute("DELETE FROM ContentFoldersCatalog WHERE id=?", (delete_id,))
         conn.commit()
         conn.close()
 
+
+    # childrenのidを取得する
+    def get_content_folder_child_ids(self, folder_id: str) -> list[str]:
+        def get_children_recursively(folder_id: str) -> list[str]:
+            # データベースへ接続
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
+                cur.execute("SELECT * FROM ContentFoldersCatalog WHERE parent_id=?", (folder_id,))
+                rows = cur.fetchall()
+
+                # データが存在しない場合は空のリストを返す
+                if len(rows) == 0:
+                    return []
+
+                children = []
+                for row in rows:
+                    folder_dict = dict(row)
+                    children.append(folder_dict["id"])
+                    children.extend(get_children_recursively(folder_dict["id"]))
+            return children
+        
+        # フォルダの子供を取得する
+        children = get_children_recursively(folder_id)
+        return children
+
+    def get_content_folder_ids_by_path(self, folder_path: str) -> list[str]:
+        # フォルダのパスを分割する
+        folder_names = folder_path.split("/")
+
+        folder_ids = []
+        # フォルダ階層毎のfolder_idを取得して、folder_idsに追加する
+        # 例： aaa/bbb/ccc の場合、aaaのfolder_idを取得して、aaa/bbbbのfolder_idを取得して、aaa/bbb/cccのfolder_idを取得する
+        for folder_level in range(len(folder_names)):
+            if folder_level == 0:
+                folder_name = folder_names[folder_level]
+            else:
+                # 0からfolder_levelまでのフォルダ名を取得する
+                folder_name = "/".join(folder_names[:folder_level + 1])
+
+            id = self.get_content_folder_by_path(folder_name)
+            folder_ids.append(id)
+
+        return folder_ids
 
     ########################################
     # TagItem関連
