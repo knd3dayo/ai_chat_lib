@@ -1,10 +1,12 @@
+from typing import Optional, Union, Any
 import json
 import re
 import os
+import sys
 import httpx  # type: ignore
 
 from dotenv import load_dotenv
-from typing import Optional, Union, Any
+import pandas as pd  # type: ignore
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -132,8 +134,6 @@ def prepare_vector_search_request(request_json_file: Union[str, None], query: Un
 
     return request_dict
 
-def prepare_folders_request(request_json_file: Union[str, None], ) -> dict:
-    return {}
 
 def add_normal_chat_message(role: str, message: str, json_template: dict):
     """
@@ -240,3 +240,65 @@ async def send_request(request_dict: dict, api_endpoint: str) -> dict:
 
     return response_dict
 
+def print_response(response_dict: dict, output_file: Optional[str] = None) -> None:
+    """
+    レスポンスを表示する関数
+    output_typeが指定されている場合、その形式で出力する
+    対応する形式は以下の通り
+    - tsv: テキスト形式で出力
+    - csv: CSV形式で出力
+    - xlsx: Excel形式で出力
+    - その他: JSON形式で出力
+    :param response_dict: レスポンス辞書
+    :param output_file: 出力ファイル名
+    :return: なし
+
+    """
+    if not output_file:
+        print(json.dumps(response_dict, ensure_ascii=False, indent=4))
+        return
+    if output_file.endswith(".xlsx"):
+        # Excel形式で出力
+        df = pd.DataFrame(response_dict).replace('\x0d', '', regex=True)
+        df.to_excel(output_file, index=False, engine='openpyxl')
+    elif output_file.endswith(".tsv"):
+        # テキスト形式で出力
+        df = pd.DataFrame(response_dict)
+        df.to_csv(output_file, sep="\t", index=False, encoding="utf-8")
+    elif output_file.endswith(".csv"):
+        # CSV形式で出力
+        df = pd.DataFrame(response_dict)
+        df.to_csv(output_file, index=False, encoding="utf-8")
+    else:
+        with open(output_file, "w", encoding="utf-8", newline="") as output_stream:
+            # デフォルトはJSON形式で出力
+            json.dump(response_dict, output_stream, ensure_ascii=False, indent=4)
+
+from typing import Sequence, Hashable
+
+def prepare_folders_request(file_path: str) -> dict[str, Any]:
+    """
+    コンテンツフォルダのリクエストを準備する関数
+    file_pathが指定されている場合はそのファイルを読み込み、リクエストを作成する。
+    file_pathはjson、xlsxのいずれかの形式である必要がある。
+    :param file_path: JSONまたはExcelファイルのパス
+    :return: リクエスト辞書
+    """
+    records_dict: list[dict[Hashable, Any]] = []
+    if not file_path:
+        return {}
+
+    if file_path.endswith(".json"):
+        # JSONファイルからリクエストを作成する
+        with open(file_path, "r", encoding="utf-8") as f:
+            records_dict = json.load(f)
+    elif file_path.endswith(".xlsx"):
+        # Excelファイルからリクエストを作成する
+        df = pd.read_excel(file_path)
+        records_dict = df.to_dict(orient="records")
+    else:
+        raise ValueError("file_path must be a JSON or Excel file.")
+    request_dict = {
+        "content_folder_requests": records_dict
+    }
+    return request_dict

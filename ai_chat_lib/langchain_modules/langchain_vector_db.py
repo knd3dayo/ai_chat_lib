@@ -93,8 +93,9 @@ class LangChainVectorDB:
         return len(doc_ids)    
 
     def _delete_collection(self):
-        self.db.delete_collection()
-        # self.db.persist()
+        # self.dbがdelete_collectionメソッドを持っている場合はそれを呼び出す
+        if hasattr(self.db, "delete_collection"):
+            self.db.delete_collection() # type: ignore
 
     async def __add_document(self, document: Document):
         # ベクトルDB固有の保存メソッドを呼び出し                

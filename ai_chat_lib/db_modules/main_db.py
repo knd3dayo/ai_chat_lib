@@ -90,22 +90,10 @@ class ContentFoldersCatalog:
         request_dict: dict = json.loads(request_json)
         # content_folderを取得
         content_folders = ContentFoldersCatalog.get_content_folder_requelst_objects(request_dict)
-        if len(content_folders) == 0:
-            raise ValueError("content_folder is not set")
-        
         # MainDBを取得
         main_db = MainDB()
-        # フォルダの情報を更新
         for content_folder in content_folders:
-            # idがある場合
-            if content_folder.Id:
-                main_db.update_content_folder(content_folder)
-            # idがない場合でfolder_pathがある場合
-            elif content_folder.FolderPath:
-                # folder_pathからidを取得
-                content_folder.Id = main_db.get_content_folder_by_path(content_folder.FolderPath)
-                # idがある場合は更新、ない場合は新規作成
-                main_db.update_content_folder(content_folder)
+            main_db.update_content_folder(content_folder) 
 
         result: dict = {}
         return result
@@ -116,23 +104,11 @@ class ContentFoldersCatalog:
         request_dict: dict = json.loads(request_json)
         # content_folderを取得
         content_folders = ContentFoldersCatalog.get_content_folder_requelst_objects(request_dict)
-        if len(content_folders) == 0:
-            raise ValueError("content_folder is not set")
-        
         # MainDBを取得
         main_db = MainDB()
         # フォルダの情報を削除
         for content_folder in content_folders:
-            # idがある場合
-            if content_folder.Id:
-                main_db.delete_content_folder(content_folder)
-            # idがない場合でfolder_pathがある場合
-            elif content_folder.FolderPath:
-                # folder_pathからidを取得
-                content_folder.Id = main_db.get_content_folder_by_path(content_folder.FolderPath)
-                # idがある場合は削除
-                if content_folder.Id:
-                    main_db.delete_content_folder(content_folder)
+            main_db.delete_content_folder(content_folder)
 
         result: dict = {}
         return result
@@ -176,14 +152,14 @@ class ContentFoldersCatalog:
         return result
 
     def __init__(self, content_folder_dict: dict):
-        self.Id = content_folder_dict.get("id", "")
-        self.FolderTypeString = content_folder_dict.get("folder_type_string", "")
-        self.ParentId = content_folder_dict.get("parent_id", "")
-        self.FolderName = content_folder_dict.get("folder_name", "")
-        self.Description = content_folder_dict.get("description", "")
-        self.ExtendedPropertiesJson = content_folder_dict.get("extended_properties_json", "")
-        self.FolderPath = content_folder_dict.get("folder_path", "")
-        IsRootFolder = content_folder_dict.get("is_root_folder", 0)
+        self.Id: Union[str, None] = content_folder_dict.get("id", None)
+        self.FolderTypeString: Union[str, None] = content_folder_dict.get("folder_type_string", None)
+        self.ParentId: Union[str, None] = content_folder_dict.get("parent_id", None)
+        self.FolderName: Union[str, None] = content_folder_dict.get("folder_name", None)
+        self.Description: Union[str, None] = content_folder_dict.get("description", None)
+        self.ExtendedPropertiesJson: Union[str, None] = content_folder_dict.get("extended_properties_json", None)
+        self.FolderPath: Union[str, None] = content_folder_dict.get("folder_path", None)
+        IsRootFolder: Union[int, None] = content_folder_dict.get("is_root_folder", None)
 
         # is_root_folderがintの場合
         if type(IsRootFolder) == int:
@@ -209,12 +185,13 @@ class ContentFoldersCatalog:
         }
         if self.FolderPath:
             result["folder_path"] = self.FolderPath
-        else:
+        elif self.Id:
             # MainDBを取得
             main_db = MainDB()
             # フォルダの情報を取得
             content_folder_path = main_db.get_content_folder_path_by_id(self.Id)
-            result["folder_path"] = content_folder_path
+            if content_folder_path:
+                result["folder_path"] = content_folder_path
         return result
 
 class VectorDBItem:
@@ -1124,6 +1101,49 @@ class MainDB:
         # ContentFoldersCatalogにindexを追加
         db.__init_content_folder_catalog_index()
         
+    @classmethod
+    def __create_update_sql(cls, table_name: str, key: str, items: dict ) -> str:
+        # itemsからkeyをpopする
+        if key not in items:
+            raise ValueError(f"{key} is not in items.")
+        # itemsからkeyをpopする
+        key_value = items.pop(key)
+        key_str = ""
+        if type(key_value) == str:
+            key_str = f"{key} = '{key_value}'"
+        else:
+            key_str = f"{key} = {key_value}"
+
+        # itemsの値を文字列に変換する
+        items_str = ""
+        for k, v in items.items():
+            # Noneの場合はスキップ
+            if v is None:
+                continue
+            if type(v) == str:
+                items_str += f"{k} = '{v}', "
+            else:
+                items_str += f"{k} = {v}, "
+        # itemsの最後のカンマを削除する
+        items_str = items_str[:-2]
+        # SQL文を生成する
+        sql = f"UPDATE {table_name} SET {items_str} WHERE {key_str}"
+        return sql
+    
+    @classmethod
+    def __create_insert_sql(cls, table_name: str, items: dict) -> str:
+        insert_str = ""
+        for k, v in items.items():
+            if type(v) == str:
+                insert_str += f"{k} = '{v}', "
+            else:
+                insert_str += f"{k} = {v}, "
+        # itemsの最後のカンマを削除する
+        items_str = insert_str[:-2]
+        # SQL文を生成する
+        sql = f"INSERT INTO {table_name} SET {items_str}"
+        return sql
+    
 
     def __init__(self, db_path = ""):
         # db_pathが指定されている場合は、指定されたパスを使用する
@@ -1372,7 +1392,8 @@ class MainDB:
     # ContentFolder関連
     #########################################
     # idを指定して、idとfolder_nameとparent_idを取得する.再帰的に親フォルダを辿り、folderのパスを生成する
-    def get_content_folder_path_by_id(self, folder_id: str) -> str:
+    def get_content_folder_path_by_id(self, folder_id: str) -> Union[str, None]:
+
         def get_folder_name_recursively(folder_id: str, paths: list[str]) -> list[str]:
             # データベースへ接続
             with sqlite3.connect(self.db_path) as conn:
@@ -1393,16 +1414,19 @@ class MainDB:
                 parent_id = folder_dict.get("parent_id", "")
 
                 logger.info(f"Folder name: {folder_name}, Parent id: {parent_id}")
+                paths.append(folder_name)
 
                 # 親フォルダが存在する場合は再帰的に取得する
                 if parent_id:
                     paths = get_folder_name_recursively(parent_id, paths)
 
-                paths.append(folder_name)
             return paths
 
         # フォルダのパスを取得する
         paths = get_folder_name_recursively(folder_id, [])
+        if len(paths) == 0:
+            logger.info(f"Folder with id {folder_id} not found.")
+            return None
         # フォルダのパスを生成する
         folder_path = "/".join(reversed(paths))
         logger.info(f"get_content_folder_path_by_id: Folder path: {folder_path}")
@@ -1412,19 +1436,25 @@ class MainDB:
     def get_content_folder_by_path(self, folder_path: str) -> Union[ContentFoldersCatalog, None]:
         # フォルダのパスを分割する
         folder_names = folder_path.split("/")
-        # フォルダのパスを取得する
+        # ルートフォルダから順次フォルダ名を取得する
         folder_id = None
         for folder_name in folder_names:
             # データベースへ接続
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cur = conn.cursor()
-                cur.execute("SELECT * FROM ContentFoldersCatalog WHERE folder_name=? AND parent_id=?", (folder_name, folder_id))
+                # folder_idがNoneの場合は、ルートフォルダを取得する
+                if folder_id is None:
+                    cur.execute("SELECT * FROM ContentFoldersCatalog WHERE folder_name=? AND parent_id IS NULL", (folder_name,))
+                else:
+                    cur.execute("SELECT * FROM ContentFoldersCatalog WHERE folder_name=? AND parent_id=?", (folder_name, folder_id))
                 row = cur.fetchone()
 
                 # データが存在しない場合はNoneを返す
                 if row is None:
+                    logger.info(f"Folder with name {folder_name} not found in parent id {folder_id}.")
                     return None
+                logger.info(f"Folder with name {folder_name} found in parent id {folder_id}.")
 
                 folder_dict = dict(row)
                 folder_id = folder_dict.get("id", "")
@@ -1474,19 +1504,96 @@ class MainDB:
     def update_content_folder(self, folder: ContentFoldersCatalog):
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
-        if self.get_content_folder_by_id(folder.Id) is None:
+        id = None
+        if folder.Id:
+            folder_id_folder = self.get_content_folder_by_id(folder.Id)
+            if folder_id_folder:
+                id = folder_id_folder.Id
+        # folder_pathが指定されている場合は、folder_pathからFolderを取得する
+        elif folder.FolderPath:
+            folder_path_folder = self.get_content_folder_by_path(folder.FolderPath)
+            if folder_path_folder:
+                id = folder_path_folder.Id
+
+        if id is None:
             logger.info(f"ContentFolder {folder.FolderName} is not exists. Create new folder.")
-            cur.execute("INSERT INTO ContentFoldersCatalog VALUES (?, ?, ?, ?, ?, ?)", (folder.Id, folder.FolderTypeString, folder.ParentId, folder.FolderName, folder.Description, folder.ExtendedPropertiesJson))
+            if not folder.Id:
+                folder.Id = str(uuid.uuid4())
+            sql = f"INSERT INTO ContentFoldersCatalog (id, folder_type_string, parent_id, folder_name, description, extended_properties_json) VALUES (?, ?, ?, ?, ?, ?)"
+            logger.info(f"SQL: {sql}")
+            insert_params = (folder.Id, folder.FolderTypeString, folder.ParentId, folder.FolderName, folder.Description, folder.ExtendedPropertiesJson)
+            logger.info(f"Params: {insert_params}")
+            cur.execute(sql , insert_params)
         else:
+            # Idが存在する場合は、更新処理を行う
+            folder.Id = id
+            update_params = folder.to_dict()
+            # folder_pathは、ContentFoldersCatalogのテーブルには存在しないので、リセットする
+            update_params["folder_path"] = None
+
+            folder.FolderPath = None
             logger.info(f"ContentFolder {folder.FolderName} is exists. Update folder.")
-            cur.execute("UPDATE ContentFoldersCatalog SET folder_type_string=?, parent_id=?, folder_name=?, description=?, extended_properties_json=? WHERE Id=?", (folder.FolderTypeString, folder.ParentId, folder.FolderName, folder.Description, folder.ExtendedPropertiesJson, folder.Id))
+            sql = MainDB.__create_update_sql("ContentFoldersCatalog", "id", update_params)
+            logger.info(f"SQL: {sql}")
+            cur.execute(sql)
+
         conn.commit()
         conn.close()
 
+    def update_content_folder_by_path(self, folder: ContentFoldersCatalog):        
+        folder_path = folder.FolderPath
+        if not folder_path:
+            raise ValueError("folder_path is not set.")
+        # folder_pathを分割する
+        folder_names = folder_path.split("/")
+
+        if len(folder_names) <= 1:
+            # 現在の実装上、folder_path = ルートフォルダの階層の場合は処理不可
+            raise ValueError("folder_path is root folder. Please set folder_path to child folder.")
+
+        # 対象フォルダの上位階層のfolder_idをチェック. folder_idが存在しない場合は処理不可
+        parent: Union[ContentFoldersCatalog, None] = None
+        for folder_level in range(len(folder_names) - 1):
+            if folder_level == 0:
+                folder_name = folder_names[folder_level]
+            else:
+                # 0からfolder_levelまでのフォルダ名を取得する
+                folder_name = "/".join(folder_names[:folder_level + 1])
+
+            # folder_nameを取得する
+            parent = self.get_content_folder_by_path(folder_name)
+            if not parent:
+                raise ValueError(f"folder {folder_name} is not exists.")
+
+        # folderの更新処理。parent_idを更新する
+        if not parent:
+            raise ValueError(f"parent folder {folder.FolderPath} is not exists.")
+        
+        folder.ParentId = parent.Id
+        
+        # folder_type_stringが指定されていない場合は、parentのfolder_type_stringを引き継ぐ
+        if not folder.FolderTypeString:
+            folder.FolderTypeString = parent.FolderTypeString
+
+        # update_content_folderを呼び出す
+        self.update_content_folder(folder)
+
+
     def delete_content_folder(self, folder: ContentFoldersCatalog):
-        # childrenのidを取得する
-        children_ids = self.get_content_folder_child_ids(folder.Id)
-        delete_ids = [folder.Id] + children_ids
+        delete_ids = []
+        # folder_pathが指定されている場合は、folder_pathからFolderを取得する
+        if folder.FolderPath:
+            folder_path_folder = self.get_content_folder_by_path(folder.FolderPath)
+            if not folder_path_folder:
+                raise ValueError(f"folder {folder.FolderPath} is not exists.")
+            folder = folder_path_folder
+        
+        if folder.Id:
+            # childrenのidを取得する
+            children_ids = self.get_content_folder_child_ids(folder.Id)
+            delete_ids = [folder.Id] + children_ids
+        else:
+            raise ValueError("folder_id is not set.")
         # データベースへ接続
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
@@ -1495,7 +1602,6 @@ class MainDB:
             cur.execute("DELETE FROM ContentFoldersCatalog WHERE id=?", (delete_id,))
         conn.commit()
         conn.close()
-
 
     # childrenのidを取得する
     def get_content_folder_child_ids(self, folder_id: str) -> list[str]:

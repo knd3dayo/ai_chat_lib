@@ -1,3 +1,4 @@
+from typing import Union
 import datetime
 import json
 import openpyxl # type: ignore
@@ -11,7 +12,7 @@ class ExcelUtil:
         {"context": {"excel_request": {}}}の形式で渡される
         '''
         # contextを取得
-        request:dict = request_dict.get(cls.excel_request_name, None)
+        request:Union[dict, None] = request_dict.get(cls.excel_request_name, None)
         if not request:
             raise ValueError("request is not set.")
         # file_pathとdata_jsonを取得
@@ -36,7 +37,7 @@ class ExcelUtil:
         # excel_requestを取得
         file_path, excel_request = ExcelUtil.get_excel_request_objects(request_dict)
         # excel_sheet_nameを取得
-        sheet_name = excel_request.get("excel_sheet_name", None)
+        sheet_name = excel_request.get("excel_sheet_name", "")
 
         text = ExcelUtil.extract_text_from_sheet(file_path, sheet_name)
         return {"output": text}
@@ -73,6 +74,9 @@ class ExcelUtil:
         # アクティブなシートを取得
         ws = wb.active
         # シート名を設定
+        if ws is None:
+            ws = wb.create_sheet()
+
         ws.title = "Sheet1"
         # データを書き込む
         for row in data:
@@ -88,8 +92,9 @@ class ExcelUtil:
         ws = wb.active
         # データを取得
         data = []
-        for row in ws.iter_rows(values_only=True):
-            data.append(row)
+        if ws is not None:
+            for row in ws.iter_rows(values_only=True):
+                data.append(row)
         
         return data
 

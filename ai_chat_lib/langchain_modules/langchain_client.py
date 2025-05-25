@@ -2,9 +2,7 @@
 import json
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import AzureOpenAIEmbeddings
-from langchain_openai import AzureChatOpenAI
 from langchain_openai import OpenAIEmbeddings
-from langchain_openai import ChatOpenAI
 from typing import Any
 
 from ai_chat_lib.openai_modules.openai_util import OpenAIProps

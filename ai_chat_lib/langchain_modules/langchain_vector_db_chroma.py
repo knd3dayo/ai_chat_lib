@@ -63,6 +63,3 @@ class LangChainVectorDBChroma(LangChainVectorDB):
         metadata_list.extend(doc_dict.get("metadata", []))
 
         return ids, metadata_list
-
-        
-

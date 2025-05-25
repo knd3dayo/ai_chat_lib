@@ -41,5 +41,8 @@ webdriver-manager
 duckduckgo-search
 wikipedia
 
+# For Client
+pandas
+
 # flaml[automl]  # too large
 

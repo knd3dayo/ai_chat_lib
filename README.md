@@ -187,7 +187,7 @@ Options:
         "is_system": "システム用のベクトルDBか否か"
     },
     // フォルダ
-    "content_folder_request": {
+    "content_folder_requests": {
         "id" : "フォルダのID",
         "folder_name" : "フォルダ名",
         "folder_type_string": "フォルダの種別",
