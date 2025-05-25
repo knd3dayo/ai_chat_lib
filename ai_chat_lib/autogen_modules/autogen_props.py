@@ -131,7 +131,8 @@ class AutoGenProps:
         self.default_tools_path = default_tools.__file__
 
         # chat_object
-        self.chat_object: Union[AssistantAgent, CodeExecutorAgent, None] = None
+        from autogen_agentchat.teams import SelectorGroupChat
+        self.chat_object: Union[AssistantAgent, CodeExecutorAgent, SelectorGroupChat, None] = None
 
         # quit_flag 
         self.quit_flag = False
@@ -184,7 +185,7 @@ class AutoGenProps:
             agents.append(agent)
 
         # vector_search_agentsがある場合は、agentsに追加
-        vector_search_agents = self.__create_vector_search_agent_list(self.openai_props, self.vector_db_prop_list)
+        vector_search_agents = self.__create_vector_search_agent_list(self.openai_props, self.vector_search_requests)
         agents.extend(vector_search_agents)
 
         # エージェント名一覧を表示
@@ -226,14 +227,14 @@ class AutoGenProps:
             raise ValueError(f"VectorDBItem not found for name: {vector_search_request.name}")
 
         params["name"] = f"vector_searcher_{id}"
-        params["description"] = vector_db_props.Description
-        params["system_message"] = vector_db_props.SystemMessage
+        params["description"] = vector_db_props.description
+        params["system_message"] = vector_db_props.system_message
         # defaultのllm_config_nameを使って、model_clientを作成
         params["model_client"] = self.__load_client("default")
         # vector_search_toolを作成
         from ai_chat_lib.autogen_modules.vector_db_tools import create_vector_search_tool
         func = create_vector_search_tool(openai_props, [vector_search_request])
-        func_tool = FunctionTool(func, description=f"Vector Search Tool for {vector_db_props.Description}", name=f"vector_search_tool_{id}")
+        func_tool = FunctionTool(func, description=f"Vector Search Tool for {vector_db_props.description}", name=f"vector_search_tool_{id}")
         params["tools"] = [func_tool]
 
         return AssistantAgent(**params)
@@ -263,9 +264,14 @@ class AutoGenProps:
 
             # tool_namesが指定されている場合は、tool_dictを作成
             tool_dict_list = []
-            for tool_name in agent_dict.tool_names.split(","):
-                if not tool_name:
-                    continue
+            tool_names = agent_dict.tool_names
+            if isinstance(tool_names, str):
+                tool_names_list = [name.strip() for name in tool_names.split(",") if name.strip()]
+            elif isinstance(tool_names, list):
+                tool_names_list = [name for name in tool_names if name]
+            else:
+                tool_names_list = []
+            for tool_name in tool_names_list:
                 logger.debug(f"tool_name:{tool_name}")
                 func_tool = self.__create_tool(tool_name)
                 tool_dict_list.append(func_tool)
@@ -273,12 +279,19 @@ class AutoGenProps:
             # vector_search_toolを作成
             from ai_chat_lib.autogen_modules.vector_db_tools import create_vector_search_tool
             import uuid
-            for vector_db_item in json.loads(agent_dict.vector_db_items):
+            vector_db_items = agent_dict.vector_db_items
+            if isinstance(vector_db_items, str):
+                vector_db_items_list = json.loads(vector_db_items)
+            elif isinstance(vector_db_items, list):
+                vector_db_items_list = vector_db_items
+            else:
+                vector_db_items_list = []
+            for vector_db_item in vector_db_items_list:
                 id = str(uuid.uuid4()).replace('-', '_')
                 func = create_vector_search_tool(openai_props, [vector_db_item])
-                vector_db_props = VectorDBItem(vector_db_item)
+                vector_db_props = VectorDBItem(**vector_db_item)
                 func_tool = FunctionTool(
-                    func, description=f"Vector Search Tool for {vector_db_props.Description}", 
+                    func, description=f"Vector Search Tool for {vector_db_props.description}", 
                     name=f"vector_search_tool_{id}",
                     global_imports=[" from typing import Annotated"]
                     )
@@ -435,12 +448,13 @@ class AutoGenProps:
             raise ValueError("chat_object is None")
 
         # session_tokenを登録
-        AutoGenProps.register_session_token(self.session_token)
+        if self.session_token is not None:
+            AutoGenProps.register_session_token(self.session_token)
         cancel_token: CancellationToken = CancellationToken()
 
         async for message in self.chat_object.run_stream(task=initial_message, cancellation_token=cancel_token):
             # session_tokensにsesson_tokenがない場合は、処理を中断
-            if AutoGenProps.session_tokens.get(self.session_token) is None:
+            if self.session_token is None or AutoGenProps.session_tokens.get(self.session_token) is None:
                 logger.debug("request cancel")
                 cancel_token.cancel()    
                 break

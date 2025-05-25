@@ -21,7 +21,7 @@ class FileUtil:
         {"context": {"file_request": {}}}の形式で渡される
         '''
         # contextを取得
-        request:dict = request_dict.get(cls.file_request_name, None)
+        request = request_dict.get(cls.file_request_name, None)
         if not request:
             raise ValueError("request is not set.")
         return request
@@ -34,7 +34,8 @@ class FileUtil:
         file_request = FileUtil.get_file_request_objects(request_dict)
         # file_pathを取得
         filename = file_request.get("file_path", None)
-        text: str =  await FileUtil.extract_text_from_file_async(filename)
+        from typing import Optional
+        text: Optional[str] = await FileUtil.extract_text_from_file_async(filename)
         return {"output": text}
 
     @classmethod
@@ -49,22 +50,26 @@ class FileUtil:
         base64_data = file_request.get("base64_data", None)
 
         # サイズが0の場合は空文字を返す
-        if len(base64_data) == 0:
+        if not base64_data or len(base64_data) == 0:
             return ""
 
         # base64からバイナリデータに変換
         base64_data_bytes = base64.b64decode(base64_data)
 
-        # 拡張子の指定。extensionが空の場合は設定しない.空でない場合は"."を先頭に付与
-        suffix = "" if extension == "" else "." + extension
+        # 拡張子の指定。extensionがNoneまたは空の場合は設定しない.空でない場合は"."を先頭に付与
+        suffix = ""
+        if extension is not None and extension != "":
+            suffix = "." + extension
         # base64データから一時ファイルを生成
+        import aiofiles.tempfile
         async with aiofiles.tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=suffix) as temp:
             await temp.write(base64_data_bytes)
             await temp.close()
             # 一時ファイルからテキストを抽出
-            text = await FileUtil.extract_text_from_file_async(temp.name)
+            temp_path = temp.name if isinstance(temp.name, str) else str(temp.name)
+            text = await FileUtil.extract_text_from_file_async(temp_path)
             # 一時ファイルを削除
-            os.remove(temp.name)
+            os.remove(temp_path)
             return text
 
         return {"output": text}
@@ -170,7 +175,7 @@ class FileUtil:
         else:
             logger.error("Unsupported file type: " + res.output.mime_type)
 
-        return cls.sanitize_text(result)
+        return cls.sanitize_text(result if result is not None else "")
 
     # application/pdfのファイルを読み込んで文字列として返す関数
     @classmethod
@@ -204,7 +209,7 @@ class FileUtil:
         for slide in prs.slides:
             for shape in slide.shapes:
                 if hasattr(shape, "text"):
-                    output.write(shape.text)
+                    output.write(shape.text) # type: ignore
                     output.write("\n")
         
         return output.getvalue()
@@ -215,6 +220,7 @@ class FileUtil:
         result = ""
         if res.output.mime_type == "text/html":
             # text/htmlの場合
+            from bs4 import BeautifulSoup
             # テキストを取得
             async with aiofiles.open(filename, "rb") as f:
                 text_data = await f.read()

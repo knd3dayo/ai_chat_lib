@@ -61,15 +61,15 @@ Options:
     // openaiを使用する場合の基本設定用ディクショナリ 
     "openai_props": {
         // str: OpenAIのAPIキー
-        "OpenAIKey": "" ,
+        "openai_key": "" ,
         // bool: Azure OpenAIを使用するか否か
-        "AzureOpenAI": false,
+        "azure_openai": false,
         // str: AureOpenAIのAPIバージョン AuzreOpenAI=trueの場合に設定する。
-        "AzureOpenAIAPIVersion": "",
+        "azure_openai_api_version": "",
         // str: AureOpenAIのエンドポイントURL AuzreOpenAI=trueの場合に設定する。
-        "AzureOpenAIEndpoint": "",
+        "azure_openai_endpoint": "",
         // str: カスタムモデル用のBaseURL OpenAI,AzureOpenAI以外のカスタムモデルを使用する場合に設定する。
-        "OpenAIBaseURL": ""
+        "openai_base_url": ""
     },
     // autogenを使用する場合の基本設定用ディクショナリ AutoGenを使用しない場合には不要
     "autogen_props": {
@@ -237,9 +237,9 @@ Options:
 
     // 共有タグの参照、編集のためのディクショナリ。現在は未使用
     "tag_item_requests" : [
-      {  "Id" : "タグID",
-        "Tag" : "タグ名",
-        "IsPinned" : "ピン留め状態"
+      {  "id" : "タグID",
+        "tag" : "タグ名",
+        "is_pinned" : "ピン留め状態"
         }
     ]
 

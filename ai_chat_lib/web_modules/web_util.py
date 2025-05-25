@@ -20,7 +20,8 @@ class WebUtil:
         {"context": {"web_request": {}}}の形式で渡される
         '''
         # contextを取得
-        request:dict = request_dict.get(cls.web_request_name, None)
+        from typing import Optional
+        request: Optional[dict] = request_dict.get(cls.web_request_name, None)
         if not request:
             raise ValueError("request is not set.")
         return request
@@ -33,6 +34,8 @@ class WebUtil:
         request = WebUtil.get_web_request_objects(request_dict)
 
         url = request.get("url", None)
+        if url is None:
+            raise ValueError("URL is not set in the web_request object.")
         text, urls = WebUtil.extract_webpage(url)
         result: dict[str, Any] = {}
         result["output"] = text

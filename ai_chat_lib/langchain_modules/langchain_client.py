@@ -20,7 +20,7 @@ class LangChainOpenAIClient:
         if not self.embedding_model:
             raise ValueError("embedding_model is not set.")
 
-        if (self.props.AzureOpenAI):
+        if (self.props.azure_openai):
             params = self.props.create_azure_openai_dict()
             # modelを設定する。
             params["model"] = self.embedding_model

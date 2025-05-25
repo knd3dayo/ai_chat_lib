@@ -35,7 +35,7 @@ class SQLDocStore(BaseStore):
         connection.close()
             
     
-    def mget(self, keys: Sequence[K]) -> list[Optional[V]]:
+    def mget(self, keys: Sequence[K]) -> list[Optional[object]]:
         # documentsテーブルから指定されたkeyのレコードを取得
         connection = self.engine.connect()
         result:list[Any] = []
@@ -65,6 +65,6 @@ class SQLDocStore(BaseStore):
         connection.commit()
         connection.close()
     
-    def yield_keys(self, *, prefix: Optional[str] = None) -> Union[Iterator[K], Iterator[str]]:
+    def yield_keys(self, *, prefix: Optional[str] = None) -> Union[Iterator[object], Iterator[str]]:
         return iter([])
     

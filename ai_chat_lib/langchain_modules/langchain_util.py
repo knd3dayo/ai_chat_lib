@@ -34,89 +34,6 @@ class RetrievalQAUtil:
         # ツールのリストを作成
         self.tools = self.create_vector_search_tools(self.client, self.vector_search_requests)
 
-    def create_agent_executor(self):
-        '''
-        # see https://python.langchain.com/api_reference/langchain/agents/langchain.agents.react.agent.create_react_agent.html
-        '''
-        template = '''Answer the following questions as best you can. You have access to the following tools:
-
-            {tools}
-
-            Use the following format:
-
-            Question: the input question you must answer
-            Thought: Do I need to use a tool? (Yes or No)
-            Action: the action to take, should be one of [{tool_names}], if using a tool, otherwise answer on your own
-            Action Input: the input to the action
-            Observation: the result of the action
-            ... (this Thought/Action/Action Input/Observation can repeat N times)
-            Thought: I now know the final answer
-            Final Answer: the final answer to the original input question
-
-            Begin!
-
-            Question: {input}
-            Thought:{agent_scratchpad}'''
-
-        prompt = PromptTemplate.from_template(template)
-        # ChatAgentオブジェクトを作成
-        chat_agent = create_react_agent(
-                self.client.get_completion_client(),
-                self.tools,
-                prompt
-        )
-        agent_executor = AgentExecutor(
-            agent=chat_agent, tools=self.tools, 
-            return_source_documents=True,
-            return_intermediate_steps=True,
-            stream_runnable=False,
-            verbose=True,
-            handle_parsing_errors = True
-            )
-        return agent_executor
-
-    def process_intermadiate_steps(self, intermediate_steps):
-        '''
-        # 関数の説明
-        # intermediate_stepsを処理する。
-        # 
-        # 引数
-        # intermediate_steps: list
-        #   intermediate_steps
-        # 戻り値
-        # なし
-        # 例
-        # process_intermadiate_steps(intermediate_steps)
-        '''
-        page_content_list = []
-        page_source_list = []
-        #  verbose情報
-        verbose_list = []
-        logger.debug(f"intermediate_steps:{intermediate_steps}")
-
-        for step in intermediate_steps:
-            # 0: AgentAction, 1: Observation ( create_vector_search_toolsで作成したツールを使っている場合はlist[Document]が返る)
-            observation = step[1]
-            if not isinstance(observation, list):
-                continue
-            # source, source_urlを取得
-            for source_document in observation:
-                if not isinstance(source_document, Document):
-                    continue
-                source = source_document.metadata.get("source","")
-                source_url = source_document.metadata.get("source_url","")
-                
-                page_content_list.append(source_document.page_content)
-                page_source_list.append({"source": source, "source_url": source_url})
-        
-            # verbose情報を取得
-            verbose = self.__serialize_intermediate_step(step)
-            verbose_list.append(verbose)
-        
-        # verbose情報をjson文字列に変換
-        verbose_json = json.dumps(verbose_list, ensure_ascii=False, indent=4)    
-        
-        return page_content_list, page_source_list, verbose_json
     
     # intermediate_stepsをシリアライズする
     def __serialize_intermediate_step(self, step):
@@ -136,13 +53,13 @@ class RetrievalQAUtil:
             vector_db_item: VectorDBItem = item.get_vector_db_item()
             # ベクトルDBのURLを取得
             # description item.VectorDBDescriptionが空の場合はデフォルトの説明を設定
-            description = vector_db_item.Description
-            vector_db_url = vector_db_item.VectorDBURL
+            description = vector_db_item.description
+            vector_db_url = vector_db_item.vector_db_url
             doc_store_url = ""
-            if vector_db_item.IsUseMultiVectorRetriever:
-                doc_store_url = vector_db_item.DocStoreURL
-            collection_name = vector_db_item.CollectionName
-            chunk_size = vector_db_item.ChunkSize
+            if vector_db_item.is_use_multi_vector_retriever:
+                doc_store_url = vector_db_item.doc_store_url
+            collection_name = vector_db_item.collection_name
+            chunk_size = vector_db_item.chunk_size
 
             # ツールを作成
             def vector_search_function(question: str) -> list[Document]:
@@ -233,7 +150,7 @@ class LangChainUtil:
         # LangChainVectorDBを生成
         vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
 
-        folder_id = embedding_data.FolderId
+        folder_id = embedding_data.folder_id
         # delete_folder_embeddingsを実行
         vector_db.delete_folder(folder_id)
 
@@ -287,20 +204,20 @@ class LangChainUtil:
 
         langchain_openai_client = LangChainOpenAIClient(openai_props, embedding_model)
 
-        vector_db_url = vector_db_props.VectorDBURL
-        if vector_db_props.IsUseMultiVectorRetriever:
-            doc_store_url = vector_db_props.DocStoreURL
+        vector_db_url = vector_db_props.vector_db_url
+        if vector_db_props.is_use_multi_vector_retriever:
+            doc_store_url = vector_db_props.doc_store_url
         else:
             doc_store_url = ""
-        collection_name = vector_db_props.CollectionName
-        chunk_size = vector_db_props.ChunkSize
+        collection_name = vector_db_props.collection_name
+        chunk_size = vector_db_props.chunk_size
 
         # ベクトルDBのタイプがChromaの場合
-        if vector_db_props.VectorDBTypeString == "Chroma":
+        if vector_db_props.vector_db_type_string == "Chroma":
             from ai_chat_lib.langchain_modules.langchain_vector_db_chroma import LangChainVectorDBChroma
             return LangChainVectorDBChroma(langchain_openai_client, vector_db_url, collection_name, doc_store_url, chunk_size)
         # ベクトルDBのタイプがPostgresの場合
-        elif vector_db_props.VectorDBTypeString == "PGVector":
+        elif vector_db_props.vector_db_type_string == "PGVector":
             from ai_chat_lib.langchain_modules.langchain_vector_db_pgvector import LangChainVectorDBPGVector
             return LangChainVectorDBPGVector(langchain_openai_client, vector_db_url, collection_name, doc_store_url, chunk_size)
         else:
@@ -330,10 +247,10 @@ class LangChainUtil:
             # デバッグ出力
             logger.info('ベクトルDBの設定')
             logger.info(f'''
-                        name:{vector_db_item.Name} vector_db_description:{vector_db_item.Description} 
-                        VectorDBTypeString:{vector_db_item.VectorDBTypeString} VectorDBURL:{vector_db_item.VectorDBURL} 
-                        CollectionName:{vector_db_item.CollectionName}'
-                        ChunkSize:{vector_db_item.ChunkSize} IsUseMultiVectorRetriever:{vector_db_item.IsUseMultiVectorRetriever}
+                        name:{vector_db_item.name} vector_db_description:{vector_db_item.description} 
+                        VectorDBTypeString:{vector_db_item.vector_db_type_string} VectorDBURL:{vector_db_item.vector_db_url} 
+                        CollectionName:{vector_db_item.collection_name}'
+                        ChunkSize:{vector_db_item.chunk_size} IsUseMultiVectorRetriever:{vector_db_item.is_use_multi_vector_retriever}
                         ''')
 
             logger.info(f'Query: {request.query}')

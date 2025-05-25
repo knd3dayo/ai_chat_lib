@@ -1,200 +1,148 @@
 import sqlite3
 import json
-from typing import List, Union, Optional
+from typing import List, Union, Optional, ClassVar
 import uuid
 import os
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, List
+from typing import Optional
+from typing import Optional, Union, List
+from typing import Optional, List, Dict, Any, Union
+from pydantic import BaseModel, Field
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
-
-class ContentFoldersCatalog:
-
+class ContentFoldersCatalog(BaseModel):
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE "ContentFoldersCatalog" (
-    "id" TEXT NOT NULL CONSTRAINT "PK_ContentFoldersCatalog" PRIMARY KEY,
-    "folder_type_string" TEXT NOT NULL,
-    "parent_id" TEXT NULL,
-    "folder_name" TEXT NOT NULL,
-    "description" TEXT NOT NULL,
-    "extended_properties_json" TEXT NOT NULL
-    "is_root_folder" INTEGER NOT NULL,
+        "id" TEXT NOT NULL CONSTRAINT "PK_ContentFoldersCatalog" PRIMARY KEY,
+        "folder_type_string" TEXT NOT NULL,
+        "parent_id" TEXT NULL,
+        "folder_name" TEXT NOT NULL,
+        "description" TEXT NOT NULL,
+        "extended_properties_json" TEXT NOT NULL,
+        "is_root_folder" INTEGER NOT NULL
     )
     '''
-    get_content_folder_requelsts_name = "content_folder_requests"
+    id: Optional[str] = None
+    folder_type_string: Optional[str] = None
+    parent_id: Optional[str] = None
+    folder_name: Optional[str] = None
+    description: Optional[str] = None
+    extended_properties_json: Optional[str] = None
+    folder_path: Optional[str] = None
+    is_root_folder: bool = False
+
+    get_content_folder_requests_name: ClassVar[str] = "content_folder_requests"
+
+    @field_validator("is_root_folder", mode="before")
+    @classmethod
+    def parse_is_root_folder(cls, v):
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, int):
+            return bool(v)
+        if isinstance(v, str):
+            return v.upper() == "TRUE"
+        return False
 
     @classmethod
-    def get_content_folder_requelst_objects(cls, request_dict: dict) -> list["ContentFoldersCatalog"]:
+    def get_content_folder_request_objects(cls, request_dict: dict) -> List["ContentFoldersCatalog"]:
         '''
-        {"content_folder_requsts": [] }の形式で渡される
+        {"content_folder_requests": [] }の形式で渡される
         '''
-        # contextを取得
-        content_folders = request_dict.get(cls.get_content_folder_requelsts_name, None)
+        content_folders = request_dict.get(cls.get_content_folder_requests_name, None)
         if not content_folders:
             raise ValueError("content_folder is not set.")
-        
-        # content_folderを生成
-        result = []
-        for item in content_folders:
-            content_folder = ContentFoldersCatalog(item)
-            result.append(content_folder)
-
-        return result
+        return [cls(**item) for item in content_folders]
 
     @classmethod
     def get_root_content_folders_api(cls):
-        # request_jsonからrequestを作成
-        # MainDBを取得
         main_db = MainDB()
-        # ルートフォルダの情報を取得
         content_folders = main_db.get_root_content_folders()
-
         result = {}
         result["content_folders"] = [item.to_dict() for item in content_folders]
         return result
-    
+
     @classmethod
     def get_content_folders_api(cls):
-        # request_jsonからrequestを作成
-        # MainDBを取得
         main_db = MainDB()
-        # フォルダの情報を取得
         content_folders = main_db.get_content_folders()
-
         result = {}
         result["content_folders"] = [item.to_dict() for item in content_folders]
         return result
-    
+
     @classmethod
     def get_content_folder_by_id_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # content_folder_idを取得
-        content_folder_id = ContentFoldersCatalog.get_content_folder_requelst_objects(request_dict)[0].Id
+        content_folder_id = cls.get_content_folder_request_objects(request_dict)[0].id
         if not content_folder_id:
             raise ValueError("content_folder_id is not set")
-        
-        # MainDBを取得
         main_db = MainDB()
-        # フォルダの情報を取得
         content_folder = main_db.get_content_folder_by_id(content_folder_id)
-
         result: dict = {}
         if content_folder is not None:
             result["content_folder"] = content_folder.to_dict()
         return result
-    
+
     @classmethod
     def update_content_folders_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # content_folderを取得
-        content_folders = ContentFoldersCatalog.get_content_folder_requelst_objects(request_dict)
-        # MainDBを取得
+        content_folders = cls.get_content_folder_request_objects(request_dict)
         main_db = MainDB()
         for content_folder in content_folders:
-            main_db.update_content_folder(content_folder) 
-
+            main_db.update_content_folder(content_folder)
         result: dict = {}
         return result
-    
+
     @classmethod
     def delete_content_folders_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # content_folderを取得
-        content_folders = ContentFoldersCatalog.get_content_folder_requelst_objects(request_dict)
-        # MainDBを取得
+        content_folders = cls.get_content_folder_request_objects(request_dict)
         main_db = MainDB()
-        # フォルダの情報を削除
         for content_folder in content_folders:
             main_db.delete_content_folder(content_folder)
-
         result: dict = {}
         return result
 
     @classmethod
     def get_content_folder_by_path_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # content_folder_pathを取得
         content_folder_path = request_dict.get("content_folder_path", None)
         if not content_folder_path:
             raise ValueError("content_folder_path is not set")
-        
-        # MainDBを取得
         main_db = MainDB()
-        # フォルダの情報を取得
         content_folder = main_db.get_content_folder_by_path(content_folder_path)
-
         result: dict = {}
         if content_folder is not None:
             result["content_folder"] = content_folder.to_dict()
         return result
-    
+
     @classmethod
     def get_content_folder_path_by_id_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # content_folder_idを取得
-        content_folder_id = ContentFoldersCatalog.get_content_folder_requelst_objects(request_dict)[0].Id
+        content_folder_id = cls.get_content_folder_request_objects(request_dict)[0].id
         if not content_folder_id:
             raise ValueError("content_folder_id is not set")
-        
-        # MainDBを取得
         main_db = MainDB()
-        # フォルダの情報を取得
         content_folder_path = main_db.get_content_folder_path_by_id(content_folder_id)
-
         result: dict = {}
         if content_folder_path is not None:
             result["content_folder_path"] = content_folder_path
         return result
 
-    def __init__(self, content_folder_dict: dict):
-        self.Id: Union[str, None] = content_folder_dict.get("id", None)
-        self.FolderTypeString: Union[str, None] = content_folder_dict.get("folder_type_string", None)
-        self.ParentId: Union[str, None] = content_folder_dict.get("parent_id", None)
-        self.FolderName: Union[str, None] = content_folder_dict.get("folder_name", None)
-        self.Description: Union[str, None] = content_folder_dict.get("description", None)
-        self.ExtendedPropertiesJson: Union[str, None] = content_folder_dict.get("extended_properties_json", None)
-        self.FolderPath: Union[str, None] = content_folder_dict.get("folder_path", None)
-        IsRootFolder: Union[int, None] = content_folder_dict.get("is_root_folder", None)
-
-        # is_root_folderがintの場合
-        if type(IsRootFolder) == int:
-            self.IsRootFolder = bool(IsRootFolder)
-        # is_root_folderがboolの場合
-        elif type(IsRootFolder) == bool:
-            self.IsRootFolder = IsRootFolder
-        # is_root_folderがstrの場合
-        elif type(IsRootFolder) == str and IsRootFolder.upper() == "TRUE":
-            self.IsRootFolder = True
-        else:
-            self.IsRootFolder = False
- 
     def to_dict(self) -> dict:
-        
-        result = {
-            "id": self.Id,
-            "folder_type_string": self.FolderTypeString,
-            "parent_id": self.ParentId,
-            "folder_name": self.FolderName,
-            "description": self.Description,
-            "extended_properties_json": self.ExtendedPropertiesJson,
-        }
-        if self.FolderPath:
-            result["folder_path"] = self.FolderPath
-        elif self.Id:
-            # MainDBを取得
+        result = self.model_dump()
+        # folder_pathがなければidから取得
+        if not result.get("folder_path") and self.id:
             main_db = MainDB()
-            # フォルダの情報を取得
-            content_folder_path = main_db.get_content_folder_path_by_id(self.Id)
+            content_folder_path = main_db.get_content_folder_path_by_id(self.id)
             if content_folder_path:
                 result["folder_path"] = content_folder_path
         return result
 
-class VectorDBItem:
+class VectorDBItem(BaseModel):
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE "VectorDBItems" (
@@ -213,32 +161,93 @@ class VectorDBItem:
     )    
     '''
     # コレクションの指定がない場合はデフォルトのコレクション名を使用
-    DEFAULT_COLLECTION_NAME = "ai_app_default_collection"
-    FOLDER_CATALOG_COLLECTION_NAME = "ai_app_folder_catalog_collection"
+    DEFAULT_COLLECTION_NAME: ClassVar[str] = "ai_app_default_collection"
+    FOLDER_CATALOG_COLLECTION_NAME: ClassVar[str] = "ai_app_folder_catalog_collection"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: str
+    vector_db_url: str
+    is_use_multi_vector_retriever: bool = False
+    doc_store_url: str
+    vector_db_type: int
+    collection_name: str = DEFAULT_COLLECTION_NAME
+    chunk_size: int = 0
+    default_search_result_limit: int = 10
+    default_score_threshold: float = 0.5
+    is_enabled: bool = False
+    is_system: bool = False
+    vector_db_type_string: Optional[str] = ""
+    system_message: Optional[str] = None
+    folder_id: Optional[str] = ""
+
+    @field_validator("is_use_multi_vector_retriever", mode="before")
+    @classmethod
+    def parse_bool_multi_vector(cls, v):
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, int):
+            return bool(v)
+        if isinstance(v, str):
+            return v.upper() == "TRUE"
+        return False
+
+    @field_validator("is_enabled", mode="before")
+    @classmethod
+    def parse_bool_enabled(cls, v):
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, int):
+            return bool(v)
+        if isinstance(v, str):
+            return v.upper() == "TRUE"
+        return False
+
+    @field_validator("is_system", mode="before")
+    @classmethod
+    def parse_bool_system(cls, v):
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, int):
+            return bool(v)
+        if isinstance(v, str):
+            return v.upper() == "TRUE"
+        return False
+
+    @field_validator("vector_db_type_string", mode="before")
+    @classmethod
+    def parse_vector_db_type_string(cls, v, values):
+        if v:
+            return v
+        t = values.get("vector_db_type", None)
+        if t == 1:
+            return "Chroma"
+        elif t == 2:
+            return "PGVector"
+        return ""
+
+    @field_validator("system_message", mode="before")
+    @classmethod
+    def parse_system_message(cls, v, values):
+        if v:
+            return v
+        return values.get("description", "")
 
     @classmethod
     def update_vector_db_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # vector_db_itemを取得
         vector_db_item = VectorDBItem.get_vector_db_item_object(request_dict)
-        # vector_dbを更新
         main_db = MainDB()
         main_db.update_vector_db_item(vector_db_item)
-        # 更新したVectorDBItemを返す
         result: dict = {}
         result["vector_db_item"] = vector_db_item.to_dict()
         return result
 
     @classmethod
     def delete_vector_db_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # vector_db_itemを取得
         vector_db_item = VectorDBItem.get_vector_db_item_object(request_dict)
-        # vector_dbを削除
         main_db = MainDB()
-        # ベクトルDBを削除する
         main_db.delete_vector_db_item(vector_db_item)
         result: dict = {}
         result["vector_db_item"] = vector_db_item.to_dict()
@@ -246,27 +255,20 @@ class VectorDBItem:
 
     @classmethod
     def get_vector_db_items_api(cls):
-        # request_jsonからrequestを作成
         main_db = MainDB()
-        # ベクトルDBの一覧を取得する
         vector_db_list = main_db.get_vector_db_items()
-
         result = {}
         result["vector_db_items"] = [item.to_dict() for item in vector_db_list]
         return result
 
     @classmethod
     def get_vector_db_item_by_id_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # vector_db_idを取得
-        vector_db_id =  VectorDBItem.get_vector_db_item_object(request_dict).Id
+        vector_db_id = VectorDBItem.get_vector_db_item_object(request_dict).id
         if not vector_db_id:
             raise ValueError("vector_db_id is not set")
-        # idからVectorDBItemを取得
         main_db = MainDB()
         vector_db_item = main_db.get_vector_db_by_id(vector_db_id)
-
         result: dict = {}
         if vector_db_item is not None:
             result["vector_db_item"] = vector_db_item.to_dict()
@@ -274,235 +276,112 @@ class VectorDBItem:
 
     @classmethod
     def get_vector_db_item_by_name_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # vector_db_nameを取得
-        vector_db_name = VectorDBItem.get_vector_db_item_object(request_dict).Name
+        vector_db_name = VectorDBItem.get_vector_db_item_object(request_dict).name
         if not vector_db_name:
             raise ValueError("vector_db_name is not set")
-
-        # nameからVectorDBItemを取得
         main_db = MainDB()
         vector_db = main_db.get_vector_db_by_name(vector_db_name)
-
         result: dict = {}
         if vector_db is not None:
             result["vector_db_item"] = vector_db.to_dict()
         return result
 
-    vector_db_item_request_name = "vector_db_item_request"
+    vector_db_item_request_name: ClassVar[str] = "vector_db_item_request"
+
     @classmethod
     def get_vector_db_item_object(cls, request_dict: dict) -> "VectorDBItem":
-        '''
-        {"vector_db_item_request": {}}の形式で渡される
-        '''
-        # vector_db_item_requestを取得
         vector_db_item_request = request_dict.get(cls.vector_db_item_request_name, None)
         if not vector_db_item_request:
             raise ValueError("vector_db_item_request is not set.")
-
-        # vector_db_itemを生成
-        vector_db_item = VectorDBItem(vector_db_item_request)
-        return vector_db_item    
-
-    def __init__(self, vector_db_item_dict: dict):
-        self.Id = vector_db_item_dict.get("id", "")
-        if not self.Id:
-            # UUIDを生成
-            self.Id = str(uuid.uuid4())
-        
-        self.Name = vector_db_item_dict.get("name", "")
-        self.Description = vector_db_item_dict.get("description", "")
-        self.VectorDBURL = vector_db_item_dict.get("vector_db_url", "")
-        value1 = vector_db_item_dict.get("is_use_multi_vector_retriever", 0)
-        if value1 == 1 or value1 == True:
-            self.IsUseMultiVectorRetriever = True
-        elif (type(value1) == str and value1.upper() == "TRUE"):
-            self.IsUseMultiVectorRetriever = True
-        else:
-            self.IsUseMultiVectorRetriever = False
-
-        self.DocStoreURL = vector_db_item_dict.get("doc_store_url", "")
-        self.VectorDBType = vector_db_item_dict.get("vector_db_type", 0)
-        self.CollectionName = vector_db_item_dict.get("collection_name", "")
-        self.ChunkSize = vector_db_item_dict.get("chunk_size", 0)
-        self.DefaultSearchResultLimit = vector_db_item_dict.get("default_search_result_limit", 10)
-        self.DefaultScoreThreshold = vector_db_item_dict.get("default_score_threshold", 0.5)
-        IsEnabled = vector_db_item_dict.get("is_enabled", 0)
-        IsSystem = vector_db_item_dict.get("is_system", 0)
-        # is_enabledがintの場合
-        if type(IsEnabled) == int:
-            self.IsEnabled = bool(IsEnabled)
-        # is_enabledがboolの場合
-        elif type(IsEnabled) == bool:
-            self.IsEnabled = IsEnabled
-        # is_enabledがstrの場合
-        elif type(IsEnabled) == str and IsEnabled.upper() == "TRUE":
-            self.IsEnabled = True
-        else:
-            self.IsEnabled = False
-        # is_systemがintの場合
-        if type(IsSystem) == int:
-            self.IsSystem = bool(IsSystem)
-        # is_systemがboolの場合
-        elif type(IsSystem) == bool:
-            self.IsSystem = IsSystem
-        # is_systemがstrの場合
-        elif type(IsSystem) == str and IsSystem.upper() == "TRUE":
-            self.IsSystem = True
-        else:
-            self.IsSystem = False
-
-        self.VectorDBTypeString :str = vector_db_item_dict.get("vector_db_type_string", "")
-        if not self.VectorDBTypeString:
-            if self.VectorDBType == 1:
-                self.VectorDBTypeString = "Chroma"
-            elif self.VectorDBType == 2:
-                self.VectorDBTypeString = "PGVector"
-            else:
-                raise ValueError("VectorDBType must be 1 or 2")
-
-        # system_message
-        self.SystemMessage = vector_db_item_dict.get("system_message", self.Description)
-        # FolderのID
-        self.FolderId = vector_db_item_dict.get("folder_id", "")
-
+        return VectorDBItem(**vector_db_item_request)
 
     def to_dict(self) -> dict:
-        return {
-            "id": self.Id,
-            "name": self.Name,
-            "description": self.Description,
-            "vector_db_url": self.VectorDBURL,
-            "is_use_multi_vector_retriever": self.IsUseMultiVectorRetriever,
-            "doc_store_url": self.DocStoreURL,
-            "vector_db_type": self.VectorDBType,
-            "vector_db_type_string": self.VectorDBTypeString,
-            "collection_name": self.CollectionName,
-            "chunk_size": self.ChunkSize,
-            "default_search_result_limit": self.DefaultSearchResultLimit,
-            "default_score_threshold": self.DefaultScoreThreshold,
-            "is_enabled": self.IsEnabled,
-            "is_system": self.IsSystem,
-        }
-    
+        return self.model_dump()
 
-class VectorSearchRequest:
+class VectorSearchRequest(BaseModel):
+    name: str = ""
+    query: str = ""
+    model: str = ""
+    search_kwargs: Dict[str, Any] = Field(default_factory=dict)
+    vector_db_item: Optional["VectorDBItem"] = None
 
-    vector_search_requests_name = "vector_search_requests"
+    vector_search_requests_name: ClassVar[str] = "vector_search_requests"
+
     @classmethod
-    def get_vector_search_requests_objects(cls, request_dict: dict) -> list["VectorSearchRequest"]:
+    def get_vector_search_requests_objects(cls, request_dict: dict) -> List["VectorSearchRequest"]:
         '''
-        {"vector_search_request": {}}の形式で渡される
+        {"vector_search_requests": [{...}, ...]} の形式で渡される
         '''
-        # contextを取得
-        request: Union[list[dict], None] = request_dict.get(cls.vector_search_requests_name, None)
+        request: Union[List[dict], None] = request_dict.get(cls.vector_search_requests_name, None)
         if not request:
             logger.info("vector search request is not set. skipping.")
             return []
-
         vector_search_requests = []
         for item in request:
-            # vector_search_requestsを生成
-            vector_search_request = VectorSearchRequest(item)
+            vector_search_request = VectorSearchRequest(**item)
+            # search_kwargsのアップデート
+            vector_search_request.search_kwargs = vector_search_request.__update_search_kwargs(vector_search_request.search_kwargs)
             vector_search_requests.append(vector_search_request)
         return vector_search_requests
 
-    def __init__(self, item: dict):
-        self.name = item.get("name", "")
-        self.query = item.get("query", "")
-        self.model = item.get("model", "")
-        self.vector_db_item = None
-        # search_kwargsのアップデート
-        self.search_kwargs = self.__update_search_kwargs(item.get("search_kwargs", {}))
-
-    def __update_search_kwargs(self, kwargs: dict):
-        # filterが存在する場合
+    def __update_search_kwargs(self, kwargs: dict) -> dict:
         filter = kwargs.get("filter", None)
         if not filter:
             logger.debug("__update_search_kwargs: filter is not set.")
             return kwargs
-        # folder_pathが指定されている場合はfolder_pathからfolder_idを取得する
         folder_path = filter.get("folder_path", None)
         if folder_path:
             logger.info(f"__update_search_kwargs: folder_path: {folder_path}")
-            # MainDBを取得
             main_db = MainDB()
-            # folder_pathからfolder_idを取得
-            temp_folder_id = main_db.get_content_folder_path_by_id(folder_path)
-            if temp_folder_id:
-                kwargs["filter"]["folder_id"] = temp_folder_id
-        
-            del kwargs["filter"]["folder_path"]
+            temp_folder = main_db.get_content_folder_by_path(folder_path)
+            if temp_folder and temp_folder.id:
+                kwargs["filter"]["folder_id"] = temp_folder.id
+            kwargs["filter"].pop("folder_path", None)
         else:
             logger.info("__update_search_kwargs: folder_path is not set.")
-
         return kwargs
 
-    def get_vector_db_item(self) -> VectorDBItem:
+    def get_vector_db_item(self) -> "VectorDBItem":
         if self.vector_db_item:
             return self.vector_db_item
-
-        # nameからVectorDBItemを取得
         main_db = MainDB()
         vector_db_item = main_db.get_vector_db_by_name(self.name)
         if not vector_db_item:
             raise ValueError("VectorDBItem is not found.")
         return vector_db_item
 
-
     def to_dict(self) -> dict:
-        return {
-            "name": self.name,
-            "query": self.query,
-            "model": self.model,
-            "search_kwargs": self.search_kwargs
-        }
-    
+        return self.model_dump()
 
-class EmbeddingData:
+class EmbeddingData(BaseModel):
+    name: str
+    model: str
+    source_id: str
+    folder_id: str = Field(alias="FolderId")
+    description: str = ""
+    content: str
+    source_path: str = ""
+    git_repository_url: str = ""
+    git_relative_path: str = ""
+    image_url: str = ""
 
-
-    embedding_request_name = "embedding_request"
+    embedding_request_name: ClassVar[str] = "embedding_request"
 
     @classmethod
     def get_embedding_request_objects(cls, request_dict: dict) -> "EmbeddingData":
         '''
         {"embedding_request": {}}の形式で渡される
         '''
-        # contextを取得
-
         request: Optional[dict] = request_dict.get(cls.embedding_request_name, None)
         if not request:
             raise ValueError("request is not set.")
-        # MainDBを取得
-    
-        return EmbeddingData(request)
+        return EmbeddingData(**request)
 
-    def __init__(self, item: dict):
-    # nameからVectorDBItemを取得
-        name = item.get("name", None)
-        if not name:
-            raise ValueError("name is not set.")
-        
-        model = item.get("model", None)
-        if not model:
-            raise ValueError("model is not set.")
+    def to_dict(self) -> dict:
+        return self.model_dump()
 
-        # request_jsonをdictに変換
-        self.name = name
-        self.model = model
-
-        self.source_id = item["source_id"]
-        self.FolderId = item["folder_id"]
-        self.description = item.get("description", "")
-        self.content = item["content"]
-        self.source_path = item.get("source_path", "")
-        self.git_repository_url = item.get("git_repository_url", "")
-        self.git_relative_path = item.get("git_relative_path", "")
-        self.image_url = item.get("image_url", "")
-
-class TagItem:
+class TagItem(BaseModel):
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE "TagItems" (
@@ -511,231 +390,156 @@ class TagItem:
     "is_pinned" INTEGER NOT NULL
     )
     '''
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tag: str
+    is_pinned: bool = False
+
+    @field_validator("is_pinned")
     @classmethod
-    def get_tag_item_objects(cls, request_dict: dict) -> list["TagItem"]:
+    def parse_is_pinned(cls, v):
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, int):
+            return bool(v)
+        if isinstance(v, str):
+            return v.upper() == "TRUE"
+        return False
+
+    @classmethod
+    def get_tag_item_objects(cls, request_dict: dict) -> List["TagItem"]:
         '''
         {"tag_item_requests": []}の形式で渡される
         '''
-        # contextを取得
-        tag_items: Optional[list[dict]] = request_dict.get("tag_item_requests", None)
+        tag_items: Optional[List[dict]] = request_dict.get("tag_item_requests", None)
         if not tag_items:
             raise ValueError("tag_items is not set.")
-        
-        # TagItemを生成
-        tag_items_list = []
-        for item in tag_items:
-            tag_item = TagItem(item)
-            tag_items_list.append(tag_item)
-
-        return tag_items_list
+        return [cls(**item) for item in tag_items]
 
     @classmethod
     def get_tag_items_api(cls, request_json: str):
-        # request_jsonからrequestを作成
-        # request_dict: dict = json.loads(request_json)
-        # tag_itemsを取得
-        # MainDBを取得
         main_db = MainDB()
-        # タグの一覧を取得
         tag_items = main_db.get_tag_items()
         result: dict = {}
-        result["tag_items"] = [item.to_dict() for item in tag_items]
+        result["tag_items"] = [item.dict() for item in tag_items]
         return result
 
     @classmethod
     def update_tag_items_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # tag_itemsを取得
         tag_items = TagItem.get_tag_item_objects(request_dict)
-        # tag_itemsを更新
-        # MainDBを取得
         main_db = MainDB()
-        # タグを更新
         for tag_item in tag_items:
             main_db.update_tag_item(tag_item)
-
         result: dict = {}
         return result
-    
+
     @classmethod
     def delete_tag_items_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # tag_itemsを取得
         tag_items = TagItem.get_tag_item_objects(request_dict)
-        # MainDBを取得
         main_db = MainDB()
-        # タグを削除
         for tag_item in tag_items:
             main_db.delete_tag_item(tag_item)
-
         result: dict = {}
         return result
 
-
-
-    def __init__(self, tag_item_dict: dict):
-        self.Id = tag_item_dict.get("id", "")
-        if not self.Id:
-            # UUIDを生成
-            self.Id = str(uuid.uuid4())
-        self.Tag = tag_item_dict.get("tag", "")
-        is_pinned = tag_item_dict.get("is_pinned", 0)
-        if type(is_pinned) == int:
-            self.IsPinned = bool(is_pinned)
-        elif type(is_pinned) == bool:
-            self.IsPinned = is_pinned
-        elif type(is_pinned) == str and is_pinned.upper() == "TRUE":
-            self.IsPinned = True
-        else:
-            self.IsPinned = False
-
     def to_dict(self) -> dict:
-        return {
-            "id": self.Id,
-            "tag": self.Tag,
-            "is_pinned": self.IsPinned
-        }
-    
+        return self.dict()
 
-class AutogentLLMConfig:
+class AutogentLLMConfig(BaseModel):
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE autogen_llm_configs (name TEXT, api_type TEXT, api_version TEXT, model TEXT, api_key TEXT, base_url TEXT)
     '''
+    name: str = ""
+    api_type: str = ""
+    api_version: str = ""
+    model: str = ""
+    api_key: str = ""
+    base_url: str = ""
+
     @classmethod
     def get_autogen_llm_config_list_api(cls):
-        # autogen_propsからllm_config_listを取得
-        # MainDBを取得
         main_db = MainDB()
-        # LLMConfigの一覧を取得
         llm_config_list = main_db.get_autogen_llm_config_list()
-
         if not llm_config_list:
             raise ValueError("llm_config_list is not set")
-        
         result = {}
         result["llm_config_list"] = [config.to_dict() for config in llm_config_list]
         return result
 
     @classmethod
     def get_autogen_llm_config_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # autogen_propsからllm_configを取得
         llm_config = AutogentLLMConfig.get_autogen_llm_config_object(request_dict)
         if not llm_config:
             raise ValueError("llm_config is not set")
-        
-        # MainDBを取得
         main_db = MainDB()
-        # LLMConfigを取得
         llm_config_result = main_db.get_autogen_llm_config(llm_config.name)
-
         result: dict = {}
         if llm_config_result:
             result["llm_config"] = llm_config_result.to_dict()
-
         return result
 
     @classmethod
     def update_autogen_llm_config_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # autogen_propsからllm_configを取得
         llm_config = AutogentLLMConfig.get_autogen_llm_config_object(request_dict)
         if not llm_config:
             raise ValueError("llm_config is not set")
-        
-        # autogen_propsを更新
-        # MainDBを取得
         main_db = MainDB()
-        # LLMConfigを更新
         main_db.update_autogen_llm_config(llm_config)
-
         result: dict = {}
         return result
 
     @classmethod
     def delete_autogen_llm_config_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # autogen_propsからllm_configを取得
         llm_config = AutogentLLMConfig.get_autogen_llm_config_object(request_dict)
         if not llm_config:
             raise ValueError("llm_config is not set")
-        
-        # MainDBを取得
         main_db = MainDB()
-        # LLMConfigを削除
         main_db.delete_autogen_llm_config(llm_config)
-
         result: dict = {}
         return result
 
-    autogen_llm_config_request_name = "autogen_llm_config_request"
+    autogen_llm_config_request_name: ClassVar[str] = "autogen_llm_config_request"
+
     @classmethod
     def get_autogen_llm_config_object(cls, request_dict: dict) -> "AutogentLLMConfig":
-        '''
-        {"autogen_llm_config_request": {}}の形式で渡される
-        '''
-        # autogen_llm_config_requestを取得
         request: Optional[dict] = request_dict.get(cls.autogen_llm_config_request_name, None)
         if not request:
             raise ValueError("request is not set.")
-        result = AutogentLLMConfig(request)
-        return result
-
-    def __init__(self, llm_config_dict: dict):
-        self.name = llm_config_dict.get("name", "")
-        self.api_type = llm_config_dict.get("api_type", "")
-        self.api_version = llm_config_dict.get("api_version", "")
-        self.model = llm_config_dict.get("model", "")
-        self.api_key = llm_config_dict.get("api_key", "")
-        self.base_url = llm_config_dict.get("base_url", "")
+        return AutogentLLMConfig(**request)
 
     def to_dict(self) -> dict:
-        return {
-            "name": self.name,
-            "api_type": self.api_type,
-            "api_version": self.api_version,
-            "model": self.model,
-            "api_key": self.api_key,
-            "base_url": self.base_url
-        }
+        return self.model_dump()
 
-class AutogenTools:
+class AutogenTools(BaseModel):
     '''
     以下のテーブル定義のデータを格納するクラス
-    CREATE TABLE autogen_tools (name TEXT, path TEXT, description TEXT)    '''
+    CREATE TABLE autogen_tools (name TEXT, path TEXT, description TEXT)
+    '''
+    name: str = ""
+    path: str = ""
+    description: str = ""
 
     @classmethod
-    def get_autogen_tool_list_api(cls, ):
-        # autogen_propsからtools_listを取得
-        # MainDBを取得
+    def get_autogen_tool_list_api(cls):
         main_db = MainDB()
-        # AutogenToolsの一覧を取得
         tools_list = main_db.get_autogen_tool_list()
-        
         result = {}
         result["tool_list"] = [tool.to_dict() for tool in tools_list]
         return result
 
     @classmethod
     def get_autogen_tool_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # autogen_propsからtoolを取得
         tool = AutogenTools.get_autogen_tool_object(request_dict)
         if not tool:
             raise ValueError("tool is not set")
-        
-        # MainDBを取得
         main_db = MainDB()
-        # AutogenToolsを取得
         tool_result = main_db.get_autogen_tool(tool.name)
-        
         result: dict = {}
         if tool_result:
             result["tool"] = tool_result.to_dict()
@@ -743,99 +547,113 @@ class AutogenTools:
 
     @classmethod
     def update_autogen_tool_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # autogen_propsからtoolを取得
         tool = AutogenTools.get_autogen_tool_object(request_dict)
         if not tool:
             raise ValueError("tool is not set")
-        
-        # MainDBを取得
         main_db = MainDB()
-        # AutogenToolsを更新
         main_db.update_autogen_tool(tool)
-
         result: dict = {}
         return result
 
     @classmethod
     def delete_autogen_tool_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # autogen_propsからtoolを取得
         tool = AutogenTools.get_autogen_tool_object(request_dict)
         if not tool:
             raise ValueError("tool is not set")
-        
-        # MainDBを取得
         main_db = MainDB()
-        # AutogenToolsを削除
         main_db.delete_autogen_tool(tool)
-
         result: dict = {}
         return result
 
+    autogen_tool_request_name: ClassVar[str] = "autogen_tool_request"
 
-    autogen_tool_request_name = "autogen_tool_request"
     @classmethod
     def get_autogen_tool_object(cls, request_dict: dict) -> "AutogenTools":
         '''
         {"autogen_tool_request": {}}の形式で渡される
         '''
-        # autogen_tool_requestを取得
         request: Optional[dict] = request_dict.get(cls.autogen_tool_request_name, None)
         if not request:
             raise ValueError("request is not set.")
-        # autogen_toolを生成
-        autogen_tool = AutogenTools(request)
-        return autogen_tool
+        return AutogenTools(**request)
 
-    def __init__(self, tools_dict: dict):
-        self.name = tools_dict.get("name", "")
-        self.path = tools_dict.get("path", "")
-        self.description = tools_dict.get("description", "")
-    
     def to_dict(self) -> dict:
-        return {
-            "name": self.name,
-            "path": self.path,
-            "description": self.description
-        }
+        return self.model_dump()
 
-class AutogenAgent:
+class AutogenAgent(BaseModel):
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE autogen_agents (
         name TEXT PRIMARY KEY, description TEXT, system_message TEXT, 
         code_execution INTEGER, llm_config_name TEXT, tool_names_json TEXT, vector_db_items_json TEXT)
     '''
+    name: str = ""
+    description: str = ""
+    system_message: str = ""
+    code_execution: bool = False
+    llm_config_name: str = ""
+    tool_names: Union[str, list, None] = ""
+    vector_db_items: Union[list, None] = []
+    tool_names_json: Optional[str] = None
+    vector_db_items_json: Optional[str] = None
+
+    @field_validator("code_execution", mode="before")
+    @classmethod
+    def parse_code_execution(cls, v):
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, int):
+            return bool(v)
+        if isinstance(v, str):
+            return v.upper() == "TRUE"
+        return False
+
+    @field_validator("tool_names", mode="before")
+    @classmethod
+    def parse_tool_names(cls, v, values):
+        if v is not None and v != "":
+            return v
+        json_val = values.get("tool_names_json", None)
+        if json_val:
+            try:
+                return json.loads(json_val)
+            except Exception:
+                return json_val
+        return ""
+
+    @field_validator("vector_db_items", mode="before")
+    @classmethod
+    def parse_vector_db_items(cls, v, values):
+        if v is not None and v != "":
+            return v
+        json_val = values.get("vector_db_items_json", None)
+        if json_val:
+            try:
+                return json.loads(json_val)
+            except Exception:
+                return json_val
+        return []
+
     @classmethod
     def get_autogen_agent_list_api(cls):
-        # MainDBを取得
         main_db = MainDB()
-        # AutogenAgentの一覧を取得
         agent_list = main_db.get_autogen_agent_list()
         if not agent_list:
             raise ValueError("agent_list is not set")
-        
         result = {}
         result["agent_list"] = [agent.to_dict() for agent in agent_list]
         return result
 
     @classmethod
     def get_autogen_agent_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # autogen_propsからagentを取得
         agent = AutogenAgent.get_autogen_agent_object(request_dict)
         if not agent:
             raise ValueError("agent is not set")
-
-        # MainDBを取得
         main_db = MainDB()
-        # AutogenAgentを取得
         agent_result = main_db.get_autogen_agent(agent.name)
-
         result: dict = {}
         if agent_result:
             result["agent"] = agent_result.to_dict()
@@ -843,143 +661,89 @@ class AutogenAgent:
 
     @classmethod
     def update_autogen_agent_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # autogen_propsからagentを取得
         agent = AutogenAgent.get_autogen_agent_object(request_dict)
         if not agent:
             raise ValueError("agent is not set")
-        
-        # MainDBを取得
         main_db = MainDB()
-        # AutogenAgentを更新
         main_db.update_autogen_agent(agent)
-
         result: dict = {}
         return result
 
     @classmethod
     def delete_autogen_agent_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # autogen_propsからagentを取得
         agent = AutogenAgent.get_autogen_agent_object(request_dict)
         if not agent:
             raise ValueError("agent is not set")
-        
-        # MainDBを取得
         main_db = MainDB()
-        # AutogenAgentを削除
         main_db.delete_autogen_agent(agent)
-
         result: dict = {}
         return result
 
-    autogen_agent_request_name = "autogen_agent_request"
+    autogen_agent_request_name: ClassVar[str] = "autogen_agent_request"
+
     @classmethod
     def get_autogen_agent_object(cls, request_dict: dict) -> "AutogenAgent":
-        '''
-        {"autogen_agent_request": {}}の形式で渡される
-        '''
-        # autogen_agent_requestを取得
         request: Optional[dict] = request_dict.get(cls.autogen_agent_request_name, None)
         if not request:
             raise ValueError("request is not set.")
-        # autogen_agentを生成
-        autogen_agent = AutogenAgent(request)
-        return autogen_agent
-
-    def __init__(self, agent_dict: dict):
-        self.name = agent_dict.get("name", "")
-        self.description = agent_dict.get("description", "")
-        self.system_message = agent_dict.get("system_message", "")
-        code_execution = agent_dict.get("code_execution", 0)
-        # code_executionの値をboolに変換
-        if type(code_execution) == int:
-            if code_execution == 1:
-                self.code_execution = True
-            else:
-                self.code_execution = False
-        elif type(code_execution) == bool:
-            self.code_execution = code_execution
-        elif type(code_execution) == str and code_execution.upper() == "TRUE":
-            self.code_execution = True
-        else:
-            self.code_execution = False
-
-        self.llm_config_name = agent_dict.get("llm_config_name", "")
-        self.tool_names = agent_dict.get("tool_names", "")
-        self.vector_db_items = agent_dict.get("vector_db_items", [])
-
-        self.tool_names_json = agent_dict.get("tool_names_json", None)
-        if self.tool_names_json:
-            # tool_names_jsonをdictに変換
-            self.tool_names = json.loads(self.tool_names_json)
-
-        self.vector_db_items_json = agent_dict.get("vector_db_items", None)
-        if self.vector_db_items_json:
-            # vector_db_items_jsonをdictに変換
-            self.vector_db_items = json.loads(self.vector_db_items_json)
+        return AutogenAgent(**request)
 
     def to_dict(self) -> dict:
-        return {
-            "name": self.name,
-            "description": self.description,
-            "system_message": self.system_message,
-            "code_execution": self.code_execution,
-            "llm_config_name": self.llm_config_name,
-            "tool_names": self.tool_names,
-            "vector_db_items": self.vector_db_items
-        }
+        return self.model_dump()
     
-class AutogenGroupChat:
+class AutogenGroupChat(BaseModel):
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE autogen_group_chats (name TEXT, description TEXT, llm_config_name TEXT, agent_names_json TEXT)
     '''
+    name: str = ""
+    description: str = ""
+    llm_config_name: str = ""
+    agent_names: list = Field(default_factory=list)
+    agent_names_json: Optional[str] = None
+
+    @field_validator("agent_names", mode="before")
+    @classmethod
+    def parse_agent_names(cls, v, values):
+        if v is not None and v != "":
+            return v
+        json_val = values.get("agent_names_json", None)
+        if json_val:
+            try:
+                return json.loads(json_val)
+            except Exception:
+                return json_val
+        return []
+
     @classmethod
     def get_autogen_group_chat_list_api(cls):
-        # MainDBを取得
         main_db = MainDB()
-        # AutogenGroupChatの一覧を取得
         group_chat_list = main_db.get_autogen_group_chat_list()
-
         if not group_chat_list:
             raise ValueError("group_chat_list is not set")
-        
         result = {}
         result["group_chat_list"] = [group_chat.to_dict() for group_chat in group_chat_list]
         return result
 
+    autogen_group_chat_request_name: ClassVar[str] = "autogen_group_chat_request"
 
-    autogen_group_chat_request_name = "autogen_group_chat_request"
     @classmethod
     def get_autogen_group_chat_object(cls, request_dict: dict) -> "AutogenGroupChat":
-        '''
-        {"autogen_group_chat_request": {}}の形式で渡される
-        '''
-        # autogen_group_chat_requestを取得
         request: Optional[dict] = request_dict.get(cls.autogen_group_chat_request_name, None)
         if not request:
             raise ValueError("request is not set.")
-        # autogen_group_chatを生成
-        autogen_group_chat = AutogenGroupChat(request)
-        return autogen_group_chat
+        return AutogenGroupChat(**request)
 
     @classmethod
     def get_autogen_group_chat_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # autogen_propsからgroup_chatを取得
         group_chat = AutogenGroupChat.get_autogen_group_chat_object(request_dict)
         if not group_chat:
             raise ValueError("group_chat is not set")
-
-        # MainDBを取得
         main_db = MainDB()
-        # AutogenGroupChatを取得
         group_chat_result = main_db.get_autogen_group_chat(group_chat.name)
-
         result: dict = {}
         if group_chat_result:
             result["group_chat"] = group_chat_result.to_dict()
@@ -987,56 +751,28 @@ class AutogenGroupChat:
 
     @classmethod
     def update_autogen_group_chat_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # autogen_propsからgroup_chatを取得
         group_chat = AutogenGroupChat.get_autogen_group_chat_object(request_dict)
         if not group_chat:
             raise ValueError("group_chat is not set")
-
-        # MainDBを取得
         main_db = MainDB()
-        # AutogenGroupChatを更新
         main_db.update_autogen_group_chat(group_chat)
-
         result: dict = {}
         return result
 
     @classmethod
     def delete_autogen_group_chat_api(cls, request_json: str):
-        # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # autogen_propsからgroup_chatを取得
         group_chat = AutogenGroupChat.get_autogen_group_chat_object(request_dict)
         if not group_chat:
             raise ValueError("group_chat is not set")
-        
-        # MainDBを取得
         main_db = MainDB()
-        # AutogenGroupChatを削除
         main_db.delete_autogen_group_chat(group_chat)
-
         result: dict = {}
         return result
 
-
-    def __init__(self, group_chat_dict: dict):
-        self.name = group_chat_dict.get("name", "")
-        self.description = group_chat_dict.get("description", "")
-        self.llm_config_name = group_chat_dict.get("llm_config_name", "")
-        self.agent_names = group_chat_dict.get("agent_names", [])
-        self.agent_names_json = group_chat_dict.get("agent_names_json", None)
-        if self.agent_names_json:
-            # agent_names_jsonをdictに変換
-            self.agent_names = json.loads(self.agent_names_json)
-
     def to_dict(self) -> dict:
-        return {
-            "name": self.name,
-            "description": self.description,
-            "llm_config_name": self.llm_config_name,
-            "agent_names": self.agent_names
-        }
+        return self.model_dump()
 
 class MainDB:
 
@@ -1186,7 +922,8 @@ class MainDB:
                 parent_id TEXT NULL,
                 folder_name TEXT NOT NULL,
                 description TEXT NOT NULL,
-                extended_properties_json TEXT NOT NULL
+                extended_properties_json TEXT NOT NULL,
+                is_root_folder INTEGER NOT NULL DEFAULT 0,
             )
         ''')
 
@@ -1266,7 +1003,7 @@ class MainDB:
                 "is_enable": True,
                 "is_system": False,
             }
-            vector_db_item = VectorDBItem(params)
+            vector_db_item = VectorDBItem(**params)
             # VectorDBItemのプロパティを設定
 
             # MainDBに追加
@@ -1467,7 +1204,7 @@ class MainDB:
         cur = conn.cursor()
         cur.execute("SELECT * FROM ContentFoldersCatalog WHERE parent_id IS NULL")
         rows = cur.fetchall()
-        root_folders = [ContentFoldersCatalog(dict(row)) for row in rows]
+        root_folders = [ContentFoldersCatalog(**dict(row)) for row in rows]
         conn.close()
         return root_folders
     
@@ -1477,7 +1214,7 @@ class MainDB:
         cur = conn.cursor()
         cur.execute("SELECT * FROM ContentFoldersCatalog")
         rows = cur.fetchall()
-        folders = [ContentFoldersCatalog(dict(row)) for row in rows]
+        folders = [ContentFoldersCatalog(**dict(row)) for row in rows]
         conn.close()
 
         return folders
@@ -1499,40 +1236,40 @@ class MainDB:
         folder_dict = dict(row)
         conn.close()
 
-        return ContentFoldersCatalog(folder_dict)
+        return ContentFoldersCatalog(**folder_dict)
 
     def update_content_folder(self, folder: ContentFoldersCatalog):
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
         id = None
-        if folder.Id:
-            folder_id_folder = self.get_content_folder_by_id(folder.Id)
+        if folder.id:
+            folder_id_folder = self.get_content_folder_by_id(folder.id)
             if folder_id_folder:
-                id = folder_id_folder.Id
+                id = folder_id_folder.id
         # folder_pathが指定されている場合は、folder_pathからFolderを取得する
-        elif folder.FolderPath:
-            folder_path_folder = self.get_content_folder_by_path(folder.FolderPath)
+        elif folder.folder_path:
+            folder_path_folder = self.get_content_folder_by_path(folder.folder_path)
             if folder_path_folder:
-                id = folder_path_folder.Id
+                id = folder_path_folder.id
 
         if id is None:
-            logger.info(f"ContentFolder {folder.FolderName} is not exists. Create new folder.")
-            if not folder.Id:
-                folder.Id = str(uuid.uuid4())
+            logger.info(f"ContentFolder {folder.folder_name} is not exists. Create new folder.")
+            if not folder.id:
+                folder.id = str(uuid.uuid4())
             sql = f"INSERT INTO ContentFoldersCatalog (id, folder_type_string, parent_id, folder_name, description, extended_properties_json) VALUES (?, ?, ?, ?, ?, ?)"
             logger.info(f"SQL: {sql}")
-            insert_params = (folder.Id, folder.FolderTypeString, folder.ParentId, folder.FolderName, folder.Description, folder.ExtendedPropertiesJson)
+            insert_params = (folder.id, folder.folder_type_string, folder.parent_id, folder.folder_name, folder.description, folder.extended_properties_json)
             logger.info(f"Params: {insert_params}")
             cur.execute(sql , insert_params)
         else:
-            # Idが存在する場合は、更新処理を行う
-            folder.Id = id
+            # idが存在する場合は、更新処理を行う
+            folder.id = id
             update_params = folder.to_dict()
             # folder_pathは、ContentFoldersCatalogのテーブルには存在しないので、リセットする
             update_params["folder_path"] = None
 
-            folder.FolderPath = None
-            logger.info(f"ContentFolder {folder.FolderName} is exists. Update folder.")
+            folder.folder_path = None
+            logger.info(f"ContentFolder {folder.folder_name} is exists. Update folder.")
             sql = MainDB.__create_update_sql("ContentFoldersCatalog", "id", update_params)
             logger.info(f"SQL: {sql}")
             cur.execute(sql)
@@ -1541,7 +1278,7 @@ class MainDB:
         conn.close()
 
     def update_content_folder_by_path(self, folder: ContentFoldersCatalog):        
-        folder_path = folder.FolderPath
+        folder_path = folder.folder_path
         if not folder_path:
             raise ValueError("folder_path is not set.")
         # folder_pathを分割する
@@ -1567,13 +1304,13 @@ class MainDB:
 
         # folderの更新処理。parent_idを更新する
         if not parent:
-            raise ValueError(f"parent folder {folder.FolderPath} is not exists.")
+            raise ValueError(f"parent folder {folder.folder_path} is not exists.")
         
-        folder.ParentId = parent.Id
+        folder.parent_id = parent.id
         
         # folder_type_stringが指定されていない場合は、parentのfolder_type_stringを引き継ぐ
-        if not folder.FolderTypeString:
-            folder.FolderTypeString = parent.FolderTypeString
+        if not folder.folder_type_string:
+            folder.folder_type_string = parent.folder_type_string
 
         # update_content_folderを呼び出す
         self.update_content_folder(folder)
@@ -1582,16 +1319,16 @@ class MainDB:
     def delete_content_folder(self, folder: ContentFoldersCatalog):
         delete_ids = []
         # folder_pathが指定されている場合は、folder_pathからFolderを取得する
-        if folder.FolderPath:
-            folder_path_folder = self.get_content_folder_by_path(folder.FolderPath)
+        if folder.folder_path:
+            folder_path_folder = self.get_content_folder_by_path(folder.folder_path)
             if not folder_path_folder:
-                raise ValueError(f"folder {folder.FolderPath} is not exists.")
+                raise ValueError(f"folder {folder.folder_path} is not exists.")
             folder = folder_path_folder
         
-        if folder.Id:
+        if folder.id:
             # childrenのidを取得する
-            children_ids = self.get_content_folder_child_ids(folder.Id)
-            delete_ids = [folder.Id] + children_ids
+            children_ids = self.get_content_folder_child_ids(folder.id)
+            delete_ids = [folder.id] + children_ids
         else:
             raise ValueError("folder_id is not set.")
         # データベースへ接続
@@ -1664,7 +1401,7 @@ class MainDB:
         tag_item_dict = dict(row)
         conn.close()
 
-        return TagItem(tag_item_dict)
+        return TagItem(**tag_item_dict)
     
     def get_tag_items(self) -> List[TagItem]:
         conn = sqlite3.connect(self.db_path)
@@ -1672,7 +1409,7 @@ class MainDB:
         cur = conn.cursor()
         cur.execute("SELECT * FROM TagItems")
         rows = cur.fetchall()
-        tag_items = [TagItem(dict(row)) for row in rows]
+        tag_items = [TagItem(**dict(row)) for row in rows]
         conn.close()
 
         return tag_items
@@ -1681,10 +1418,10 @@ class MainDB:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row 
         cur = conn.cursor()
-        if self.get_tag_item(tag_item.Id) is None:
-            cur.execute("INSERT INTO TagItems VALUES (?, ?, ?)", (tag_item.Id, tag_item.Tag, tag_item.IsPinned))
+        if self.get_tag_item(tag_item.id) is None:
+            cur.execute("INSERT INTO TagItems VALUES (?, ?, ?)", (tag_item.id, tag_item.tag, tag_item.is_pinned))
         else:
-            cur.execute("UPDATE TagItems SET tag=?, is_pinned=? WHERE id=?", (tag_item.Tag, tag_item.IsPinned, tag_item.Id))
+            cur.execute("UPDATE TagItems SET tag=?, is_pinned=? WHERE id=?", (tag_item.tag, tag_item.is_pinned, tag_item.id))
         conn.commit()
         conn.close()
 
@@ -1695,7 +1432,7 @@ class MainDB:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row 
         cur = conn.cursor()
-        cur.execute("DELETE FROM TagItems WHERE id=?", (tag_item.Id,))
+        cur.execute("DELETE FROM TagItems WHERE id=?", (tag_item.id,))
         conn.commit()
         conn.close()
 
@@ -1724,7 +1461,7 @@ class MainDB:
         vector_db_item_dict = self.get_vector_db_item_dict_by_id(vector_db_item_id)
         if vector_db_item_dict is None:
             return None
-        return VectorDBItem(vector_db_item_dict)
+        return VectorDBItem(**vector_db_item_dict)
 
     # nameを指定してVectorDBItemのdictを取得する
     def get_vector_db_item_dict_by_name(self, vector_db_item_name: str) -> Union[dict, None]:
@@ -1748,7 +1485,7 @@ class MainDB:
         vector_db_item_dict = self.get_vector_db_item_dict_by_name(vector_db_item_name)
         if vector_db_item_dict is None:
             return None
-        return VectorDBItem(vector_db_item_dict)
+        return VectorDBItem(**vector_db_item_dict)
     
     def get_vector_db_items(self) -> List[VectorDBItem]:
         conn = sqlite3.connect(self.db_path)
@@ -1756,7 +1493,7 @@ class MainDB:
         cur = conn.cursor()
         cur.execute("SELECT * FROM VectorDBItems")
         rows = cur.fetchall()
-        vector_db_items = [VectorDBItem(dict(row)) for row in rows]
+        vector_db_items = [VectorDBItem(**dict(row)) for row in rows]
         conn.close()
 
         return vector_db_items
@@ -1766,39 +1503,39 @@ class MainDB:
         vector_db_item = self.get_vector_db_by_id(vector_db_item_id)
         if vector_db_item is None:
             raise ValueError("VectorDBItem not found")
-        return vector_db_item.VectorDBURL
+        return vector_db_item.vector_db_url
     
     def update_vector_db_item(self, vector_db_item: VectorDBItem) -> VectorDBItem:
-        # VectorDBTypeStringからVectorDBTypeを取得
-        if vector_db_item.VectorDBTypeString == "Chroma":
-            vector_db_item.VectorDBType = 1
-        elif vector_db_item.VectorDBTypeString == "PGVector":
-            vector_db_item.VectorDBType = 2
+        # vector_db_type_stringからvector_db_typeを取得
+        if vector_db_item.vector_db_type_string == "Chroma":
+            vector_db_item.vector_db_type = 1
+        elif vector_db_item.vector_db_type_string == "PGVector":
+            vector_db_item.vector_db_type = 2
         else:
-            raise ValueError("VectorDBType must be 1 or 2")
+            raise ValueError("vector_db_type must be 1 or 2")
 
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
-        if self.get_vector_db_by_id(vector_db_item.Id) is None:
+        if self.get_vector_db_by_id(vector_db_item.id) is None:
             cur.execute("INSERT INTO VectorDBItems VALUES (?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                         (vector_db_item.Id, vector_db_item.Name, vector_db_item.Description, 
-                          vector_db_item.VectorDBURL, vector_db_item.IsUseMultiVectorRetriever, 
-                          vector_db_item.DocStoreURL, vector_db_item.VectorDBType, 
-                          vector_db_item.CollectionName, 
-                          vector_db_item.ChunkSize, vector_db_item.DefaultSearchResultLimit, 
-                          vector_db_item.DefaultScoreThreshold,
-                          vector_db_item.IsEnabled, vector_db_item.IsSystem)
+                         (vector_db_item.id, vector_db_item.name, vector_db_item.description, 
+                          vector_db_item.vector_db_url, vector_db_item.is_use_multi_vector_retriever, 
+                          vector_db_item.doc_store_url, vector_db_item.vector_db_type, 
+                          vector_db_item.collection_name, 
+                          vector_db_item.chunk_size, vector_db_item.default_search_result_limit, 
+                          vector_db_item.default_score_threshold,
+                          vector_db_item.is_enabled, vector_db_item.is_system)
                           )
         else:
             cur.execute("UPDATE VectorDBItems SET name=?, description=?, vector_db_url=?, is_use_multi_vector_retriever=?, doc_store_url=?, vector_db_type=?, collection_name=?, chunk_size=?, default_search_result_limit=?, default_score_threshold=?, is_enabled=?, is_system=? WHERE id=?",
-                         (vector_db_item.Name, vector_db_item.Description, vector_db_item.VectorDBURL, 
-                          vector_db_item.IsUseMultiVectorRetriever, vector_db_item.DocStoreURL, 
-                          vector_db_item.VectorDBType, vector_db_item.CollectionName, 
-                          vector_db_item.ChunkSize, 
-                          vector_db_item.DefaultSearchResultLimit, 
-                          vector_db_item.DefaultScoreThreshold,                          
-                          vector_db_item.IsEnabled, 
-                          vector_db_item.IsSystem, vector_db_item.Id)
+                         (vector_db_item.name, vector_db_item.description, vector_db_item.vector_db_url, 
+                          vector_db_item.is_use_multi_vector_retriever, vector_db_item.doc_store_url, 
+                          vector_db_item.vector_db_type, vector_db_item.collection_name, 
+                          vector_db_item.chunk_size, 
+                          vector_db_item.default_search_result_limit, 
+                          vector_db_item.default_score_threshold,                          
+                          vector_db_item.is_enabled, 
+                          vector_db_item.is_system, vector_db_item.id)
                           )
         conn.commit()
         conn.close()
@@ -1809,7 +1546,7 @@ class MainDB:
     def delete_vector_db_item(self, vector_db_item: VectorDBItem):
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
-        cur.execute("DELETE FROM VectorDBItems WHERE Id=?", (vector_db_item.Id,))
+        cur.execute("DELETE FROM VectorDBItems WHERE Id=?", (vector_db_item.id,))
         conn.commit()
         conn.close()
 
@@ -1822,7 +1559,7 @@ class MainDB:
         cur = conn.cursor()
         cur.execute("SELECT * FROM autogen_llm_configs")
         rows = cur.fetchall()
-        llm_configs = [AutogentLLMConfig(dict(row)) for row in rows]
+        llm_configs = [AutogentLLMConfig(**dict(row)) for row in rows]
         conn.close()
 
         return llm_configs
@@ -1841,7 +1578,7 @@ class MainDB:
         llm_config_dict = dict(row)
         conn.close()
 
-        return AutogentLLMConfig(llm_config_dict)
+        return AutogentLLMConfig(**llm_config_dict)
     
     def update_autogen_llm_config(self, llm_config: AutogentLLMConfig):
         conn = sqlite3.connect(self.db_path)
@@ -1874,7 +1611,7 @@ class MainDB:
         tool_dict = dict(row)
         conn.close()
 
-        return AutogenTools(tool_dict)
+        return AutogenTools(**tool_dict)
     
     def get_autogen_tool_list(self) -> List[AutogenTools]:
         conn = sqlite3.connect(self.db_path)
@@ -1882,7 +1619,7 @@ class MainDB:
         cur = conn.cursor()
         cur.execute("SELECT * FROM autogen_tools")
         rows = cur.fetchall()
-        tools = [AutogenTools(dict(row)) for row in rows]
+        tools = [AutogenTools(**dict(row)) for row in rows]
         conn.close()
 
         return tools
@@ -1913,7 +1650,7 @@ class MainDB:
         cur = conn.cursor()
         cur.execute("SELECT * FROM autogen_agents")
         rows = cur.fetchall()
-        agents = [AutogenAgent(dict(row)) for row in rows]
+        agents = [AutogenAgent(**dict(row)) for row in rows]
         conn.close()
 
         return agents
@@ -1931,7 +1668,7 @@ class MainDB:
         agent_dict = dict(row)
         conn.close()
 
-        return AutogenAgent(agent_dict)
+        return AutogenAgent(**agent_dict)
     
     def update_autogen_agent(self, agent: AutogenAgent):
         conn = sqlite3.connect(self.db_path)
@@ -1967,7 +1704,7 @@ class MainDB:
         cur = conn.cursor()
         cur.execute("SELECT * FROM autogen_group_chats")
         rows = cur.fetchall()
-        group_chats = [AutogenGroupChat(dict(row)) for row in rows]
+        group_chats = [AutogenGroupChat(**dict(row)) for row in rows]
         conn.close()
 
         return group_chats  
@@ -1986,7 +1723,7 @@ class MainDB:
         group_chat_dict = dict(row)
         conn.close()
 
-        return AutogenGroupChat(group_chat_dict)
+        return AutogenGroupChat(**group_chat_dict)
     
     def update_autogen_group_chat(self, group_chat: AutogenGroupChat):
         conn = sqlite3.connect(self.db_path)

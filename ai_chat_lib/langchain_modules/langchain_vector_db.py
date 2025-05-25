@@ -335,7 +335,7 @@ class LangChainVectorDB:
         # 既に存在するドキュメントを削除
         self.delete_document(params.source_id)
         # ドキュメントを格納する。
-        await self.add_document_list(params.content, params.description, params.FolderId, params.source_id, params.source_path, chunk_size=self.chunk_size)
+        await self.add_document_list(params.content, params.description, params.folder_id, params.source_id, params.source_path, chunk_size=self.chunk_size)
 
     # RateLimitErrorが発生した場合は、指数バックオフを行う
     async def add_doucment_with_retry(self, vector_db: VectorStore, documents: list[Document], max_retries: int = 5, delay: float = 1.0):

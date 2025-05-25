@@ -51,7 +51,7 @@ async def extract_file(file_path: Annotated[str, "File path"]) -> str:
     from ai_chat_lib.file_modules.file_util import FileUtil
     # Extract text from a temporary file
     text = await FileUtil.extract_text_from_file_async(file_path)
-    return text
+    return text if text is not None else ""
 
 def check_file(file_path: Annotated[str, "File path"]) -> bool:
     """
@@ -230,6 +230,8 @@ def global_vector_search(query: Annotated[str, "String to search for"]) -> list[
 
     props : AutoGenProps = autogen_props # type: ignore
     main_db = main_db = MainDB(props.autogen_db_path) 
+    if props.main_vector_db_id is None:
+        raise ValueError("main_vector_db_id is not set.")
     main_vector_db_item = main_db.get_vector_db_by_id(props.main_vector_db_id)
     vector_db_item_list = [] if main_vector_db_item is None else [main_vector_db_item]
     # vector_db_prop_listの各要素にinput_textを設定
@@ -254,13 +256,15 @@ def past_chat_history_vector_search(query: Annotated[str, "String to search for"
 
     props : AutoGenProps = autogen_props # type: ignore
     main_db = main_db = MainDB(props.autogen_db_path) 
+    if props.main_vector_db_id is None:
+        raise ValueError("main_vector_db_id is not set.")
     main_vector_db_item = main_db.get_vector_db_by_id(props.main_vector_db_id)
     if main_vector_db_item is None:
         raise ValueError("main_vector_db_id is not set.")
     if props.chat_history_folder_id is None:
         raise ValueError("chat_history_folder_id is not set.")
 
-    main_vector_db_item.FolderId = props.chat_history_folder_id
+    main_vector_db_item.folder_id = props.chat_history_folder_id
 
     vector_db_item_list = [] if main_vector_db_item is None else [main_vector_db_item]
     # vector_db_prop_listの各要素にinput_textを設定
@@ -433,6 +437,8 @@ def register_tool_agent(name: Annotated[str, "Function name"], doc: Annotated[st
     props : AutoGenProps = autogen_props # type: ignore
 
     # toolsディレクトリがない場合は作成
+    if not props.tool_dir_path:
+        raise ValueError("tool_dir_path is not set in props.")
     python_file_path = os.path.join(props.tool_dir_path, f"{name}.py")
 
     # toolsディレクトリに{name}.pyとして保存
@@ -441,7 +447,7 @@ def register_tool_agent(name: Annotated[str, "Function name"], doc: Annotated[st
 
     # main_dbに登録
     main_db = MainDB(props.autogen_db_path)
-    main_db.update_autogen_tool(AutogenTools({"name": name, "description": doc, "path": python_file_path}))
+    main_db.update_autogen_tool(AutogenTools(name=name, description=doc, path=python_file_path))
     
     message = f"Registered tool agent: {name}"
     logger.debug(message)
