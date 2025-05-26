@@ -834,9 +834,8 @@ class MainDB:
     @classmethod
     def __update_database(cls, db: "MainDB"):
         # DBのアップグレード処理
-        # ContentFoldersCatalogにindexを追加
-        db.__init_content_folder_catalog_index()
-        
+        pass
+
     @classmethod
     def __create_update_sql(cls, table_name: str, key: str, items: dict ) -> str:
         # itemsからkeyをpopする
@@ -923,7 +922,7 @@ class MainDB:
                 folder_name TEXT NOT NULL,
                 description TEXT NOT NULL,
                 extended_properties_json TEXT NOT NULL,
-                is_root_folder INTEGER NOT NULL DEFAULT 0,
+                is_root_folder INTEGER NOT NULL DEFAULT 0
             )
         ''')
 
@@ -976,6 +975,7 @@ class MainDB:
                 collection_name TEXT NOT NULL,
                 chunk_size INTEGER NOT NULL,
                 default_search_result_limit INTEGER NOT NULL,
+                default_score_threshold REAL NOT NULL DEFAULT 0.5,
                 is_enabled INTEGER NOT NULL,
                 is_system INTEGER NOT NULL
             )
@@ -1506,13 +1506,14 @@ class MainDB:
         return vector_db_item.vector_db_url
     
     def update_vector_db_item(self, vector_db_item: VectorDBItem) -> VectorDBItem:
-        # vector_db_type_stringからvector_db_typeを取得
-        if vector_db_item.vector_db_type_string == "Chroma":
-            vector_db_item.vector_db_type = 1
-        elif vector_db_item.vector_db_type_string == "PGVector":
-            vector_db_item.vector_db_type = 2
-        else:
-            raise ValueError("vector_db_type must be 1 or 2")
+        if not vector_db_item.vector_db_type:
+            # vector_db_type_stringからvector_db_typeを取得
+            if vector_db_item.vector_db_type_string == "Chroma":
+                vector_db_item.vector_db_type = 1
+            elif vector_db_item.vector_db_type_string == "PGVector":
+                vector_db_item.vector_db_type = 2
+            else:
+                raise ValueError("vector_db_type_string must be Chroma or PGVector")
 
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
