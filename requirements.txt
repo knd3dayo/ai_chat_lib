@@ -46,3 +46,5 @@ pandas
 
 # flaml[automl]  # too large
 
+# For MCP
+fastmcp
