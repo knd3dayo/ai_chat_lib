@@ -3,12 +3,11 @@ import json
 from typing import List, Union, Optional, ClassVar
 import uuid
 import os
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
 from typing import Optional, List
 from typing import Optional
 from typing import Optional, Union, List
 from typing import Optional, List, Dict, Any, Union
-from pydantic import BaseModel, Field
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -170,18 +169,17 @@ class VectorDBItem(BaseModel):
     vector_db_url: str
     is_use_multi_vector_retriever: bool = False
     doc_store_url: str
-    vector_db_type: int
     collection_name: str = DEFAULT_COLLECTION_NAME
     chunk_size: int = 0
     default_search_result_limit: int = 10
     default_score_threshold: float = 0.5
     is_enabled: bool = False
     is_system: bool = False
-    vector_db_type_string: Optional[str] = ""
+    vector_db_type: int = Field(default=0, ge=0, le=2, description="0: Chroma, 1: PGVector, 2: Other")
     system_message: Optional[str] = None
     folder_id: Optional[str] = ""
 
-    @field_validator("is_use_multi_vector_retriever", mode="before")
+    @field_validator("is_use_multi_vector_retriever")
     @classmethod
     def parse_bool_multi_vector(cls, v):
         if isinstance(v, bool):
@@ -192,7 +190,7 @@ class VectorDBItem(BaseModel):
             return v.upper() == "TRUE"
         return False
 
-    @field_validator("is_enabled", mode="before")
+    @field_validator("is_enabled")
     @classmethod
     def parse_bool_enabled(cls, v):
         if isinstance(v, bool):
@@ -203,7 +201,7 @@ class VectorDBItem(BaseModel):
             return v.upper() == "TRUE"
         return False
 
-    @field_validator("is_system", mode="before")
+    @field_validator("is_system")
     @classmethod
     def parse_bool_system(cls, v):
         if isinstance(v, bool):
@@ -214,19 +212,7 @@ class VectorDBItem(BaseModel):
             return v.upper() == "TRUE"
         return False
 
-    @field_validator("vector_db_type_string", mode="before")
-    @classmethod
-    def parse_vector_db_type_string(cls, v, values):
-        if v:
-            return v
-        t = values.get("vector_db_type", None)
-        if t == 1:
-            return "Chroma"
-        elif t == 2:
-            return "PGVector"
-        return ""
-
-    @field_validator("system_message", mode="before")
+    @field_validator("system_message")
     @classmethod
     def parse_system_message(cls, v, values):
         if v:
@@ -298,6 +284,19 @@ class VectorDBItem(BaseModel):
 
     def to_dict(self) -> dict:
         return self.model_dump()
+    
+    def get_vector_db_type_string(self) -> str:
+        '''
+        vector_db_typeを文字列で返す
+        '''
+        if self.vector_db_type == 0:
+            return "Chroma"
+        elif self.vector_db_type == 1:
+            return "PGVector"
+        elif self.vector_db_type == 2:
+            return "Other"
+        else:
+            return "Unknown"
 
 class VectorSearchRequest(BaseModel):
     name: str = ""
@@ -358,7 +357,7 @@ class EmbeddingData(BaseModel):
     name: str
     model: str
     source_id: str
-    folder_id: str = Field(alias="FolderId")
+    folder_id: str 
     description: str = ""
     content: str
     source_path: str = ""
@@ -1507,13 +1506,7 @@ class MainDB:
     
     def update_vector_db_item(self, vector_db_item: VectorDBItem) -> VectorDBItem:
         if not vector_db_item.vector_db_type:
-            # vector_db_type_stringからvector_db_typeを取得
-            if vector_db_item.vector_db_type_string == "Chroma":
-                vector_db_item.vector_db_type = 1
-            elif vector_db_item.vector_db_type_string == "PGVector":
-                vector_db_item.vector_db_type = 2
-            else:
-                raise ValueError("vector_db_type_string must be Chroma or PGVector")
+            raise ValueError("vector_db_type must be 1:Chroma or 2:PGVector")
 
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()

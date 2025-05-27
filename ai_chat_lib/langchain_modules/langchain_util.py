@@ -213,11 +213,11 @@ class LangChainUtil:
         chunk_size = vector_db_props.chunk_size
 
         # ベクトルDBのタイプがChromaの場合
-        if vector_db_props.vector_db_type_string == "Chroma":
+        if vector_db_props.vector_db_type == 1:
             from ai_chat_lib.langchain_modules.langchain_vector_db_chroma import LangChainVectorDBChroma
             return LangChainVectorDBChroma(langchain_openai_client, vector_db_url, collection_name, doc_store_url, chunk_size)
         # ベクトルDBのタイプがPostgresの場合
-        elif vector_db_props.vector_db_type_string == "PGVector":
+        elif vector_db_props.vector_db_type == 2:
             from ai_chat_lib.langchain_modules.langchain_vector_db_pgvector import LangChainVectorDBPGVector
             return LangChainVectorDBPGVector(langchain_openai_client, vector_db_url, collection_name, doc_store_url, chunk_size)
         else:
@@ -241,14 +241,14 @@ class LangChainUtil:
             vector_db_item = main_db.get_vector_db_by_name(request.name)
             if vector_db_item is None:
                 raise ValueError(f"vector_db_item is None. name:{request.name}")
-
+            
             langchain_db = cls.get_vector_db(openai_props, vector_db_item, request.model)
             
             # デバッグ出力
             logger.info('ベクトルDBの設定')
             logger.info(f'''
                         name:{vector_db_item.name} vector_db_description:{vector_db_item.description} 
-                        VectorDBTypeString:{vector_db_item.vector_db_type_string} VectorDBURL:{vector_db_item.vector_db_url} 
+                        VectorDBTypeString:{vector_db_item.get_vector_db_type_string()} VectorDBURL:{vector_db_item.vector_db_url} 
                         CollectionName:{vector_db_item.collection_name}'
                         ChunkSize:{vector_db_item.chunk_size} IsUseMultiVectorRetriever:{vector_db_item.is_use_multi_vector_retriever}
                         ''')

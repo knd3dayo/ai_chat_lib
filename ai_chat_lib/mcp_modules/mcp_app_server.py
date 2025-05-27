@@ -2,11 +2,16 @@
 import os, sys
 from typing import Annotated
 from fastmcp import FastMCP
+from pydantic import Field
 from ai_chat_lib.autogen_modules.default_tools import search_wikipedia_ja
 mcp = FastMCP("Demo 🚀")
 
 @mcp.tool()
-def search_wikipedia_ja(query: Annotated[str, "String to search for"], lang: Annotated[str, "Language of Wikipedia"], num_results: Annotated[int, "Maximum number of results to display"]) -> list[str]:
+def search_wikipedia_ja_mcp(
+    query: Annotated[str, Field(description="String to search for")], 
+    lang: Annotated[str, Field(description="Language of Wikipedia")], 
+    num_results: Annotated[int, Field(description="Maximum number of results to display")]
+    ) -> Annotated[list[str], Field(description="List of related articles from Wikipedia")]:
     """
     This function searches Wikipedia with the specified keywords and returns related articles.
     """
