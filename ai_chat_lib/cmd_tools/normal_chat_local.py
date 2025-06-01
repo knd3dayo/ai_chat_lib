@@ -1,7 +1,8 @@
 import os
 import sys
-import getopt
-import json
+import asyncio
+import argparse
+
 from ai_chat_lib.cmd_tools.client_util import *
 from ai_chat_lib.chat_modules import ChatUtil
 
@@ -9,62 +10,26 @@ import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
 os.environ["PYTHONUTF8"] = "1"
-def usage():
-    """
-    コマンドライン引数の使い方を表示する関数
-    :return: None
-    """
-    print("Usage: python normal_chat_local.py -f <request_json_file> [-d <app_data_path>] [-i] [-m <message>]")
-    print("Options:")
-    print("  -f <request_json_file> : リクエストJSONファイル")
-    print("  -d <app_data_path>     : アプリケーションデータのパス")
-    print("  -i                     : インタラクティブモード")
-    print("  -m <message>           : メッセージ")
-    print("  init                   : アプリケーション環境の初期設定を実施")
-    print("  -h                     : ヘルプ")
-
-def __process_arguments(sys_args: list[str]) -> tuple:
+def __process_arguments(sys_args: list[str]):
     """
     コマンドライン引数を処理する関数
     :param sys_args: コマンドライン引数
     :return: リクエストJSONファイル, インタラクティブモードのフラグ, メッセージ, 初期化フラグ
     """
-    # リクエストJSONファイルの指定
-    request_json_file = None
-    # インタラクティブモードの指定
-    interactive_mode = False
-    # メッセージの指定
-    message = None
-
-    opts, args = getopt.getopt(sys_args[1:], "f:d:m:ih")
-    for opt, arg in opts:
-        if opt == "-f":
-            # リクエストJSONファイルの指定
-            request_json_file = arg
-        elif opt == "-d":
-            os.environ["APP_DATA_PATH"] = arg
-        elif opt == "-i":
-            # インタラクティブモードの指定
-            interactive_mode = True
-        elif opt == "-m":
-            # メッセージの指定
-            message = arg
-        elif opt == "-h":
-            # ヘルプの表示
-            usage()
-            sys.exit(0)
-
-    # 非オプション引数の処理
-    if args:
-        # args[0] がinitの場合はアプリケーションの初期化のみを行い終了する。
-        if args[0] == "init":
-            return None, False, None, True
-        else:
-            print(f"Unknown argument: {args[0]}")
-            usage()
-            sys.exit(1)
-        
-    return request_json_file, interactive_mode, message, False
+    parser = argparse.ArgumentParser(description="Normal Chat Local CLI")
+    parser.add_argument("-f", "--file", dest="request_json_file", help="リクエストJSONファイルの指定")
+    parser.add_argument("-d", "--data-path", dest="app_data_path", help="APP_DATA_PATHの指定")
+    parser.add_argument("-i", "--interactive", action="store_true", help="インタラクティブモードの指定")
+    parser.add_argument("-m", "--message", dest="message", help="メッセージの指定")
+    parser.add_argument("command", nargs="?", help="コマンド (例: init)")
+    args, unknown = parser.parse_known_args(sys_args[1:])
+    request_json_file = args.request_json_file
+    args, _ = parser.parse_known_args(sys_args[1:])
+    request_json_file = args.request_json_file
+    interactive_mode = args.interactive
+    message = args.message
+    init_flag = args.command == "init" if args.command else False
+    return request_json_file, interactive_mode, message, init_flag
 
 
 def init_app() -> None:
@@ -73,8 +38,8 @@ def init_app() -> None:
     :return: None
     """
     # MainDBの初期化
-    from ai_chat_lib.db_modules import MainDB
-    MainDB.init()
+    from ai_chat_lib.db_modules import MainDBUtil
+    MainDBUtil.init()
     print("MainDB initialized.")
 
 def check_app_data_path():
@@ -123,9 +88,10 @@ async def run_chat_interactive_async(request_dict: dict) -> None:
         else:
             print("No output found in the response.")
 
+    
 async def main():
     
-    # コマンドライン引数の処理
+    # argparseによるコマンドライン引数の処理
     request_json_file, interactive_mode, message, init_flag = __process_arguments(sys.argv)
     if init_flag:
         # アプリケーションの初期化
@@ -147,5 +113,4 @@ async def main():
         await run_chat_async(request_dict)
 
 if __name__ == '__main__':
-    import asyncio
     asyncio.run(main())

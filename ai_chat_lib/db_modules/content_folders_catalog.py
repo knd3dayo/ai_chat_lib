@@ -218,33 +218,55 @@ class ContentFoldersCatalog(BaseModel):
 
     # pathを指定して、pathにマッチするエントリーを再帰的に辿り、folderを取得する
     @classmethod
-    def get_content_folder_by_path(cls, folder_path: str) -> Union["ContentFoldersCatalog", None]:
+    def get_content_folder_by_path(cls, folder_path: str, create: bool = False) -> Union["ContentFoldersCatalog", None]:
         # フォルダのパスを分割する
         folder_names = folder_path.split("/")
         # ルートフォルダから順次フォルダ名を取得する
-        folder_id = None
+        parent_folder: Union[ContentFoldersCatalog, None] = None
         for folder_name in folder_names:
             # データベースへ接続
             with sqlite3.connect(MainDB.get_main_db_path()) as conn:
                 conn.row_factory = sqlite3.Row
                 cur = conn.cursor()
-                # folder_idがNoneの場合は、ルートフォルダを取得する
-                if folder_id is None:
-                    cur.execute("SELECT * FROM ContentFoldersCatalog WHERE folder_name=? AND parent_id IS NULL", (folder_name,))
+                # parent_folderがNoneの場合は、ルートフォルダ. parent_idがNoneで、folder_name = nameのデータを取得する
+                if parent_folder is None:
+                    cur.execute("SELECT * FROM ContentFoldersCatalog WHERE parent_id IS NULL AND folder_name=?", (folder_name,))
                 else:
-                    cur.execute("SELECT * FROM ContentFoldersCatalog WHERE folder_name=? AND parent_id=?", (folder_name, folder_id))
+                    # parent_folderが存在する場合は、parent_folderのidをparent_idとして、folder_name = nameのデータを取得する
+                    folder_id = parent_folder.id
+                    cur.execute("SELECT * FROM ContentFoldersCatalog WHERE parent_id=? AND folder_name=?", (folder_id, folder_name))
                 row = cur.fetchone()
 
-                # データが存在しない場合はNoneを返す
+                # データが存在しない場合、createがTrueの場合は新規作成する
                 if row is None:
-                    logger.info(f"Folder with name {folder_name} not found in parent id {folder_id}.")
-                    return None
-                logger.info(f"Folder with name {folder_name} found in parent id {folder_id}.")
-
+                    if create:
+                        logger.info(f"Folder {folder_name} not found. Creating new folder.")
+                        new_folder = ContentFoldersCatalog(
+                            id=str(uuid.uuid4()),
+                            folder_type_string="default",
+                            parent_id=parent_folder.id if parent_folder else None,
+                            folder_name=folder_name,
+                            description="",
+                            extended_properties_json=json.dumps({}),
+                            is_root_folder=(parent_folder is None)
+                        )
+                        cls.update_content_folder(new_folder)
+                        return new_folder
+                    else:
+                        logger.info(f"Folder {folder_name} not found. Returning None.")
+                        return None
+                # データが存在する場合は、ContentFoldersCatalogオブジェクトを生成する
                 folder_dict = dict(row)
-                folder_id = folder_dict.get("id", "")
-
-        return cls.get_content_folder_by_id(folder_id)
+                folder = ContentFoldersCatalog(**folder_dict)
+                logger.info(f"Folder {folder_name} found with id {folder.id}.")
+                # parent_folderを更新する
+                parent_folder = folder
+        # 最後に取得したフォルダを返す
+        if parent_folder is None:
+            logger.info(f"Folder {folder_path} not found.")
+            return None
+        logger.info(f"Folder {folder_path} found with id {parent_folder.id}.")
+        return parent_folder
 
     @classmethod
     def get_root_content_folders(cls) -> list["ContentFoldersCatalog"]:

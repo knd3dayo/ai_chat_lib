@@ -13,8 +13,6 @@ class EmbeddingData(BaseModel):
     description: str = ""
     content: str
     source_path: str = ""
-    git_repository_url: str = ""
-    git_relative_path: str = ""
     image_url: str = ""
 
     embedding_request_name: ClassVar[str] = "embedding_request"

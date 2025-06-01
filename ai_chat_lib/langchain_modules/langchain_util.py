@@ -172,16 +172,27 @@ class LangChainUtil:
         # embedding_requestを取得
         embedding_data: EmbeddingData = EmbeddingData.get_embedding_request_objects(request_dict)
         openai_props = OpenAIProps.create_from_env()
+        # update_embeddingsを実行
+        result = await cls.update_embeddings(openai_props, embedding_data)
+        return result
 
+    @classmethod
+    async def update_embeddings(cls, openai_props: OpenAIProps, embedding_data: EmbeddingData) -> dict:
+        """
+        ベクトルDBのコンテンツインデックスを更新する
+        :param openai_props: OpenAIProps
+        :param embedding_data: EmbeddingData
+        :return: dict
+        """
         vector_db_item = VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
             raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
+        
         # LangChainVectorDBを生成
         vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
         await vector_db.update_document(embedding_data)
 
-        return {}
-
+        return {}   
 
     chat_request_name = "chat_request"
 
