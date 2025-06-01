@@ -5,10 +5,10 @@ import chromadb.config
 from langchain_chroma.vectorstores import Chroma # type: ignore
 import chromadb
 from langchain_core.vectorstores import VectorStore # type: ignore
+
 from ai_chat_lib.langchain_modules.langchain_util import LangChainOpenAIClient
 from ai_chat_lib.langchain_modules.langchain_vector_db import LangChainVectorDB
 
-from ai_chat_lib.db_modules import VectorDBItem
 from ai_chat_lib.langchain_modules.langchain_doc_store import SQLDocStore
 
 import ai_chat_lib.log_modules.log_settings as log_settings
