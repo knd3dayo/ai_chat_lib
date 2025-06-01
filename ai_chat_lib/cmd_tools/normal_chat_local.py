@@ -32,26 +32,6 @@ def __process_arguments(sys_args: list[str]):
     return request_json_file, interactive_mode, message, init_flag
 
 
-def init_app() -> None:
-    """
-    アプリケーション初期化時に呼び出される関数
-    :return: None
-    """
-    # MainDBの初期化
-    from ai_chat_lib.db_modules import MainDBUtil
-    MainDBUtil.init()
-    print("MainDB initialized.")
-
-def check_app_data_path():
-    """
-    環境変数APP_DATA_PATHが設定されているか確認する関数
-    :return: APP_DATA_PATHの値
-    """
-    if not os.environ.get("APP_DATA_PATH", None):
-        # 環境変数APP_DATA_PATHが指定されていない場合はエラー. APP_DATA_PATHの説明を出力するとともに終了する
-        logger.error("APP_DATA_PATH is not set.")
-        logger.error("APP_DATA_PATH is the path to the root directory where the application data is stored.")
-        raise ValueError("APP_DATA_PATH is not set.")
 
 async def run_chat_async(request_dict: dict ):
     """
@@ -93,13 +73,12 @@ async def main():
     
     # argparseによるコマンドライン引数の処理
     request_json_file, interactive_mode, message, init_flag = __process_arguments(sys.argv)
-    if init_flag:
-        # アプリケーションの初期化
-        init_app()
-        return
+    # アプリケーションの初期化
+    init_app()
 
-    # 環境変数APP_DATA_PATHの確認
-    check_app_data_path() 
+    if init_flag:
+        # 初期化コマンドが指定された場合は、アプリケーションの初期化のみ実行して終了
+        return
 
     # リクエストの準備
     request_dict = prepare_normal_chat_request(request_json_file, interactive_mode, message)

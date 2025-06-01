@@ -241,9 +241,15 @@ class ContentFoldersCatalog(BaseModel):
                 if row is None:
                     if create:
                         logger.info(f"Folder {folder_name} not found. Creating new folder.")
+                        # folder_type_stringは親フォルダを引き継ぐ。親フォルダがない場合は"default"を設定する
+                        if parent_folder:
+                            folder_type_string = parent_folder.folder_type_string
+                        else:
+                            # ルートフォルダの場合は、デフォルトのフォルダタイプを設定する
+                            folder_type_string = "default"
                         new_folder = ContentFoldersCatalog(
                             id=str(uuid.uuid4()),
-                            folder_type_string="default",
+                            folder_type_string=folder_type_string,
                             parent_id=parent_folder.id if parent_folder else None,
                             folder_name=folder_name,
                             description="",

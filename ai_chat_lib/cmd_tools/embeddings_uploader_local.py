@@ -1,32 +1,22 @@
 import pandas as pd
 from typing import List, Optional
 import uuid
-import asyncio
-
-from ai_chat_lib.db_modules.content_folders_catalog import ContentFoldersCatalog
-from ai_chat_lib.db_modules.embedding_data import EmbeddingData
-from ai_chat_lib.langchain_modules.langchain_util import LangChainUtil
-from ai_chat_lib.llm_modules.openai_util import OpenAIProps
-
-
-import argparse
 import os
 import asyncio
+import argparse
 from dotenv import load_dotenv
+import pandas as pd
 
 from ai_chat_lib.db_modules.content_folders_catalog import ContentFoldersCatalog
 from ai_chat_lib.db_modules.embedding_data import EmbeddingData
 from ai_chat_lib.langchain_modules.langchain_util import LangChainUtil
 from ai_chat_lib.llm_modules.openai_util import OpenAIProps
-import pandas as pd
-from typing import Optional
-import uuid
-
+from ai_chat_lib.cmd_tools.client_util import init_app
 
 async def update_embeddings_from_excel(
     excel_path: str,
     name: str = "default",
-    model: str = "text-embedding-3-large",
+    model: str = "text-embedding-3-small",
 ) -> None:
     """
     Excelファイルの各行のデータからEmbeddingDataを生成し、Embeddingを更新する。
@@ -45,6 +35,9 @@ async def update_embeddings_from_excel(
         - source_path: ソースパス
     """
     df = pd.read_excel(excel_path)
+    # content列が存在するか確認
+    if "content" not in df.columns:
+        raise ValueError("Excel file must contain a 'content' column.")
 
     openai_props = OpenAIProps.create_from_env()
 
@@ -57,9 +50,11 @@ async def update_embeddings_from_excel(
         folder_path = row.get("folder_path")
         folder_id: Optional[str] = None
         if folder_path and isinstance(folder_path, str) and folder_path.strip() != "":
-            folder = ContentFoldersCatalog.get_content_folder_by_path(folder_path.strip())
-            if folder:
-                folder_id = folder.id
+            folder = ContentFoldersCatalog.get_content_folder_by_path(folder_path.strip(), create=True)
+            if not folder:
+                print(f"Warning: Folder not found for path '{folder_path}'. Skipping row {idx}.")
+                continue
+            folder_id = folder.id
 
         description = row.get("description")
         if description is not None and not isinstance(description, str):
@@ -91,17 +86,18 @@ def main():
 
     parser = argparse.ArgumentParser(description="Local Embedding Uploader Tool")
     parser.add_argument("-f", "--file", type=str, required=True, help="Path to the Excel file")
-    parser.add_argument("-n", "--name", type=str, default="default", help="EmbeddingData name")
-    parser.add_argument("-m", "--model", type=str, default="text-embedding-3-large", help="EmbeddingData model")
     args = parser.parse_args()
 
     excel_path = args.file
-    name = args.name
-    model = args.model
+    name = "default"
+    model = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 
     if not os.path.exists(excel_path):
         print(f"Error: Excel file '{excel_path}' does not exist.")
         return
+
+    # アプリケーションの初期化
+    init_app()
 
     asyncio.run(update_embeddings_from_excel(excel_path, name, model))
 

@@ -11,6 +11,21 @@ import pandas as pd  # type: ignore
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
+def init_app() -> None:
+    """
+    アプリケーション初期化時に呼び出される関数
+    :return: None
+    """
+    # MainDBの初期化
+    from ai_chat_lib.db_modules import MainDBUtil
+    MainDBUtil.init()
+    print("MainDB initialized.")
+    # 環境変数APP_DATA_PATHの確認
+    __check_app_data_path()
+    # LLMの環境変数の確認
+    __check_llm_envvars()
+
+
 def jsonc_load(file_path: str):
     """
     Load a JSON file with comments.
@@ -48,6 +63,35 @@ def load_default_json_template() -> dict:
     json_template = jsonc_load(os.path.join(os.path.dirname(__file__), "request_template.jsonc"))
     return json_template
 
+def __check_app_data_path():
+    """
+    環境変数APP_DATA_PATHが設定されているか確認する関数
+    :return: APP_DATA_PATHの値
+    """
+    if not os.environ.get("APP_DATA_PATH", None):
+        # 環境変数APP_DATA_PATHが指定されていない場合はエラー. APP_DATA_PATHの説明を出力するとともに終了する
+        logger.error("APP_DATA_PATH is not set.")
+        logger.error("APP_DATA_PATH is the path to the root directory where the application data is stored.")
+        raise ValueError("APP_DATA_PATH is not set.")
+
+
+def __check_llm_envvars():
+    """
+    環境変数が設定されているか確認する関数
+    """
+    AZURE_OPENAI=os.environ.get("AZURE_OPENAI", "False").upper() == "TRUE"
+    OPENAI_API_KEY=os.environ.get("OPENAI_API_KEY", None) 
+    OPENAI_COMPLETION_MODEL=os.environ.get("OPENAI_COMPLETION_MODEL", None)
+    AZURE_OPENAI_ENDPOINT=os.environ.get("AZURE_OPENAI_ENDPOINT", None)
+    AZURE_OPENAI_API_VERSION=os.environ.get("AZURE_OPENAI_API_VERSION", None)
+
+    if OPENAI_API_KEY is None:
+        raise ValueError("OPENAI_API_KEY is not set.")
+    if OPENAI_COMPLETION_MODEL is None:
+        raise ValueError("OPENAI_COMPLETION_MODEL is not set.")
+    if AZURE_OPENAI and (AZURE_OPENAI_ENDPOINT is None or AZURE_OPENAI_API_VERSION is None):
+        raise ValueError("AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_VERSION must be set when AZURE_OPENAI is True.")
+    
 def __update_openai_props_by_envvars(json_template):
     load_dotenv()
     AZURE_OPENAI=os.environ.get("AZURE_OPENAI", "False").upper() == "TRUE"
