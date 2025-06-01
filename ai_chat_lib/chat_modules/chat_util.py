@@ -5,7 +5,7 @@ import time
 import tiktoken
 from openai import  RateLimitError
 
-from ai_chat_lib.openai_modules import OpenAIClient, OpenAIProps
+from ai_chat_lib.llm_modules import OpenAIClient, OpenAIProps
 from ai_chat_lib.langchain_modules import  LangChainUtil
 from ai_chat_lib.db_modules import VectorSearchRequest
 
@@ -68,8 +68,8 @@ class ChatUtil:
     chat_request_name = "chat_request"
     @classmethod
     async def run_openai_chat_async_api(cls, request_dict: dict) -> dict:
-        # OpenAIPorps, OpenAIClientを生成
-        openai_props, _ = OpenAIProps.get_openai_objects(request_dict)
+
+        openai_props = OpenAIProps.create_from_env()
         # context_jsonからVectorSearchRequestを生成
         vector_search_requests = VectorSearchRequest.get_vector_search_requests_objects(request_dict)
         # context_jsonからChatRequestContextを生成
@@ -86,8 +86,6 @@ class ChatUtil:
     def get_token_count_api(cls, request_json: str):
         # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        
-        openai_props, _ = OpenAIProps.get_openai_objects(request_dict)
 
         # input_textを取得
         token_count_request = request_dict.get(cls.token_count_request_name, None)

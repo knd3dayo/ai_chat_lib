@@ -69,19 +69,19 @@ async def autogen_chat( request_json: str):
 
 @capture_stdout_stderr
 def get_autogen_llm_config_list():
-    return AutogentLLMConfig.get_autogen_llm_config_list_api()
+    return AutogenLLMConfig.get_autogen_llm_config_list_api()
 
 @capture_stdout_stderr
 def get_autogen_llm_config(request_json: str):
-    return AutogentLLMConfig.get_autogen_llm_config_api(request_json)
+    return AutogenLLMConfig.get_autogen_llm_config_api(request_json)
 
 @capture_stdout_stderr
 def update_autogen_llm_config(request_json: str):
-    return AutogentLLMConfig.update_autogen_llm_config_api(request_json)
+    return AutogenLLMConfig.update_autogen_llm_config_api(request_json)
 
 @capture_stdout_stderr
 def delete_autogen_llm_config(request_json: str):
-    return AutogentLLMConfig.delete_autogen_llm_config_api(request_json)
+    return AutogenLLMConfig.delete_autogen_llm_config_api(request_json)
 
 @capture_stdout_stderr
 def get_autogen_tool_list():

@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from ai_chat_lib.langchain_modules.langchain_client import LangChainOpenAIClient, LangChainChatParameter
 from ai_chat_lib.langchain_modules.langchain_vector_db import LangChainVectorDB
 
-from ai_chat_lib.openai_modules.openai_util import OpenAIProps
+from ai_chat_lib.llm_modules.openai_util import OpenAIProps
 from ai_chat_lib.db_modules import *
 
 import ai_chat_lib.log_modules.log_settings as log_settings
@@ -91,11 +91,9 @@ class LangChainUtil:
         # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
 
-        # ChatRequestContextからOpenAIPorps, OpenAIClientを生成
-        openai_props, _ = OpenAIProps.get_openai_objects(request_dict)
         # queryを取得
         vector_search_requests: list[VectorSearchRequest] = VectorSearchRequest.get_vector_search_requests_objects(request_dict)
-
+        openai_props = OpenAIProps.create_from_env()
         result = cls.vector_search(openai_props, vector_search_requests)
         return result
 
@@ -115,13 +113,11 @@ class LangChainUtil:
         # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
 
-        # ChatRequestContextからOpenAIPorps, OpenAIClientを生成
-        openai_props, _ = OpenAIProps.get_openai_objects(request_dict)
         # ChatRequestContextからVectorDBItemを生成
         embedding_data = EmbeddingData.get_embedding_request_objects(request_dict)
-        
-        main_db = MainDB()
-        vector_db_item = main_db.get_vector_db_by_name(embedding_data.name)
+        openai_props = OpenAIProps.create_from_env()
+
+        vector_db_item = VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
             raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
         vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
@@ -135,15 +131,11 @@ class LangChainUtil:
         # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
 
-        # ChatRequestContextからOpenAIPorps, OpenAIClientを生成
-        openai_props, _ = OpenAIProps.get_openai_objects(request_dict)
-
         # embedding_requestを取得
         embedding_data = EmbeddingData.get_embedding_request_objects(request_dict)
-        # MainDBを取得
-        main_db = MainDB()
+        openai_props = OpenAIProps.create_from_env()
 
-        vector_db_item = main_db.get_vector_db_by_name(embedding_data.name)
+        vector_db_item = VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
             raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
         
@@ -161,14 +153,11 @@ class LangChainUtil:
         # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
 
-        # ChatRequestContextからOpenAIPorps, OpenAIClientを生成
-        openai_props, _ = OpenAIProps.get_openai_objects(request_dict)
-
         # embedding_requestを取得
         embedding_data = EmbeddingData.get_embedding_request_objects(request_dict)
-        # MainDBを取得
-        main_db = MainDB()
-        vector_db_item = main_db.get_vector_db_by_name(embedding_data.name)
+        openai_props = OpenAIProps.create_from_env()
+
+        vector_db_item = VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
             raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
         vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
@@ -180,14 +169,11 @@ class LangChainUtil:
     async def update_embeddings_api(cls, request_json: str) -> dict:
         # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        # ChatRequestContextからOpenAIPorps, OpenAIClientを生成
-        openai_props, _ = OpenAIProps.get_openai_objects(request_dict)
         # embedding_requestを取得
         embedding_data: EmbeddingData = EmbeddingData.get_embedding_request_objects(request_dict)
+        openai_props = OpenAIProps.create_from_env()
 
-        # MainDBを取得
-        main_db = MainDB()
-        vector_db_item = main_db.get_vector_db_by_name(embedding_data.name)
+        vector_db_item = VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
             raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
         # LangChainVectorDBを生成
@@ -230,16 +216,21 @@ class LangChainUtil:
 
         if not openai_props:
             raise ValueError("openai_props is None")
-
-        main_db = MainDB()
-
-        # documentsの要素からcontent, source, source_urlを取得
+        
+            
         result = []
         # vector_db_propsの要素毎にRetrieverを作成して、検索を行う
         for request in vector_search_requests:
+            # debug request.nameが設定されているか確認
+            if not request.name:
+                raise ValueError("request.name is not set")
+            if not request.query:
+                raise ValueError("request.query is not set")
+
             # vector_db_itemを取得
-            vector_db_item = main_db.get_vector_db_by_name(request.name)
+            vector_db_item = VectorDBItem.get_vector_db_by_name(request.name)
             if vector_db_item is None:
+                logger.error(f"VectorDBItem with name {request.name} not found.")
                 raise ValueError(f"vector_db_item is None. name:{request.name}")
             
             langchain_db = cls.get_vector_db(openai_props, vector_db_item, request.model)
@@ -260,8 +251,6 @@ class LangChainUtil:
 
             # 重複排除用のリストを作成
             doc_ids = []
-            # folder_idからfolder_pathを生成するためのMainDBを取得
-            main_db = MainDB()
 
             for doc in documents:
                 # doc_idを取得
@@ -275,7 +264,7 @@ class LangChainUtil:
                 folder_id = doc.metadata.get("folder_id", "")
                 if folder_id:
                     # folder_idからfolder_pathを取得
-                    folder_path = main_db.get_content_folder_path_by_id(folder_id)
+                    folder_path = ContentFoldersCatalog.get_content_folder_path_by_id(folder_id)
                     if folder_path:
                         doc.metadata["folder_path"] = folder_path
                     else:
@@ -295,7 +284,7 @@ class LangChainUtil:
                     folder_id = sub_doc.metadata.get("folder_id", "")
                     if folder_id:
                         # folder_idからfolder_pathを取得
-                        folder_path = main_db.get_content_folder_path_by_id(folder_id)
+                        folder_path = ContentFoldersCatalog.get_content_folder_path_by_id(folder_id)
                         if folder_path:
                             sub_doc.metadata["folder_path"] = folder_path
                         else:

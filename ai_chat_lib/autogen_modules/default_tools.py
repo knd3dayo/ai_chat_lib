@@ -4,37 +4,6 @@ from autogen_core.tools import FunctionTool
 from autogen_agentchat.messages import BaseChatMessage
 import asyncio
 
-def search_wikipedia_ja(query: Annotated[str, "String to search for"], lang: Annotated[str, "Language of Wikipedia"], num_results: Annotated[int, "Maximum number of results to display"]) -> list[str]:
-    """
-    This function searches Wikipedia with the specified keywords and returns related articles.
-    """
-    import wikipedia # type: ignore[import]
-    import ai_chat_lib.log_modules.log_settings as log_settings
-    logger = log_settings.getLogger(__name__)
-
-    # Use the Japanese version of Wikipedia
-    wikipedia.set_lang(lang)
-    
-    # Retrieve search results
-    search_results = wikipedia.search(query, results=num_results)
-    
-    result_texts = []
-    # Display the top results
-    for i, title in enumerate(search_results):
-    
-        logger.debug(f"Result {i + 1}: {title}")
-        try:
-            # Retrieve the content of the page
-            page = wikipedia.page(title)
-            logger.debug(page.content[:500])  # Display the first 500 characters
-            text = f"Title:\n{title}\n\nContent:\n{page.content}\n"
-            result_texts.append(text)
-        except wikipedia.exceptions.DisambiguationError as e:
-            logger.debug(f"Disambiguation: {e.options}")
-        except wikipedia.exceptions.PageError:
-            logger.debug("Page not found.")
-        logger.debug("\n" + "-"*50 + "\n")
-    return result_texts
 
 def list_files_in_directory(directory_path: Annotated[str, "Directory path"]) -> list[str]:
     """
@@ -196,69 +165,23 @@ def arxiv_search(query: str, max_results: int = 2) -> list:  # type: ignore[type
 
     return results
 
-def vector_search(query: Annotated[str, "String to search for"]) -> list[str]:
-    """
-    This function performs a vector search on the specified text and returns the related documents.
-    if vector_db_items is empty, return None
-    """
-    global autogen_props
-    from ai_chat_lib.langchain_modules.langchain_util import LangChainUtil
-    from ai_chat_lib.autogen_modules import AutoGenProps
-    props : AutoGenProps = autogen_props # type: ignore
-    if not props.vector_search_requests:
-        return []
-
-    # vector_db_prop_listの各要素にinput_textを設定
-    for vector_search_request in props.vector_search_requests:
-        vector_search_request.query = query
-
-    search_results = LangChainUtil.vector_search(props.openai_props, props.vector_search_requests)
-    # Retrieve documents from result
-    documents = search_results.get("documents", [])
-    # Extract content of each document from documents
-    result = [doc.get("content", "") for doc in documents]
-    return result
-
-def global_vector_search(query: Annotated[str, "String to search for"]) -> list[str]:
-    """
-    メインDBに登録されている全てのデータについて、ベクトル検索を行い、関連するドキュメントを返します。
-    """
-    global autogen_props
-    from ai_chat_lib.db_modules import MainDB
-    from ai_chat_lib.langchain_modules.langchain_util import LangChainUtil
-    from ai_chat_lib.autogen_modules import AutoGenProps
-
-    props : AutoGenProps = autogen_props # type: ignore
-    main_db = main_db = MainDB(props.autogen_db_path) 
-    if props.main_vector_db_id is None:
-        raise ValueError("main_vector_db_id is not set.")
-    main_vector_db_item = main_db.get_vector_db_by_id(props.main_vector_db_id)
-    vector_db_item_list = [] if main_vector_db_item is None else [main_vector_db_item]
-    # vector_db_prop_listの各要素にinput_textを設定
-    for request in props.vector_search_requests:
-        request.query = query
-
-    search_results = LangChainUtil.vector_search(props.openai_props, props.vector_search_requests)
-    # Retrieve documents from result
-    documents = search_results.get("documents", [])
-    # Extract content of each document from documents
-    result = [doc.get("content", "") for doc in documents]
-    return result
 
 def past_chat_history_vector_search(query: Annotated[str, "String to search for"]) -> list[str]:
     """
     過去のチャット履歴に関連するドキュメントを検索します。
     """
     global autogen_props
-    from ai_chat_lib.db_modules import MainDB
+    from ai_chat_lib.db_modules import VectorDBItem
     from ai_chat_lib.langchain_modules.langchain_util import LangChainUtil
     from ai_chat_lib.autogen_modules import AutoGenProps
+    from ai_chat_lib.llm_modules.openai_util import OpenAIProps
 
     props : AutoGenProps = autogen_props # type: ignore
-    main_db = main_db = MainDB(props.autogen_db_path) 
+    openai_props = OpenAIProps.create_from_env()
+
     if props.main_vector_db_id is None:
         raise ValueError("main_vector_db_id is not set.")
-    main_vector_db_item = main_db.get_vector_db_by_id(props.main_vector_db_id)
+    main_vector_db_item = VectorDBItem.get_vector_db_by_id(props.main_vector_db_id)
     if main_vector_db_item is None:
         raise ValueError("main_vector_db_id is not set.")
     if props.chat_history_folder_id is None:
@@ -270,7 +193,7 @@ def past_chat_history_vector_search(query: Annotated[str, "String to search for"
     # vector_db_prop_listの各要素にinput_textを設定
     for request in props.vector_search_requests:
         request.query = query
-    search_results = LangChainUtil.vector_search(props.openai_props, props.vector_search_requests)
+    search_results = LangChainUtil.vector_search(openai_props, props.vector_search_requests)
     # Retrieve documents from result
     documents = search_results.get("documents", [])
     # Extract content of each document from documents
@@ -293,12 +216,11 @@ async def execute_agent(
     logger = log_settings.getLogger(__name__)
     
     global autogen_props 
-    from ai_chat_lib.db_modules import MainDB, AutogenTools
+    from ai_chat_lib.db_modules import MainDB, AutogenAgent
     from ai_chat_lib.autogen_modules import AutoGenProps
     props : AutoGenProps = autogen_props # type: ignore
-    autogen_db_path = props.autogen_db_path
-    main_db = MainDB(autogen_db_path)
-    agent = main_db.get_autogen_agent(agent_name)
+
+    agent = AutogenAgent.get_autogen_agent(agent_name)
     if agent is None:
         return "The specified agent does not exist."
     
@@ -318,14 +240,8 @@ def list_agents() -> Annotated[list[dict[str, str]], "List of registered agents,
     """
     This function retrieves a list of registered agents from the database.
     """
-    global autogen_props
-    from ai_chat_lib.db_modules import MainDB, AutogenTools
-    from ai_chat_lib.autogen_modules import AutoGenProps
-    props : AutoGenProps = autogen_props # type: ignore
-    autogen_db_path = props.autogen_db_path
-
-    main_db = MainDB(autogen_db_path)
-    agents = main_db.get_autogen_agent_list()
+    from ai_chat_lib.db_modules import AutogenAgent
+    agents = AutogenAgent.get_autogen_agent_list()
     agent_list = []
     for agent in agents:
         agent_list.append({"name": agent.name, "description": agent.description})
@@ -405,11 +321,7 @@ def list_tool_agents() -> Annotated[list[dict[str, str]], "List of registered to
     logger.debug('start list_tool_agents')
     global autogen_props
     from ai_chat_lib.db_modules import MainDB, AutogenTools
-    from ai_chat_lib.autogen_modules import AutoGenProps
-    props : AutoGenProps = autogen_props # type: ignore
-    autogen_db_path = props.autogen_db_path
-    main_db = MainDB(autogen_db_path)
-    tools = main_db.get_autogen_tool_list()
+    tools = AutogenTools.get_autogen_tool_list()
 
     tool_descption_list = []
     for agent in tools:
@@ -445,9 +357,7 @@ def register_tool_agent(name: Annotated[str, "Function name"], doc: Annotated[st
     with open(python_file_path, "w", encoding="utf-8") as f:
         f.write(code)
 
-    # main_dbに登録
-    main_db = MainDB(props.autogen_db_path)
-    main_db.update_autogen_tool(AutogenTools(name=name, description=doc, path=python_file_path))
+    AutogenTools.update_autogen_tool(AutogenTools(name=name, description=doc, path=python_file_path))
     
     message = f"Registered tool agent: {name}"
     logger.debug(message)

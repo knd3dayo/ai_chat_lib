@@ -3,8 +3,6 @@ import os, json
 import base64
 from mimetypes import guess_type
 from typing import Any, Union, ClassVar
-import time
-from openai import RateLimitError
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Any, Tuple, List
 
@@ -18,20 +16,8 @@ class OpenAIProps(BaseModel):
     azure_openai_endpoint: Optional[str] = Field(default=None, alias="azure_openai_endpoint")
     openai_base_url: Optional[str] = Field(default=None, alias="openai_base_url")
 
-    openai_props_name: ClassVar[str] = "openai_props"
-
-    @classmethod
-    def get_openai_objects(cls, request_dict: dict) -> Tuple["OpenAIProps", "OpenAIClient"]:
-        '''
-        {"openai_props": {}}の形式で渡される
-        '''
-        openai_props_dict = request_dict.get(cls.openai_props_name, None)
-        if not openai_props_dict:
-            raise ValueError("openai_props is not set.")
-
-        openai_props = OpenAIProps(**openai_props_dict)
-        client = OpenAIClient(openai_props)
-        return openai_props, client
+    default_completion_model: str = Field(default="gpt-4o", alias="default_completion_model")
+    default_embedding_model: str = Field(default="text-embedding-3-small", alias="default_embedding_model")
 
     @model_validator(mode='before')
     def handle_azure_openai_bool_and_version(cls, values):
@@ -60,7 +46,35 @@ class OpenAIProps(BaseModel):
         return completion_dict
 
     @staticmethod
-    def env_to_props() -> 'OpenAIProps':
+    def check_env_vars() -> bool:
+        # OPENAI_API_KEYの存在を確認
+        if "OPENAI_API_KEY" not in os.environ:
+            logger.error("OPENAI_API_KEY is not set in the environment variables.")
+            return False
+        # AZURE_OPENAIの存在を確認
+        if "AZURE_OPENAI" not in os.environ:
+            logger.error("AZURE_OPENAI is not set in the environment variables.")
+            return False
+        if os.environ.get("AZURE_OPENAI", "false").lower() == "true":
+            # AZURE_OPENAI_API_VERSIONの存在を確認
+            if "AZURE_OPENAI_API_VERSION" not in os.environ:
+                logger.error("AZURE_OPENAI_API_VERSION is not set in the environment variables.")
+                return False
+            # AZURE_OPENAI_ENDPOINTの存在を確認
+            if "AZURE_OPENAI_ENDPOINT" not in os.environ:
+                logger.error("AZURE_OPENAI_ENDPOINT is not set in the environment variables.")
+                return False
+        
+        # DEFAULT_COMPLETION_MODELの存在を確認
+        if "OPENAI_COMPLETION_MODEL" not in os.environ:
+            logger.warning("OPENAI_COMPLETION_MODEL is not set in the environment variables. Defaulting to 'gpt-4o'.")
+        # DEFAULT_EMBEDDING_MODELの存在を確認
+        if "OPENAI_EMBEDDING_MODEL" not in os.environ:
+            logger.warning("OPENAI_EMBEDDING_MODEL is not set in the environment variables. Defaulting to 'text-embedding-3-small'.")
+        return True
+    
+    @staticmethod
+    def create_from_env() -> 'OpenAIProps':
         load_dotenv()
         props: dict = {
             "openai_key": os.getenv("OPENAI_API_KEY"),
@@ -68,8 +82,10 @@ class OpenAIProps(BaseModel):
             "azure_openai_api_version": os.getenv("AZURE_OPENAI_API_VERSION"),
             "azure_openai_endpoint": os.getenv("AZURE_OPENAI_ENDPOINT"),
             "openai_base_url": os.getenv("OPENAI_BASE_URL"),
+            "default_completion_model": os.getenv("OPENAI_COMPLETION_MODEL", "gpt-4o"),
+            "default_embedding_model": os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
         }
-        openAIProps = OpenAIProps.parse_obj(props)
+        openAIProps = OpenAIProps.model_validate(props)
         return openAIProps
 
     @staticmethod
@@ -130,8 +146,8 @@ class OpenAIProps(BaseModel):
         return params
 
 import json
-from openai import AsyncOpenAI, AsyncAzureOpenAI, RateLimitError
-from pydantic import BaseModel, Field, root_validator
+from openai import AsyncOpenAI, AsyncAzureOpenAI
+from pydantic import BaseModel, Field
 from typing import Optional, Any, Tuple, List
 
 class OpenAIClient:
@@ -174,4 +190,3 @@ class OpenAIClient:
         # モデルのリストを取得する
         model_id_list = [ model.id for model in response.data]
         return model_id_list
- 

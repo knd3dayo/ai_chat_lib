@@ -410,6 +410,10 @@ if __name__ == ('__main__'):
     app_data_path = os.getenv("APP_DATA_PATH", None)
     if not app_data_path:
         raise ValueError("APP_DATA_PATH is required")
+    # OpenAIProps関連の環境変数をチェック
+    from ai_chat_lib.llm_modules.openai_util import OpenAIProps
+    if not OpenAIProps.check_env_vars():
+        raise ValueError("OpenAI environment variables are not set correctly")
 
     # アプリケーション初期化
     ai_app_util.init_app()

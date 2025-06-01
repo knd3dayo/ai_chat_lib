@@ -20,10 +20,7 @@ from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import ChatMessage, AgentEvent, TextMessage
 
-from ai_chat_lib.db_modules import VectorDBItem, MainDB, VectorSearchRequest
-
-# openai_props
-from ai_chat_lib.openai_modules import OpenAIProps
+from ai_chat_lib.db_modules import VectorDBItem, MainDB, VectorSearchRequest, AutogenGroupChat, AutogenAgent, AutogenTools, AutogenLLMConfig
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -42,14 +39,11 @@ class AutoGenProps:
         if not props_dict:
             raise ValueError("autogen_props is not set")
         
-        # get_openai_objectsを使ってOpenAIPropsを取得
-        openai_props, _ = OpenAIProps.get_openai_objects(request_dict)
-
         # vector_db_itemsを取得
         vector_search_requests = VectorSearchRequest.get_vector_search_requests_objects(request_dict)
 
         app_db_path = MainDB.get_main_db_path()
-        autogen_props = AutoGenProps(app_db_path, props_dict, openai_props, vector_search_requests)
+        autogen_props = AutoGenProps(app_db_path, props_dict, vector_search_requests)
         return autogen_props
 
 
@@ -72,7 +66,7 @@ class AutoGenProps:
             return True
         return False
 
-    def __init__(self, app_db_path: str ,props_dict: dict, openai_props: OpenAIProps, vector_search_requests:list[VectorSearchRequest]):
+    def __init__(self, app_db_path: str ,props_dict: dict, vector_search_requests:list[VectorSearchRequest]):
 
         # session_token
         self.session_token = props_dict.get("session_token", None)
@@ -111,9 +105,6 @@ class AutoGenProps:
 
         # timeout
         self.timeout = props_dict.get("timeout", 120)
-
-        # openai_props
-        self.openai_props = openai_props
 
         # vector_db_prop_list
         self.vector_search_requests = vector_search_requests
@@ -161,7 +152,7 @@ class AutoGenProps:
 
         if self.chat_name is None:
             raise ValueError("chat_name is None")
-        agent = self.__load_agent(self.chat_name, self.openai_props)
+        agent = self.__load_agent(self.chat_name)
         if agent is not None:
             logger.debug(f"agent:{agent.name}")
         else:
@@ -170,10 +161,8 @@ class AutoGenProps:
         self.chat_object = agent
 
     def __prepare_autogen_group_chat(self):
-        # MainDBを作成
-        main_db = MainDB(self.autogen_db_path)
         # chat_objectを取得
-        chat_dict = main_db.get_autogen_group_chat(self.chat_name)
+        chat_dict = AutogenGroupChat.get_autogen_group_chat(self.chat_name)
         if chat_dict is None:
             raise ValueError(f"GroupChat {self.chat_name} not found in the database.")
 
@@ -181,11 +170,11 @@ class AutoGenProps:
         agent_names = chat_dict.agent_names
         agents = []
         for agent_name in agent_names:
-            agent = self.__load_agent(agent_name, self.openai_props)
+            agent = self.__load_agent(agent_name)
             agents.append(agent)
 
         # vector_search_agentsがある場合は、agentsに追加
-        vector_search_agents = self.__create_vector_search_agent_list(self.openai_props, self.vector_search_requests)
+        vector_search_agents = self.__create_vector_search_agent_list(self.vector_search_requests)
         agents.extend(vector_search_agents)
 
         # エージェント名一覧を表示
@@ -205,24 +194,22 @@ class AutoGenProps:
         self.chat_object = chat
 
     # vector_search_agentsを準備する。vector_db_props_listを受け取り、vector_search_agentsを作成する
-    def __create_vector_search_agent_list(self, openai_props: OpenAIProps, vector_search_requests:list[VectorSearchRequest]):
+    def __create_vector_search_agent_list(self, vector_search_requests:list[VectorSearchRequest]):
         vector_search_agents = []
         for request in vector_search_requests:
-            vector_search_agent = self.__create_vector_search_agent(openai_props, request)
+            vector_search_agent = self.__create_vector_search_agent(request)
             vector_search_agents.append(vector_search_agent)
         
         return vector_search_agents
 
     # 指定したopenai_propsとvector_db_propsを使って、VectorSearchAgentを作成する
-    def __create_vector_search_agent(self, openai_props: OpenAIProps, vector_search_request: VectorSearchRequest):
+    def __create_vector_search_agent(self, vector_search_request: VectorSearchRequest):
         import uuid
         params: dict[str, Any] = {}
         id = str(uuid.uuid4()).replace('-', '_')
 
-        # main_dbを作成
-        main_db = MainDB()
         # vector_db_propsを取得
-        vector_db_props = main_db.get_vector_db_by_name(vector_search_request.name)
+        vector_db_props = VectorDBItem.get_vector_db_by_name(vector_search_request.name)
         if vector_db_props is None:
             raise ValueError(f"VectorDBItem not found for name: {vector_search_request.name}")
 
@@ -233,16 +220,15 @@ class AutoGenProps:
         params["model_client"] = self.__load_client("default")
         # vector_search_toolを作成
         from ai_chat_lib.autogen_modules.vector_db_tools import create_vector_search_tool
-        func = create_vector_search_tool(openai_props, [vector_search_request])
+        func = create_vector_search_tool([vector_search_request])
         func_tool = FunctionTool(func, description=f"Vector Search Tool for {vector_db_props.description}", name=f"vector_search_tool_{id}")
         params["tools"] = [func_tool]
 
         return AssistantAgent(**params)
 
     # 指定したnameのAgentをDBから取得して、Agentを返す
-    def __load_agent(self, name: str, openai_props: OpenAIProps) -> Union[AssistantAgent, CodeExecutorAgent, None]:
-        main_db = MainDB(self.autogen_db_path)
-        agent_dict = main_db.get_autogen_agent(name)
+    def __load_agent(self, name: str) -> Union[AssistantAgent, CodeExecutorAgent, None]:
+        agent_dict = AutogenAgent.get_autogen_agent(name)
         if not agent_dict:
             return None
         # ConversableAgent object用の引数辞書を作成
@@ -288,7 +274,7 @@ class AutoGenProps:
                 vector_db_items_list = []
             for vector_db_item in vector_db_items_list:
                 id = str(uuid.uuid4()).replace('-', '_')
-                func = create_vector_search_tool(openai_props, [vector_db_item])
+                func = create_vector_search_tool([vector_db_item])
                 vector_db_props = VectorDBItem(**vector_db_item)
                 func_tool = FunctionTool(
                     func, description=f"Vector Search Tool for {vector_db_props.description}", 
@@ -320,8 +306,7 @@ class AutoGenProps:
 
         return func
     def __create_tool(self, name: str):
-        main_db = MainDB(self.autogen_db_path)
-        tool_dict = main_db.get_autogen_tool(name)
+        tool_dict = AutogenTools.get_autogen_tool(name)
         if not tool_dict:
             raise ValueError (f"Tool {name} not found in the database.")
  
@@ -336,8 +321,7 @@ class AutoGenProps:
     
     # 指定したnameのLLMConfigをDBから取得して、llm_configを返す    
     def __load_client(self, name: str) -> Union[OpenAIChatCompletionClient, AzureOpenAIChatCompletionClient]:
-        main_db = MainDB(self.autogen_db_path)
-        llm_config_entry = main_db.get_autogen_llm_config(name)
+        llm_config_entry = AutogenLLMConfig.get_autogen_llm_config(name)
         if not llm_config_entry:
             raise ValueError (f"LLMConfig {name} not found in the database.")
 
@@ -422,7 +406,7 @@ class AutoGenProps:
     # 指定した名前のエージェントを実行する
     async def run_agent(self, agent_name: str, initial_message: str) -> AsyncGenerator:
         # agent_nameのAgentを作成
-        agent = self.__load_agent(agent_name, self.openai_props)
+        agent = self.__load_agent(agent_name)
         if agent is None:
             raise ValueError(f"Agent {agent_name} not found in the database.")
 

@@ -5,7 +5,7 @@ from langchain_openai import AzureOpenAIEmbeddings
 from langchain_openai import OpenAIEmbeddings
 from typing import Any
 
-from ai_chat_lib.openai_modules.openai_util import OpenAIProps
+from ai_chat_lib.llm_modules.openai_util import OpenAIProps
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)

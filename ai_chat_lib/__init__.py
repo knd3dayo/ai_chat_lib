@@ -8,6 +8,6 @@ from .web_modules import *
 from .web_modules import *       
 from .autogen_modules import *   
 from .langchain_modules import * 
-from .openai_modules import *    
+from .llm_modules import *    
 
 __version__ = '0.1.0'

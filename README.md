@@ -58,19 +58,6 @@ Options:
     // -----------------------------------------------------------
     // 基本設定
     // -----------------------------------------------------------
-    // openaiを使用する場合の基本設定用ディクショナリ 
-    "openai_props": {
-        // str: OpenAIのAPIキー
-        "openai_key": "" ,
-        // bool: Azure OpenAIを使用するか否か
-        "azure_openai": false,
-        // str: AureOpenAIのAPIバージョン AuzreOpenAI=trueの場合に設定する。
-        "azure_openai_api_version": "",
-        // str: AureOpenAIのエンドポイントURL AuzreOpenAI=trueの場合に設定する。
-        "azure_openai_endpoint": "",
-        // str: カスタムモデル用のBaseURL OpenAI,AzureOpenAI以外のカスタムモデルを使用する場合に設定する。
-        "openai_base_url": ""
-    },
     // autogenを使用する場合の基本設定用ディクショナリ AutoGenを使用しない場合には不要
     "autogen_props": {
         // str: autogenの作業用ディレクトリ
