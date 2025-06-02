@@ -14,39 +14,13 @@ class EmbeddingBatchClient:
 
     misc_modules.langchain_utilのLangChainUtilを利用してEmbeddingを更新する。
     """
-    @classmethod
-    def get_vector_store_path(cls, app_data_path: str) -> str:
-        """
-        アプリケーションデータパスからベクトルストアのパスを取得する。
-
-        Args:
-            app_data_path (str): アプリケーションデータのパス
-
-        Returns:
-            str: ベクトルストアのパス
-        """
-        return os.path.join(app_data_path, "vector_store")
-    
-    @classmethod
-    def get_folder_names_file_path(cls, app_data_path: str) -> str:
-        """
-        アプリケーションデータパスからフォルダ名のファイルパスを取得する。
-
-        Args:
-            app_data_path (str): アプリケーションデータのパス
-
-        Returns:
-            str: フォルダ名のファイルパス
-        """
-        return os.path.join(app_data_path, "folder_names.json")
-    
     def __init__(self, app_data_path) -> None:
         self.app_data_path = app_data_path
         self.client = LangChainOpenAIClient.create_from_env()
         self.vector_store = LangChainVectorStore(
-            vector_store_url=self.get_vector_store_path(app_data_path),
+            vector_store_url=LangChainVectorStore.get_vector_store_path(app_data_path),
             embedding_client=self.client,
-            folder_names_file_path=self.get_folder_names_file_path(app_data_path)
+            folder_names_file_path=LangChainVectorStore.get_folder_names_file_path(app_data_path)
         )
 
     def update_embeddings_from_excel(self, excel_path: str) -> None:

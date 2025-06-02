@@ -91,6 +91,7 @@ class LangChainVectorStore(BaseModel):
         vector_store_url (str): URL for the vector store, if applicable.
         embedding_client (LangChainOpenAIClient): Embedding client for generating embeddings.
     """
+    
     # vector store type 現在はchromaのみ対応. chroma以外はエラーを返す。defaults to chroma.
     vector_store_type: str = Field(default="chroma", description="Type of vector store, currently only 'chroma' is supported")
     # collection name defaults to "default_collection"
@@ -110,6 +111,34 @@ class LangChainVectorStore(BaseModel):
             raise ValueError(f"Invalid vector store type. Must be one of {valid_types}.")
         return value
     
+    @classmethod
+    def get_vector_store_path(cls, app_data_path: str) -> str:
+        """
+        アプリケーションデータパスからベクトルストアのパスを取得する。
+
+        Args:
+            app_data_path (str): アプリケーションデータのパス
+
+        Returns:
+            str: ベクトルストアのパス
+        """
+        return os.path.join(app_data_path, "vector_store")
+    
+    @classmethod
+    def get_folder_names_file_path(cls, app_data_path: str) -> str:
+        """
+        アプリケーションデータパスからフォルダ名のファイルパスを取得する。
+
+        Args:
+            app_data_path (str): アプリケーションデータのパス
+
+        Returns:
+            str: フォルダ名のファイルパス
+        """
+        return os.path.join(app_data_path, "folder_names.json")
+    
+
+
     def get_vector_store(self) -> VectorStore:
 
         # ベクトルDB用のディレクトリが存在しない場合
@@ -223,9 +252,9 @@ class LangChainVectorStore(BaseModel):
     def vector_search(
         self, 
         query: str, 
-        k: int = 5,
+        num_results: int = 5,
         score_threshold: Optional[float] = None,
-        folder_name: Optional[str] = None
+        folder_path: Optional[str] = None
     ) -> List[EmbeddingData]:
         """
         Perform a vector search in the vector store.
@@ -234,11 +263,11 @@ class LangChainVectorStore(BaseModel):
         if not query:
             raise ValueError("Query must be provided for vector search.")
         # Perform the similarity search
-        search_kwargs: Dict[str, Any] = {"k": k}
+        search_kwargs: Dict[str, Any] = {"k": num_results}
         if score_threshold is not None:
             search_kwargs["score_threshold"] = score_threshold
-        if folder_name is not None:      
-            search_kwargs["filter"] = {"folder_name": folder_name}
+        if folder_path is not None:      
+            search_kwargs["filter"] = {"folder_name": folder_path}
         results = self.get_vector_store().similarity_search(query,search_kwargs=search_kwargs)
         # Document objects to EmbeddingData objects
         embedding_data_list = []
