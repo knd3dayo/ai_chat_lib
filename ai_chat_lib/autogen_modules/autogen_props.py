@@ -173,10 +173,6 @@ class AutoGenProps:
             agent = self.__load_agent(agent_name)
             agents.append(agent)
 
-        # vector_search_agentsがある場合は、agentsに追加
-        vector_search_agents = self.__create_vector_search_agent_list(self.vector_search_requests)
-        agents.extend(vector_search_agents)
-
         # エージェント名一覧を表示
         for agent in agents:
             logger.debug(f"agent:{agent.name}")
@@ -192,39 +188,6 @@ class AutoGenProps:
             )
         
         self.chat_object = chat
-
-    # vector_search_agentsを準備する。vector_db_props_listを受け取り、vector_search_agentsを作成する
-    def __create_vector_search_agent_list(self, vector_search_requests:list[VectorSearchRequest]):
-        vector_search_agents = []
-        for request in vector_search_requests:
-            vector_search_agent = self.__create_vector_search_agent(request)
-            vector_search_agents.append(vector_search_agent)
-        
-        return vector_search_agents
-
-    # 指定したopenai_propsとvector_db_propsを使って、VectorSearchAgentを作成する
-    def __create_vector_search_agent(self, vector_search_request: VectorSearchRequest):
-        import uuid
-        params: dict[str, Any] = {}
-        id = str(uuid.uuid4()).replace('-', '_')
-
-        # vector_db_propsを取得
-        vector_db_props = VectorDBItem.get_vector_db_by_name(vector_search_request.name)
-        if vector_db_props is None:
-            raise ValueError(f"VectorDBItem not found for name: {vector_search_request.name}")
-
-        params["name"] = f"vector_searcher_{id}"
-        params["description"] = vector_db_props.description
-        params["system_message"] = vector_db_props.system_message
-        # defaultのllm_config_nameを使って、model_clientを作成
-        params["model_client"] = self.__load_client("default")
-        # vector_search_toolを作成
-        from ai_chat_lib.autogen_modules.vector_db_tools import create_vector_search_tool
-        func = create_vector_search_tool([vector_search_request])
-        func_tool = FunctionTool(func, description=f"Vector Search Tool for {vector_db_props.description}", name=f"vector_search_tool_{id}")
-        params["tools"] = [func_tool]
-
-        return AssistantAgent(**params)
 
     # 指定したnameのAgentをDBから取得して、Agentを返す
     def __load_agent(self, name: str) -> Union[AssistantAgent, CodeExecutorAgent, None]:
@@ -263,26 +226,6 @@ class AutoGenProps:
                 tool_dict_list.append(func_tool)
             # vector_db_itemsが指定されている場合は、vector_db_items用のtoolを作成
             # vector_search_toolを作成
-            from ai_chat_lib.autogen_modules.vector_db_tools import create_vector_search_tool
-            import uuid
-            vector_db_items = agent_dict.vector_db_items
-            if isinstance(vector_db_items, str):
-                vector_db_items_list = json.loads(vector_db_items)
-            elif isinstance(vector_db_items, list):
-                vector_db_items_list = vector_db_items
-            else:
-                vector_db_items_list = []
-            for vector_db_item in vector_db_items_list:
-                id = str(uuid.uuid4()).replace('-', '_')
-                func = create_vector_search_tool([vector_db_item])
-                vector_db_props = VectorDBItem(**vector_db_item)
-                func_tool = FunctionTool(
-                    func, description=f"Vector Search Tool for {vector_db_props.description}", 
-                    name=f"vector_search_tool_{id}",
-                    global_imports=[" from typing import Annotated"]
-                    )
-                tool_dict_list.append(func_tool)
-
             params["tools"] = tool_dict_list
             return AssistantAgent(**params)
 

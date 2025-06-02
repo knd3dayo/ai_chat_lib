@@ -36,11 +36,10 @@ aiofiles
 autogen-agentchat
 autogen-ext
 beautifulsoup4
-selenium
-webdriver-manager
+
 duckduckgo-search
 wikipedia
-
+playwright
 # For Client
 pandas
 

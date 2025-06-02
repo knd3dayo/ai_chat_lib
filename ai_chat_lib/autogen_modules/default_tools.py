@@ -31,45 +31,6 @@ def check_file(file_path: Annotated[str, "File path"]) -> bool:
     check_file = os.path.exists(file_path)
     return check_file
 
-# Edge用のWebドライバーを毎回ダウンロードしなくてもよいようにグローバル変数化
-edge_driver = None # type: ignore
-def extract_webpage(url: Annotated[str, "URL of the web page to extract text and links from"]) -> Annotated[tuple[str, list[tuple[str, str]]], "Page text, list of links (href attribute and link text from <a> tags)"]:
-    """
-    This function extracts text and links from the specified URL of a web page.
-    """
-    from selenium import webdriver
-    from selenium.webdriver.edge.service import Service
-    from selenium.webdriver.edge.options import Options
-    from webdriver_manager.microsoft import EdgeChromiumDriverManager
-
-    # ヘッドレスモードのオプションを設定
-    edge_options = Options()
-    edge_options.add_argument("--headless")
-    edge_options.add_argument("--disable-gpu")
-    edge_options.add_argument("--no-sandbox")
-    edge_options.add_argument("--disable-dev-shm-usage")
-
-    global edge_driver
-    if not edge_driver:
-        # Edgeドライバをセットアップ
-        edge_driver = Service(EdgeChromiumDriverManager().install())
-
-    driver = webdriver.Edge(service=edge_driver, options=edge_options)
-    
-    # Wait for the page to fully load (set explicit wait conditions if needed)
-    driver.implicitly_wait(10)
-    # Retrieve HTML of the web page and extract text and links
-    driver.get(url)
-    # Get the entire HTML of the page
-    page_html = driver.page_source
-
-    from bs4 import BeautifulSoup
-    soup = BeautifulSoup(page_html, "html.parser")
-    text = soup.get_text()
-    # Retrieve href attribute and text from <a> tags
-    urls: list[tuple[str, str]] = [(a.get("href"), a.get_text()) for a in soup.find_all("a")] # type: ignore
-    driver.close()
-    return text, urls
 
 def search_duckduckgo(query: Annotated[str, "String to search for"], num_results: Annotated[int, "Maximum number of results to display"], site: Annotated[str, "Site to search within. Leave blank if no site is specified"] = "") -> Annotated[list[tuple[str, str, str]], "(Title, URL, Body) list"]:
     """
