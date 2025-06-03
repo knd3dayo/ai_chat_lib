@@ -20,10 +20,10 @@ class EmbeddingBatchClient:
         self.vector_store = LangChainVectorStore(
             vector_store_url=LangChainVectorStore.get_vector_store_path(app_data_path),
             embedding_client=self.client,
-            folder_names_file_path=LangChainVectorStore.get_folder_names_file_path(app_data_path)
+            folder_paths_file_path=LangChainVectorStore.get_folder_paths_file_path(app_data_path)
         )
 
-    def update_embeddings_from_excel(self, excel_path: str) -> None:
+    async def update_embeddings_from_excel(self, excel_path: str) -> None:
         """
         Excelファイルの各行のデータからEmbeddingDataを生成し、Embeddingを更新する。
 
@@ -53,14 +53,14 @@ class EmbeddingBatchClient:
                 **params,
             )
 
-            self.vector_store.update_embeddings([embedding_data])
+            await self.vector_store.update_embeddings([embedding_data])
             progress.update(1)
         progress.close()
 
         print(f"{len(df)} 件のEmbeddingを更新しました。")
 
 
-def main():
+async def main():
     load_dotenv()
 
     parser = argparse.ArgumentParser(description="Local Embedding Uploader Tool")
@@ -80,10 +80,11 @@ def main():
     
 
     client = EmbeddingBatchClient(app_data_path)
-    client.update_embeddings_from_excel(excel_path)
+    await client.update_embeddings_from_excel(excel_path)
 
 if __name__ == "__main__":
 
-    main()
+    import asyncio
+    asyncio.run(main())
 
 
