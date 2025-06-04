@@ -133,3 +133,83 @@ class AutogenTools(BaseModel):
         ''')
         conn.commit()
         conn.close()
+        # Initialize the autogen_tools table
+        cls.__init_default_autogen_tools()
+
+    @classmethod
+    def __init_default_autogen_tools(cls):
+        # デフォルトのautogen_toolsを登録する
+        import importlib.util
+
+        # search_wikipedia_ja
+        module_name = "ai_chat_lib.autogen_modules.search_wikipedia_ja"
+        spec = importlib.util.find_spec(module_name)
+        if spec and spec.origin:
+            description = "This function searches Wikipedia with the specified keywords and returns related articles."
+            tool = AutogenTools(name="search_wikipedia_ja", path=spec.origin, description=description)
+            cls.update_autogen_tool(tool)
+
+        # list_files_in_directory
+        module_name = "ai_chat_lib.autogen_modules.default_tools"
+        spec = importlib.util.find_spec(module_name)
+        if spec and spec.origin:
+            description = "This function lists files in the specified directory."
+            tool = AutogenTools(name="list_files_in_directory", path=spec.origin, description=description)
+            cls.update_autogen_tool(tool)
+        
+        # extract_file in default_tools
+        module_name = "ai_chat_lib.autogen_modules.default_tools"
+        spec = importlib.util.find_spec(module_name)
+        if spec and spec.origin:
+            description = "This function extracts files in the specified directory."
+            tool = AutogenTools(name="extract_file", path=spec.origin, description=description)
+            cls.update_autogen_tool(tool)
+    
+        # check_file in default_tools
+        module_name = "ai_chat_lib.autogen_modules.default_tools"
+        spec = importlib.util.find_spec(module_name)
+        if spec and spec.origin:
+            description = "This function checks the existence of a file in the specified directory."
+            tool = AutogenTools(name="check_file", path=spec.origin, description=description)
+            cls.update_autogen_tool(tool)
+
+        # extract_webpage in default_tools
+        module_name = "ai_chat_lib.autogen_modules.default_tools"
+        spec = importlib.util.find_spec(module_name)
+        if spec and spec.origin:
+            description = "This function extracts text from a webpage."
+            tool = AutogenTools(name="extract_webpage", path=spec.origin, description=description)
+            cls.update_autogen_tool(tool)
+
+        # search_duckduckgo in default_tools
+        module_name = "ai_chat_lib.autogen_modules.default_tools"
+        spec = importlib.util.find_spec(module_name)
+        if spec and spec.origin:
+            description = "This function searches DuckDuckGo with the specified keywords and returns related articles."
+            tool = AutogenTools(name="search_duckduckgo", path=spec.origin, description=description)
+            cls.update_autogen_tool(tool)
+
+        # save_text_file in default_tools
+        module_name = "ai_chat_lib.autogen_modules.default_tools"
+        spec = importlib.util.find_spec(module_name)
+        if spec and spec.origin:
+            description = "This function saves text to a file."
+            tool = AutogenTools(name="save_text_file", path=spec.origin, description=description)
+            cls.update_autogen_tool(tool)
+        
+        # arxiv_search in default_tools
+        module_name = "ai_chat_lib.autogen_modules.default_tools"
+        spec = importlib.util.find_spec(module_name)
+        if spec and spec.origin:
+            description = "This function searches arXiv with the specified keywords and returns related articles."
+            tool = AutogenTools(name="arxiv_search", path=spec.origin, description=description)
+            cls.update_autogen_tool(tool)
+        
+        # get_current_time in default_tools
+        module_name = "ai_chat_lib.autogen_modules.default_tools"
+        spec = importlib.util.find_spec(module_name)
+        if spec and spec.origin:
+            description = "This function returns the current time."
+            tool = AutogenTools(name="get_current_time", path=spec.origin, description=description)
+            cls.update_autogen_tool(tool)
+        
