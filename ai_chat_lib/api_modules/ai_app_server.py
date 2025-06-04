@@ -270,7 +270,7 @@ async def delete_collection(request: Request) -> Response:
 @routes.post('/api/delete_embeddings_by_folder')
 async def delete_embeddings_by_folder(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.delete_embeddings_by_folder(request_json)
+    response = await ai_app_wrapper.delete_embeddings_by_folder(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -278,7 +278,7 @@ async def delete_embeddings_by_folder(request: Request) -> Response:
 @routes.post('/api/delete_embeddings')
 async def delete_embeddings(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.delete_embeddings(request_json)
+    response = await ai_app_wrapper.delete_embeddings(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 

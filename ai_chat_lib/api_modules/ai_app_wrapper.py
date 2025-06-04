@@ -172,14 +172,14 @@ def delete_collection(request_json: str):
     return LangChainUtil.delete_collection_api(request_json)
 
 # ベクトルDBのインデックスをフォルダ単位で削除する
-@capture_stdout_stderr
-def delete_embeddings_by_folder(request_json: str):
-    return LangChainUtil.delete_embeddings_by_folder_api(request_json)
+@capture_stdout_stderr_async
+async def delete_embeddings_by_folder(request_json: str):
+    return await LangChainUtil.delete_embeddings_by_folder_api(request_json)
 
 # ベクトルDBのインデックスを削除する
-@capture_stdout_stderr
-def delete_embeddings(request_json: str):
-    return LangChainUtil.delete_embeddings_api(request_json)
+@capture_stdout_stderr_async
+async def delete_embeddings(request_json: str):
+    return await LangChainUtil.delete_embeddings_api(request_json)
 
 # ベクトルDBのコンテンツインデックスを更新する
 @capture_stdout_stderr_async

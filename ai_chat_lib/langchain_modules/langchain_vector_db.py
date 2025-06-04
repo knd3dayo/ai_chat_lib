@@ -74,23 +74,17 @@ class LangChainVectorDB(BaseModel):
 
 
     # document_idのリストとmetadataのリストを返す
-    def _get_document_ids_by_tag(self, name: str = "", value: str = "") -> Tuple[List, List]:
+    def _get_document_ids_by_tag(self, name: str = "", value: str = "") -> Tuple[List[str], List[dict[str, Any]]]:
         # 未実装例外をスロー
         raise NotImplementedError("Not implemented")
 
-    async def _save(self, documents:list=[]):
-        if self.db is None:
-            raise ValueError("db is None")
-        # リトライ処理
-        await self.add_doucment_with_retry(self.db, documents)    
-
-    def _delete(self, doc_ids:list=[]):
+    async def _delete(self, doc_ids:list=[]):
         if len(doc_ids) == 0:
             return
         if self.db is None:
             raise ValueError("db is None")
 
-        self.db.delete(ids=doc_ids)
+        await self.db.adelete(ids=doc_ids)
 
         return len(doc_ids)    
 
@@ -100,9 +94,10 @@ class LangChainVectorDB(BaseModel):
             self.db.delete_collection() # type: ignore
 
     async def __add_document(self, document: Document):
-        # ベクトルDB固有の保存メソッドを呼び出し                
-        await self._save([document] )
-
+        if self.db is None:
+            raise ValueError("db is None")
+        await self.add_doucment_with_retry(self.db, [document])    
+    
     async def __add_multivector_document(self, source_document: Document):
 
         # doc_idを取得
@@ -111,32 +106,14 @@ class LangChainVectorDB(BaseModel):
         if doc_id is None:
             raise ValueError("doc_id is None")
 
-        text = source_document.page_content
-        # チャンクサイズ 
-        chunk_size_list = []
-        # textの長さが256以上の場合は256に分割
-        # if len(text) > 256:
-        #     chunk_size_list.append(256)
-        # textの長さが512以上の場合は512に分割
-        # if len(text) > 512:
-        #     chunk_size_list.append(512)
-        # textの長さが1024以上の場合は1024に分割
-        if len(text) > 1024:
-            chunk_size_list.append(1024)
-        
-        # テキストをchunk_size_listの値で分割
         sub_docs = []
-        if len(chunk_size_list) == 0:
-            sub_docs.append(source_document)
-        else:
-            for chunk_size in chunk_size_list:
-                text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size)
-                splited_docs = text_splitter.split_documents([source_document])
-                if len(splited_docs) == 0:
-                    raise ValueError("splited_docs is empty")
-                for sub_doc in splited_docs:
-                    sub_doc.metadata["doc_id"] = doc_id
-                    sub_docs.append(sub_doc)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=self.multi_vector_chunk_size)
+        splited_docs = text_splitter.split_documents([source_document])
+        if len(splited_docs) == 0:
+            raise ValueError("splited_docs is empty")
+        for sub_doc in splited_docs:
+            sub_doc.metadata["doc_id"] = doc_id
+            sub_docs.append(sub_doc)
 
         # Retoriverを作成
         retriever = self.create_retriever()
@@ -147,65 +124,6 @@ class LangChainVectorDB(BaseModel):
         param = []
         param.append((doc_id, source_document))
         retriever.docstore.mset(param)
-
-    def __delete_folder(self, folder_id: str):
-        # ベクトルDB固有のvector id取得メソッドを呼び出し。
-        vector_ids, metadata = self._get_document_ids_by_tag("folder_id", folder_id)
-        # vector_idsが空の場合は何もしない
-        if len(vector_ids) == 0:
-            return 0
-
-        # ベクトルDB固有の削除メソッドを呼び出し
-        self._delete(vector_ids)
-
-    def __delete_multivector_folder(self, folder_id: str ) :
-        
-        # ベクトルDB固有のvector id取得メソッドを呼び出し。
-        vector_ids, metadata_list = self._get_document_ids_by_tag("older_id", folder_id)
-
-        # vector_idsが空の場合は何もしない
-        if len(vector_ids) == 0:
-            return 0
-        # documentのmetadataのdoc_idを取得
-        doc_ids = [data.get("doc_id", None) for data in metadata_list]
-        # doc_idsが空ではない場合
-        if len(doc_ids) > 0:
-            # DocStoreから削除
-            if self.doc_store is not None:
-                self.doc_store.mdelete(doc_ids)
-
-        # ベクトルDB固有の削除メソッドを呼び出し
-        self._delete(vector_ids)
-
-
-    def __delete_document(self, source_id: str):
-        # ベクトルDB固有のvector id取得メソッドを呼び出し。
-        vector_ids, metadata = self._get_document_ids_by_tag("source_id", source_id)
-        # vector_idsが空の場合は何もしない
-        if len(vector_ids) == 0:
-            return 0
-
-        # ベクトルDB固有の削除メソッドを呼び出し
-        self._delete(vector_ids)
-
-    def __delete_multivector_document(self, source_id: str ) :
-        
-        # ベクトルDB固有のvector id取得メソッドを呼び出し。
-        vector_ids, metadata_list = self._get_document_ids_by_tag("source_id", source_id)
-
-        # vector_idsが空の場合は何もしない
-        if len(vector_ids) == 0:
-            return 0
-        # documentのmetadataのdoc_idを取得
-        doc_ids = [data.get("doc_id", None) for data in metadata_list]
-        # doc_idsが空ではない場合
-        if len(doc_ids) > 0:
-            # DocStoreから削除
-            if self.doc_store is not None:
-                self.doc_store.mdelete(doc_ids)
-
-        # ベクトルDB固有の削除メソッドを呼び出し
-        self._delete(vector_ids)
 
     def __create_decorated_retriever(self, vectorstore: VectorStore, **kwargs: Any):
         # ベクトル検索の結果にスコアを追加する
@@ -226,18 +144,19 @@ class LangChainVectorDB(BaseModel):
 
         return retriever
 
-    async def add_document_list(self, content_text: str, description_text: str, folder_id: str, source_id: str, source_path: str,  chunk_size: int) -> list[Document]:
+    async def add_document_list(self, data: EmbeddingData, chunk_size: int) -> list[Document]:
         
         document_list = []
 
         # テキストをサニタイズ
-        content_text = self._sanitize_text(content_text)
+        content_text = self._sanitize_text(data.content)
         # テキストをchunk_sizeで分割
         text_list = self._split_text(content_text, chunk_size=chunk_size)
         for text in text_list:
             doc_id = str(uuid.uuid4())
-            logger.info(f"folder_id:{folder_id}")
-            metadata = LangChainVectorDB.create_metadata(doc_id, source_id, folder_id, "", source_path, description_text)
+            logger.info(f"folder_id:{data.folder_id}")
+            metadata = LangChainVectorDB.create_metadata(
+                doc_id, data.source_id, data.folder_id, "", data.source_path, data.description)
             logger.debug("metadata:", metadata)
             document = Document(page_content=text, metadata=metadata)
             document_list.append(document)
@@ -314,30 +233,42 @@ class LangChainVectorDB(BaseModel):
         # ベクトルDB固有の削除メソッドを呼び出してコレクションを削除
         self._delete_collection()
 
-    def delete_folder(self, folder_id: str):
-        # MultiVectorRetrieverの場合
-        if self.multi_vector_doc_store_url:
-            # DBからfolder_idを指定して既存フォルダを削除
-            self.__delete_multivector_folder(folder_id)
-        else:
-            # DBからfolder_idを指定して既存フォルダを削除
-            self.__delete_folder(folder_id)
-            
-    def delete_document(self, source_id: str):
-        # MultiVectorRetrieverの場合
-        if self.multi_vector_doc_store_url:
-            # DBからsourceを指定して既存ドキュメントを削除
-            self.__delete_multivector_document(source_id)
-        else:
-            # DBからsourceを指定して既存ドキュメントを削除
-            self.__delete_document(source_id)
-    
-    async def update_document(self, params: EmbeddingData):
+    async def delete_folder(self, folder_id: str):
+        # ベクトルDB固有のvector id取得メソッドを呼び出し。
+        vector_ids, _ = self._get_document_ids_by_tag("older_id", folder_id)
+
+        # vector_idsが空の場合は何もしない
+        if len(vector_ids) == 0:
+            return 0
+
+        # DocStoreから削除
+        if self.multi_vector_doc_store_url and self.doc_store is not None:
+            await self.doc_store.amdelete(vector_ids)
+
+        # ベクトルDB固有の削除メソッドを呼び出し
+        await self._delete(vector_ids)
+
+    async def delete_document(self, source_id: str):
+        # ベクトルDB固有のvector id取得メソッドを呼び出し。
+        doc_ids, _ = self._get_document_ids_by_tag("source_id", source_id)
+
+        # vector_idsが空の場合は何もしない
+        if len(doc_ids) == 0:
+            return 0
+
+        # DocStoreから削除
+        if self.multi_vector_doc_store_url and self.doc_store is not None:
+            await self.doc_store.amdelete(doc_ids)
+
+        # ベクトルDB固有の削除メソッドを呼び出し
+        await self._delete(doc_ids)
+
+    async def update_embeddings(self, params: EmbeddingData):
         
         # 既に存在するドキュメントを削除
-        self.delete_document(params.source_id)
+        await self.delete_document(params.source_id)
         # ドキュメントを格納する。
-        await self.add_document_list(params.content, params.description, params.folder_id, params.source_id, params.source_path, chunk_size=self.chunk_size)
+        await self.add_document_list(params, chunk_size=self.chunk_size)
 
     # RateLimitErrorが発生した場合は、指数バックオフを行う
     async def add_doucment_with_retry(self, vector_db: VectorStore, documents: list[Document], max_retries: int = 5, delay: float = 1.0):

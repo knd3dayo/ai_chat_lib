@@ -126,7 +126,7 @@ class LangChainUtil:
         return {}
 
     @classmethod
-    def delete_embeddings_by_folder_api(cls, request_json: str):
+    async def delete_embeddings_by_folder_api(cls, request_json: str):
         # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
 
@@ -143,12 +143,12 @@ class LangChainUtil:
 
         folder_id = embedding_data.folder_id
         # delete_folder_embeddingsを実行
-        vector_db.delete_folder(folder_id)
+        await vector_db.delete_folder(folder_id)
 
         return {}
 
     @classmethod
-    def delete_embeddings_api(cls, request_json: str):
+    async def delete_embeddings_api(cls, request_json: str):
         # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
 
@@ -160,7 +160,7 @@ class LangChainUtil:
         if vector_db_item is None:
             raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
         vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
-        vector_db.delete_document(embedding_data.source_id)
+        await vector_db.delete_document(embedding_data.source_id)
 
         return {}
 
@@ -189,7 +189,7 @@ class LangChainUtil:
         
         # LangChainVectorDBを生成
         vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
-        await vector_db.update_document(embedding_data)
+        await vector_db.update_embeddings(embedding_data)
 
         return {}   
 
