@@ -214,9 +214,9 @@ async def extract_text_from_file_async(request_json: str) -> dict:
 async def extract_base64_to_text_async(request_json: str):
     return await FileUtil.extract_base64_to_text_async_api(request_json)
 
-@capture_stdout_stderr
-def extract_webpage(request_json: str):
-    return WebUtil.extract_webpage_api(request_json)
+@capture_stdout_stderr_async
+async def extract_webpage(request_json: str):
+    return await WebUtil.extract_webpage_api(request_json)
 
 # export_to_excelを実行する
 @capture_stdout_stderr

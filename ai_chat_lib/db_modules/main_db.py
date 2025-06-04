@@ -20,7 +20,7 @@ class MainDB:
         return app_db_path
 
     @classmethod
-    def __create_update_sql(cls, table_name: str, key: str, items: dict ) -> str:
+    def create_update_sql(cls, table_name: str, key: str, items: dict ) -> str:
         # itemsからkeyをpopする
         if key not in items:
             raise ValueError(f"{key} is not in items.")

@@ -1,6 +1,7 @@
 import os, sys
 
 from typing import Tuple, List, Any
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
 import chromadb.config
 from langchain_chroma.vectorstores import Chroma # type: ignore
 import chromadb
@@ -15,13 +16,12 @@ import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
 class LangChainVectorDBChroma(LangChainVectorDB):
-
-    def __init__(self, langchain_openai_client: LangChainOpenAIClient, vector_db_url :str, collection_name: str = "", multi_vector_doc_store_url: str = "", chunk_size: int = 1024):
-        super().__init__(langchain_openai_client, vector_db_url, collection_name,  multi_vector_doc_store_url, chunk_size)
+    
+    def model_post_init(self, __context: Any) -> None:
         self.db = self._load()
-        if multi_vector_doc_store_url:
-            logger.info(f"doc_store_url: {multi_vector_doc_store_url}")
-            self.doc_store = SQLDocStore(multi_vector_doc_store_url)
+        if self.multi_vector_doc_store_url:
+            logger.info(f"doc_store_url: {self.multi_vector_doc_store_url}")
+            self.doc_store = SQLDocStore(self.multi_vector_doc_store_url)
         else:
             logger.info("doc_store_url is None")
 

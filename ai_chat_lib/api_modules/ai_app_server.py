@@ -337,7 +337,7 @@ async def extract_base64_to_text(request: Request) -> Response:
 @routes.post('/api/extract_webpage')
 async def extract_webpage(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.extract_webpage(request_json)
+    response = await ai_app_wrapper.extract_webpage(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 

@@ -28,6 +28,7 @@ class OpenAIProps(BaseModel):
             values["azure_openai_api_version"] = "2024-02-01"
         return values
 
+
     def create_openai_dict(self) -> dict:
         completion_dict = {}
         completion_dict["api_key"] = self.openai_key

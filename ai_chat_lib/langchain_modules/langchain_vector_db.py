@@ -3,6 +3,7 @@ import uuid
 from typing import Tuple, List, Any, Union, Optional
 from collections import defaultdict
 import asyncio
+from pydantic import BaseModel, Field, field_validator, ValidationInfo, ConfigDict
 
 from langchain_core.documents import Document
 from langchain_core.vectorstores import VectorStore
@@ -54,22 +55,23 @@ class CustomMultiVectorRetriever(MultiVectorRetriever):
 
         return docs
 
-class LangChainVectorDB:
-    
-    def __init__(self, langchain_openai_client: LangChainOpenAIClient, vector_db_url :str, collection_name :str = "", multi_vector_doc_store_url: str = "", chunk_size: int = 1024):
-        self.langchain_openai_client = langchain_openai_client
-        self.vector_db_url = vector_db_url
-        self.collection_name = collection_name
-        self.multi_vector_doc_store_url = multi_vector_doc_store_url
-        self.chunk_size = chunk_size
+class LangChainVectorDB(BaseModel):
+    """
+    LangChainのベクトルDBを利用するための基底クラス。
+    """
+    langchain_openai_client: LangChainOpenAIClient = Field(..., description="LangChain OpenAI Client")
+    vector_db_url: str = Field(..., description="Vector DBのURL")
+    collection_name: str = Field(default="", description="コレクション名")
+    multi_vector_doc_store_url: str = Field(default="", description="MultiVectorRetrieverを利用する場合のDocStoreのURL")
+    chunk_size: int = Field(default=4000, description="テキストを分割するチャンクサイズ")
+    use_multi_vector_retriever: bool = Field(default=False, description="MultiVectorRetrieverを利用するかどうか")
+    multi_vector_chunk_size: int = Field(default=1000, description="MultiVectorRetrieverを利用する場合のチャンクサイズ")
 
-        # 子クラスで実装
-        self.db: Union[VectorStore, None] = None
-        self.doc_store: Union[SQLDocStore, None] = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def _load(self) -> VectorStore:
-        # 未実装例外をスロー
-        raise NotImplementedError("Not implemented")
+    db : Union[VectorStore, None] = Field(default=None, description="VectorStoreのインスタンス")
+    doc_store: Union[SQLDocStore, None] = Field(default=None, description="SQLDocStoreのインスタンス")
+
 
     # document_idのリストとmetadataのリストを返す
     def _get_document_ids_by_tag(self, name: str = "", value: str = "") -> Tuple[List, List]:

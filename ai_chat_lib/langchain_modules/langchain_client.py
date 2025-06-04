@@ -1,20 +1,20 @@
 
 import json
+from typing import Any
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
+
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_openai import OpenAIEmbeddings
-from typing import Any
 
 from ai_chat_lib.llm_modules.openai_util import OpenAIProps
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
-class LangChainOpenAIClient:
-    def __init__(self, props: OpenAIProps, embedding_model: str):
-        
-        self.props: OpenAIProps = props
-        self.embedding_model: str = embedding_model
+class LangChainOpenAIClient(BaseModel):
+    props: OpenAIProps = Field(..., description="OpenAI properties")
+    embedding_model: str = Field(default="text-embedding-3-small", description="Embedding model name")
 
     def get_embedding_client(self):
         if not self.embedding_model:

@@ -350,7 +350,7 @@ class ContentFoldersCatalog(BaseModel):
 
             folder.folder_path = None
             logger.info(f"ContentFolder {folder.folder_name} is exists. Update folder.")
-            sql = MainDB.__create_update_sql("ContentFoldersCatalog", "id", update_params)
+            sql = MainDB.create_update_sql("ContentFoldersCatalog", "id", update_params)
             logger.info(f"SQL: {sql}")
             cur.execute(sql)
 

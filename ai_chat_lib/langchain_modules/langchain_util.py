@@ -61,8 +61,11 @@ class RetrievalQAUtil:
             def vector_search_function(question: str) -> list[Document]:
                 # Retrieverを作成
                 search_kwargs = {"k": 4}
-
-                retriever = LangChainVectorDB(client, vector_db_url, collection_name, doc_store_url, chunk_size).create_retriever(search_kwargs)
+                retriever = LangChainVectorDB(
+                    langchain_openai_client=client, vector_db_url=vector_db_url, 
+                    collection_name= collection_name, 
+                    multi_vector_doc_store_url = doc_store_url, 
+                    chunk_size=chunk_size).create_retriever(search_kwargs)
                 docs: list[Document] = retriever.invoke(question)
                 # page_contentを取得
                 result_docs = []
@@ -195,7 +198,7 @@ class LangChainUtil:
     @classmethod
     def get_vector_db(cls, openai_props: OpenAIProps, vector_db_props: VectorDBItem, embedding_model: str) -> LangChainVectorDB:
 
-        langchain_openai_client = LangChainOpenAIClient(openai_props, embedding_model)
+        langchain_openai_client = LangChainOpenAIClient(props=openai_props, embedding_model=embedding_model)
 
         vector_db_url = vector_db_props.vector_db_url
         if vector_db_props.is_use_multi_vector_retriever:
@@ -208,11 +211,22 @@ class LangChainUtil:
         # ベクトルDBのタイプがChromaの場合
         if vector_db_props.vector_db_type == 1:
             from ai_chat_lib.langchain_modules.langchain_vector_db_chroma import LangChainVectorDBChroma
-            return LangChainVectorDBChroma(langchain_openai_client, vector_db_url, collection_name, doc_store_url, chunk_size)
+            return LangChainVectorDBChroma(
+                langchain_openai_client = langchain_openai_client,
+                vector_db_url = vector_db_url,
+                collection_name = collection_name,
+                multi_vector_doc_store_url= doc_store_url, 
+                chunk_size = chunk_size)
         # ベクトルDBのタイプがPostgresの場合
         elif vector_db_props.vector_db_type == 2:
             from ai_chat_lib.langchain_modules.langchain_vector_db_pgvector import LangChainVectorDBPGVector
-            return LangChainVectorDBPGVector(langchain_openai_client, vector_db_url, collection_name, doc_store_url, chunk_size)
+            return LangChainVectorDBPGVector(
+                langchain_openai_client = langchain_openai_client,
+                vector_db_url = vector_db_url,
+                collection_name = collection_name,
+                multi_vector_doc_store_url= doc_store_url, 
+                chunk_size = chunk_size)
+                
         else:
             # それ以外の場合は例外
             raise ValueError("VectorDBType is invalid")
