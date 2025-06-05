@@ -167,7 +167,7 @@ class AutogenGroupChat(BaseModel):
         string_resources = resource_util.get_string_resources()
         description = string_resources.autogen_default_group_chat_description
         default_group_chat = AutogenGroupChat(
-            name="default_group_chat",
+            name="default",
             description=description,
             llm_config_name="default",
             agent_names=["planner"]
