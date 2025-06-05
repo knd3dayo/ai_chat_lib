@@ -157,3 +157,19 @@ class AutogenGroupChat(BaseModel):
         ''')
         conn.commit()
         conn.close()
+        # デフォルトのautogen_group_chatsを初期化する
+        cls.__init_default_autogen_group_chats()
+
+    @classmethod
+    def __init_default_autogen_group_chats(cls):
+        import ai_chat_lib.resouces.resource_util as resource_util
+        # デフォルトのautogen_group_chatsを初期化する
+        string_resources = resource_util.get_string_resources()
+        description = string_resources.autogen_default_group_chat_description
+        default_group_chat = AutogenGroupChat(
+            name="default_group_chat",
+            description=description,
+            llm_config_name="default",
+            agent_names=["planner"]
+        )
+        cls.update_autogen_group_chat(default_group_chat)

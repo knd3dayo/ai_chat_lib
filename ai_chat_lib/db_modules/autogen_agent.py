@@ -191,3 +191,25 @@ class AutogenAgent(BaseModel):
         ''')
         conn.commit()
         conn.close()
+        cls.__init_default_agent()
+
+    @classmethod
+    def __init_default_agent(cls):
+        import ai_chat_lib.resouces.resource_util as resource_util
+
+        string_resources = resource_util.get_string_resources()
+        # default agentを登録する
+        description = string_resources.autogen_planner_agent_description
+        system_message = string_resources.autogen_planner_agent_system_message
+
+        autogen_agent = AutogenAgent(
+            name="planner",
+            description=description,
+            system_message=system_message,
+            code_execution=True,
+            llm_config_name="default",
+            tool_names=[],
+            vector_db_items=[]
+        )
+        cls.update_autogen_agent(autogen_agent)
+        logger.info("Default autogen agent 'planner' has been initialized.")
