@@ -11,8 +11,7 @@ from ai_chat_lib.db_modules.autogen_llm_config import AutogenLLMConfig
 from ai_chat_lib.db_modules.autogen_tools import AutogenTools
 from ai_chat_lib.db_modules.autogen_agent import AutogenAgent
 from ai_chat_lib.db_modules.autogen_group_chat import AutogenGroupChat
-
-
+from ai_chat_lib.db_modules.prompt_item import PromptItem
 
 logger = log_settings.getLogger(__name__)
 
@@ -51,6 +50,8 @@ class MainDBUtil:
         MainDB.init_db_properties_table()
         # ContentFoldersテーブルを初期化
         ContentFoldersCatalog.init_content_folder_catalog_table()
+        # PromptItemsテーブルを初期化
+        PromptItem.init_prompt_item_table()
         # TagItemsテーブルを初期化
         TagItem.init_tag_item_table()
         # VectorDBItemsテーブルを初期化

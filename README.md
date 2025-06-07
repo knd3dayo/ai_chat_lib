@@ -185,7 +185,15 @@ Options:
         "parent_id": "",
         "folder_path": ""
     },
-
+    // プロンプトテンプレート
+    "prompt_item_requests": {
+        "id": "プロンプトテンプレートのID",
+        "name": "プロンプトテンプレートの名前",
+        "description": "プロンプトテンプレートの説明",
+        "prompt_template": "プロンプトテンプレート",
+        "prompt_template_type": "プロンプトテンプレートのタイプ",
+        "extended_properties_json": "拡張プロパティ"
+    },
     // AutoGenのLLM設定の参照、編集のためのディクショナリ。
     "autogen_llm_config_request": {
         "name": "名前",

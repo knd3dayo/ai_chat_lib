@@ -9,4 +9,5 @@ from ai_chat_lib.db_modules.autogen_agent import *
 from ai_chat_lib.db_modules.autogen_tools import *
 from ai_chat_lib.db_modules.autogen_group_chat import *
 from ai_chat_lib.db_modules.main_db_util import *
+from ai_chat_lib.db_modules.prompt_item import *
 

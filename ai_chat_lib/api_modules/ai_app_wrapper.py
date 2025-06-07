@@ -14,6 +14,22 @@ if "HTTPS_PROXY" not in os.environ:
 # AutoGenのCodeExecutor実行時にUncicodeEncodeErrorが発生するため、Pythonのデフォルトの文字コードをUTF-8に設定
 os.environ["PYTHONUTF8"] = "1"
 ########################
+# PromptItem関連
+########################
+@capture_stdout_stderr
+def get_prompt_items(request_json: str):
+    return PromptItem.get_prommt_items_api()
+@capture_stdout_stderr
+def get_prompt_item(request_json: str):
+    return PromptItem.get_prompt_item_api(request_json)
+@capture_stdout_stderr
+def update_prompt_items(request_json: str):
+    return PromptItem.update_prompt_items_api(request_json)
+@capture_stdout_stderr
+def delete_prompt_items(request_json: str):
+    return PromptItem.delete_prompt_items_api(request_json)
+
+########################
 # ContentFolders関連
 ########################
 @capture_stdout_stderr

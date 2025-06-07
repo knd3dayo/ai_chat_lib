@@ -16,6 +16,33 @@ app = web.Application(client_max_size=1024*1024*300) # 300MB
 sio = socketio.AsyncServer(async_mode='aiohttp')
 sio.attach(app)
 
+########################
+# PromptItem関連
+########################
+@routes.post('/api/get_prompt_items')
+async def get_prompt_items(request: Request) -> Response:
+    request_json = await request.text()
+    response = ai_app_wrapper.get_prompt_items(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/get_prompt_item')
+async def get_prompt_item(request: Request) -> Response:
+    request_json = await request.text()
+    response = ai_app_wrapper.get_prompt_item(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/update_prompt_items')
+async def update_prompt_items(request: Request) -> Response:
+    request_json = await request.text()
+    response = ai_app_wrapper.update_prompt_items(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/delete_prompt_items')
+async def delete_prompt_items(request: Request) -> Response:
+    request_json = await request.text()
+    response = ai_app_wrapper.delete_prompt_items(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
 
 ########################
 # ContentFolders関連

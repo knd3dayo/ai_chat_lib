@@ -1,7 +1,7 @@
 import sqlite3
 import json
 from typing import List, Union, Optional, ClassVar
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List, Union
 
 import ai_chat_lib.log_modules.log_settings as log_settings
@@ -14,12 +14,13 @@ class AutogenLLMConfig(BaseModel):
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE autogen_llm_configs (name TEXT, api_type TEXT, api_version TEXT, model TEXT, api_key TEXT, base_url TEXT)
     '''
-    name: str = ""
-    api_type: str = ""
-    api_version: str = ""
-    model: str = ""
-    api_key: str = ""
-    base_url: str = ""
+    name: str = Field(..., description="LLM Configの名前")
+    api_type: str = Field(..., description="LLMのAPIタイプ (例: openai, azure)")
+    api_version: str = Field(..., description="LLMのAPIバージョン (例: 2023-05-15)")
+    model: str = Field(..., description="LLMのモデル名 (例: gpt-3.5-turbo)")
+    api_key: str = Field(..., description="LLMのAPIキー")   
+    # Optionai
+    base_url: Optional[str] = Field(None, description="LLMのベースURL (例: https://api.openai.com/v1)")
 
     @classmethod
     def get_autogen_llm_config_list_api(cls):
