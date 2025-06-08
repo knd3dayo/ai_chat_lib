@@ -16,55 +16,55 @@ os.environ["PYTHONUTF8"] = "1"
 ########################
 # PromptItem関連
 ########################
-@capture_stdout_stderr
-def get_prompt_items(request_json: str):
-    return PromptItem.get_prommt_items_api()
-@capture_stdout_stderr
-def get_prompt_item(request_json: str):
-    return PromptItem.get_prompt_item_api(request_json)
-@capture_stdout_stderr
-def update_prompt_items(request_json: str):
-    return PromptItem.update_prompt_items_api(request_json)
-@capture_stdout_stderr
-def delete_prompt_items(request_json: str):
-    return PromptItem.delete_prompt_items_api(request_json)
+@capture_stdout_stderr_async
+async def get_prompt_items(request_json: str):
+    return await PromptItem.get_prommt_items_api()
+@capture_stdout_stderr_async
+async def get_prompt_item(request_json: str):
+    return await PromptItem.get_prompt_item_api(request_json)
+@capture_stdout_stderr_async
+async def update_prompt_items(request_json: str):
+    return await PromptItem.update_prompt_items_api(request_json)
+@capture_stdout_stderr_async
+async def delete_prompt_items(request_json: str):
+    return await PromptItem.delete_prompt_items_api(request_json)
 
 ########################
 # ContentFolders関連
 ########################
-@capture_stdout_stderr
-def get_root_content_folders():
-    return ContentFoldersCatalog.get_root_content_folders_api()
-@capture_stdout_stderr
-def get_content_folders():
-    return ContentFoldersCatalog.get_content_folders_api()
-@capture_stdout_stderr
-def get_content_folders_by_id(request_json: str):
-    return ContentFoldersCatalog.get_content_folder_by_id_api(request_json)
-@capture_stdout_stderr
-def get_content_folder_by_path(request_json: str):
-    return ContentFoldersCatalog.get_content_folder_by_path_api(request_json)
-@capture_stdout_stderr
-def update_content_folders(request_json: str):
-    return ContentFoldersCatalog.update_content_folders_api(request_json)
-@capture_stdout_stderr
-def delete_content_folders(request_json: str):
-    return ContentFoldersCatalog.delete_content_folders_api(request_json)
+@capture_stdout_stderr_async
+async def get_root_content_folders():
+    return await ContentFoldersCatalog.get_root_content_folders_api()
+@capture_stdout_stderr_async
+async def get_content_folders():
+    return await ContentFoldersCatalog.get_content_folders_api()
+@capture_stdout_stderr_async
+async def get_content_folders_by_id(request_json: str):
+    return await ContentFoldersCatalog.get_content_folder_by_id_api(request_json)
+@capture_stdout_stderr_async
+async def get_content_folder_by_path(request_json: str):
+    return await ContentFoldersCatalog.get_content_folder_by_path_api(request_json)
+@capture_stdout_stderr_async
+async def update_content_folders(request_json: str):
+    return await ContentFoldersCatalog.update_content_folders_api(request_json)
+@capture_stdout_stderr_async
+async def delete_content_folders(request_json: str):
+    return await ContentFoldersCatalog.delete_content_folders_api(request_json)
 
 ########################
 # tag関連
 ########################
-@capture_stdout_stderr
-def get_tag_items(request_json: str):
-    return TagItem.get_tag_items_api(request_json)
+@capture_stdout_stderr_async
+async def get_tag_items(request_json: str):
+    return await TagItem.get_tag_items_api(request_json)
 
-@capture_stdout_stderr
-def update_tag_items(request_json: str):
-    return TagItem.update_tag_items_api(request_json)
+@capture_stdout_stderr_async
+async def update_tag_items(request_json: str):
+    return await TagItem.update_tag_items_api(request_json)
 
-@capture_stdout_stderr
-def delete_tag_items(request_json: str):
-    return TagItem.delete_tag_items_api(request_json)
+@capture_stdout_stderr_async
+async def delete_tag_items(request_json: str):
+    return await TagItem.delete_tag_items_api(request_json)
 
 ########################
 # openai関連
@@ -83,109 +83,109 @@ def get_token_count(request_json: str):
 async def autogen_chat( request_json: str):
     yield AutoGenProps.autogen_chat_api(request_json)
 
-@capture_stdout_stderr
-def get_autogen_llm_config_list():
-    return AutogenLLMConfig.get_autogen_llm_config_list_api()
+@capture_stdout_stderr_async
+async def get_autogen_llm_config_list():
+    return await AutogenLLMConfig.get_autogen_llm_config_list_api()
 
-@capture_stdout_stderr
-def get_autogen_llm_config(request_json: str):
-    return AutogenLLMConfig.get_autogen_llm_config_api(request_json)
+@capture_stdout_stderr_async
+async def get_autogen_llm_config(request_json: str):
+    return await AutogenLLMConfig.get_autogen_llm_config_api(request_json)
 
-@capture_stdout_stderr
-def update_autogen_llm_config(request_json: str):
-    return AutogenLLMConfig.update_autogen_llm_config_api(request_json)
+@capture_stdout_stderr_async
+async def update_autogen_llm_config(request_json: str):
+    return await AutogenLLMConfig.update_autogen_llm_config_api(request_json)
 
-@capture_stdout_stderr
-def delete_autogen_llm_config(request_json: str):
-    return AutogenLLMConfig.delete_autogen_llm_config_api(request_json)
+@capture_stdout_stderr_async
+async def delete_autogen_llm_config(request_json: str):
+    return await AutogenLLMConfig.delete_autogen_llm_config_api(request_json)
 
-@capture_stdout_stderr
-def get_autogen_tool_list():
-    return AutogenTools.get_autogen_tool_list_api()
+@capture_stdout_stderr_async
+async def get_autogen_tool_list():
+    return await AutogenTools.get_autogen_tool_list_api()
 
-@capture_stdout_stderr
-def get_autogen_tool(request_json: str):
-    return AutogenTools.get_autogen_tool_api(request_json)
+@capture_stdout_stderr_async
+async def get_autogen_tool(request_json: str):
+    return await AutogenTools.get_autogen_tool_api(request_json)
 
-@capture_stdout_stderr
-def update_autogen_tool(request_json: str):
-    return AutogenTools.update_autogen_tool_api(request_json)
+@capture_stdout_stderr_async
+async def update_autogen_tool(request_json: str):
+    return await AutogenTools.update_autogen_tool_api(request_json)
 
-@capture_stdout_stderr
-def delete_autogen_tool(request_json: str):
-    return AutogenTools.delete_autogen_tool_api(request_json)
+@capture_stdout_stderr_async
+async def delete_autogen_tool(request_json: str):
+    return await AutogenTools.delete_autogen_tool_api(request_json)
 
-@capture_stdout_stderr
-def get_autogen_agent_list():
-    return AutogenAgent.get_autogen_agent_list_api()
+@capture_stdout_stderr_async
+async def get_autogen_agent_list():
+    return await AutogenAgent.get_autogen_agent_list_api()
 
-@capture_stdout_stderr
-def get_autogen_agent(request_json: str):
-    return AutogenAgent.get_autogen_agent_api(request_json)
+@capture_stdout_stderr_async
+async def get_autogen_agent(request_json: str):
+    return await AutogenAgent.get_autogen_agent_api(request_json)
 
-@capture_stdout_stderr
-def update_autogen_agent(request_json: str):
-    return AutogenAgent.update_autogen_agent_api(request_json)
+@capture_stdout_stderr_async
+async def update_autogen_agent(request_json: str):
+    return await AutogenAgent.update_autogen_agent_api(request_json)
 
-@capture_stdout_stderr
-def delete_autogen_agent(request_json: str):
-    return AutogenAgent.delete_autogen_agent_api(request_json)
+@capture_stdout_stderr_async
+async def delete_autogen_agent(request_json: str):
+    return await AutogenAgent.delete_autogen_agent_api(request_json)
 
-@capture_stdout_stderr
-def get_autogen_group_chat_list():
-    return AutogenGroupChat.get_autogen_group_chat_list_api()
+@capture_stdout_stderr_async
+async def get_autogen_group_chat_list():
+    return await AutogenGroupChat.get_autogen_group_chat_list_api()
 
-@capture_stdout_stderr
-def get_autogen_group_chat(request_json: str):
-    return AutogenGroupChat.get_autogen_group_chat_api(request_json)
+@capture_stdout_stderr_async
+async def get_autogen_group_chat(request_json: str):
+    return await AutogenGroupChat.get_autogen_group_chat_api(request_json)
 
-@capture_stdout_stderr
-def update_autogen_group_chat(request_json: str):
-    return AutogenGroupChat.update_autogen_group_chat_api(request_json)
+@capture_stdout_stderr_async
+async def update_autogen_group_chat(request_json: str):
+    return await AutogenGroupChat.update_autogen_group_chat_api(request_json)
 
-@capture_stdout_stderr
-def delete_autogen_group_chat(request_json: str):
-    return AutogenGroupChat.delete_autogen_group_chat_api(request_json)
+@capture_stdout_stderr_async
+async def delete_autogen_group_chat(request_json: str):
+    return await AutogenGroupChat.delete_autogen_group_chat_api(request_json)
 
 ########################
 # ベクトルDB関連
 ########################
 # vector_db_itemを更新する
-@capture_stdout_stderr
-def update_vector_db(request_json: str):
-    return VectorDBItem.update_vector_db_api(request_json)
+@capture_stdout_stderr_async
+async def update_vector_db(request_json: str):
+    return await VectorDBItem.update_vector_db_api(request_json)
 
 # vector_db_itemを削除する
-@capture_stdout_stderr
-def delete_vector_db(request_json: str):
-    return VectorDBItem.delete_vector_db_api(request_json)
+@capture_stdout_stderr_async
+async def delete_vector_db(request_json: str):
+    return await VectorDBItem.delete_vector_db_api(request_json)
 
 # vector_dbのリストを取得する
-@capture_stdout_stderr
-def get_vector_db_items():
-    return VectorDBItem.get_vector_db_items_api()
+@capture_stdout_stderr_async
+async def get_vector_db_items():
+    return await VectorDBItem.get_vector_db_items_api()
 
 # get_vector_db_item_by_idを実行する
-@capture_stdout_stderr
-def get_vector_db_item_by_id(request_json: str):
-    return VectorDBItem.get_vector_db_item_by_id_api(request_json)
+@capture_stdout_stderr_async
+async def get_vector_db_item_by_id(request_json: str):
+    return await VectorDBItem.get_vector_db_item_by_id_api(request_json)
 
 # get_vector_db_item_by_nameを実行する
-@capture_stdout_stderr
-def get_vector_db_item_by_name(request_json: str):
-    return VectorDBItem.get_vector_db_item_by_name_api(request_json)
+@capture_stdout_stderr_async
+async def get_vector_db_item_by_name(request_json: str):
+    return await VectorDBItem.get_vector_db_item_by_name_api(request_json)
 
-@capture_stdout_stderr
-def vector_search(request_json: str):
-    return LangChainUtil.vector_search_api(request_json)
+@capture_stdout_stderr_async
+async def vector_search(request_json: str):
+    return await LangChainUtil.vector_search_api(request_json)
 
 @capture_stdout_stderr
 def update_collection(request_json: str):
     return LangChainUtil.update_collection_api(request_json)
 
-@capture_stdout_stderr
-def delete_collection(request_json: str):
-    return LangChainUtil.delete_collection_api(request_json)
+@capture_stdout_stderr_async
+async def delete_collection(request_json: str):
+    return await LangChainUtil.delete_collection_api(request_json)
 
 # ベクトルDBのインデックスをフォルダ単位で削除する
 @capture_stdout_stderr_async

@@ -1,4 +1,4 @@
-import sqlite3
+import aiosqlite
 import json
 from typing import List, Union, Optional, ClassVar
 from pydantic import BaseModel, field_validator
@@ -64,8 +64,8 @@ class AutogenAgent(BaseModel):
         return []
 
     @classmethod
-    def get_autogen_agent_list_api(cls):
-        agent_list = cls.get_autogen_agent_list()
+    async def get_autogen_agent_list_api(cls):
+        agent_list = await cls.get_autogen_agent_list()
         if not agent_list:
             raise ValueError("agent_list is not set")
         result = {}
@@ -73,34 +73,34 @@ class AutogenAgent(BaseModel):
         return result
 
     @classmethod
-    def get_autogen_agent_api(cls, request_json: str):
+    async def get_autogen_agent_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         agent = AutogenAgent.get_autogen_agent_object(request_dict)
         if not agent:
             raise ValueError("agent is not set")
-        agent_result = cls.get_autogen_agent(agent.name)
+        agent_result = await cls.get_autogen_agent(agent.name)
         result: dict = {}
         if agent_result:
             result["agent"] = agent_result.to_dict()
         return result
 
     @classmethod
-    def update_autogen_agent_api(cls, request_json: str):
+    async def update_autogen_agent_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         agent = AutogenAgent.get_autogen_agent_object(request_dict)
         if not agent:
             raise ValueError("agent is not set")
-        cls.update_autogen_agent(agent)
+        await cls.update_autogen_agent(agent)
         result: dict = {}
         return result
 
     @classmethod
-    def delete_autogen_agent_api(cls, request_json: str):
+    async def delete_autogen_agent_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         agent = AutogenAgent.get_autogen_agent_object(request_dict)
         if not agent:
             raise ValueError("agent is not set")
-        cls.delete_autogen_agent(agent)
+        await cls.delete_autogen_agent(agent)
         result: dict = {}
         return result
 
@@ -117,84 +117,80 @@ class AutogenAgent(BaseModel):
         return self.model_dump()
 
     @classmethod
-    def get_autogen_agent_list(cls) -> List["AutogenAgent"]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM autogen_agents")
-        rows = cur.fetchall()
-        agents = [AutogenAgent(**dict(row)) for row in rows]
-        conn.close()
+    async def get_autogen_agent_list(cls) -> List["AutogenAgent"]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn:
+                cur = await conn.execute("SELECT * FROM autogen_agents")
+                rows = await cur.fetchall()
+                agents = [AutogenAgent(**dict(row)) for row in rows]
+        if not agents:
+            logger.warning("No autogen agents found in the database.")
+            return []
 
         return agents
 
     @classmethod
-    def get_autogen_agent(cls, agent_name: str) -> Union["AutogenAgent", None]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM autogen_agents WHERE name=?", (agent_name,))
-        row = cur.fetchone()
+    async def get_autogen_agent(cls, agent_name: str) -> Union["AutogenAgent", None]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn:
+                cur = await conn.execute("SELECT * FROM autogen_agents WHERE name=?", (agent_name,))
+                row = await cur.fetchone()
 
-        # データが存在しない場合はNoneを返す
-        if row is None or len(row) == 0:
-            return None
-        agent_dict = dict(row)
-        conn.close()
+                # データが存在しない場合はNoneを返す
+                if row is None or len(row) == 0:
+                    return None
+                agent_dict = dict(row)
 
         return AutogenAgent(**agent_dict)
     
     @classmethod
-    def update_autogen_agent(cls, agent: "AutogenAgent"):
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        if cls.get_autogen_agent(agent.name) is None:
-            cur.execute("INSERT INTO autogen_agents VALUES (?, ?, ?, ?, ?, ?, ?)", 
-                        (agent.name, agent.description, agent.system_message, 
-                         agent.code_execution, agent.llm_config_name, 
-                         json.dumps(agent.tool_names, ensure_ascii=False), 
-                         json.dumps(agent.vector_db_items,ensure_ascii=False)))
-        else:
-            cur.execute("UPDATE autogen_agents SET description=?, system_message=?, code_execution=?, llm_config_name=?, tool_names_json=?, vector_db_items_json=? WHERE name=?", 
-                        (agent.description, agent.system_message, 
-                         agent.code_execution, agent.llm_config_name, 
-                         json.dumps(agent.tool_names, ensure_ascii=False), 
-                         json.dumps(agent.vector_db_items,ensure_ascii=False), 
-                         agent.name))
-        conn.commit()
-        conn.close()
+    async def update_autogen_agent(cls, agent: "AutogenAgent"):
+        
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            cur = await conn.cursor()
+            if await cls.get_autogen_agent(agent.name) is None:
+                await cur.execute("INSERT INTO autogen_agents VALUES (?, ?, ?, ?, ?, ?, ?)", 
+                                  (agent.name, agent.description, agent.system_message, 
+                                   agent.code_execution, agent.llm_config_name, 
+                                   json.dumps(agent.tool_names, ensure_ascii=False), 
+                                   json.dumps(agent.vector_db_items,ensure_ascii=False)))
+            else:
+                await cur.execute("UPDATE autogen_agents SET description=?, system_message=?, code_execution=?, llm_config_name=?, tool_names_json=?, vector_db_items_json=? WHERE name=?", 
+                                  (agent.description, agent.system_message, 
+                                   agent.code_execution, agent.llm_config_name, 
+                                   json.dumps(agent.tool_names, ensure_ascii=False), 
+                                   json.dumps(agent.vector_db_items,ensure_ascii=False), 
+                                   agent.name))
+            await conn.commit()
     
     @classmethod
-    def delete_autogen_agent(cls, agent: "AutogenAgent"):
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute("DELETE FROM autogen_agents WHERE name=?", (agent.name,))
-        conn.commit()
-        conn.close()
-
+    async def delete_autogen_agent(cls, agent: "AutogenAgent"):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            cur = await conn.cursor()
+            await cur.execute("DELETE FROM autogen_agents WHERE name=?", (agent.name,))
+            await conn.commit()
 
     @classmethod
-    def init_autogen_agents_table(cls):
-        # autogen_agentsテーブルが存在しない場合は作成する
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS autogen_agents (
-                name TEXT PRIMARY KEY,
-                description TEXT,
-                system_message TEXT,
-                code_execution INTEGER,
-                llm_config_name TEXT,
-                tool_names_json TEXT,
-                vector_db_items_json TEXT
-            )
-        ''')
-        conn.commit()
-        conn.close()
-        cls.__init_default_agent()
+    async def init_autogen_agents_table(cls):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute('''
+                    CREATE TABLE IF NOT EXISTS autogen_agents (
+                        name TEXT PRIMARY KEY,
+                        description TEXT,
+                        system_message TEXT,
+                        code_execution INTEGER,
+                        llm_config_name TEXT,
+                        tool_names_json TEXT,
+                        vector_db_items_json TEXT
+                    )
+                ''')
+                await conn.commit()
 
     @classmethod
-    def __init_default_agent(cls):
+    async def __init_default_agent(cls):
         import ai_chat_lib.resouces.resource_util as resource_util
 
         string_resources = resource_util.get_string_resources()
@@ -211,5 +207,5 @@ class AutogenAgent(BaseModel):
             tool_names=[],
             vector_db_items=[]
         )
-        cls.update_autogen_agent(autogen_agent)
+        await cls.update_autogen_agent(autogen_agent)
         logger.info("Default autogen agent 'planner' has been initialized.")

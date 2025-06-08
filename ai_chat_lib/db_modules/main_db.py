@@ -1,4 +1,4 @@
-import sqlite3
+import aiosqlite
 import uuid
 import os
 from typing import Union
@@ -72,69 +72,63 @@ class MainDB:
             self.db_path = MainDB.get_main_db_path()
 
     @classmethod
-    def init_db_properties_table(cls):
+    async def init_db_properties_table(cls):
         # DBPropertiesテーブルが存在しない場合は作成する
-        conn = sqlite3.connect(cls.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS DBProperties (
-                id TEXT NOT NULL PRIMARY KEY,
-                name TEXT NOT NULL,
-                value TEXT NOT NULL
-            )
-        ''')
-        # version = 1を追加
-        cur.execute('''
-            INSERT OR IGNORE INTO DBProperties (id, name, value) VALUES (?, ?, ?)
-        ''', (str(uuid.uuid4()), "version", "1"))
+        async with aiosqlite.connect(cls.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute('''
+                    CREATE TABLE IF NOT EXISTS DBProperties (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        value TEXT NOT NULL
+                    )
+                ''')
+                # version = 1を追加
+                await cur.execute('''
+                    INSERT OR IGNORE INTO DBProperties (id, name, value) VALUES (?, ?, ?)
+                ''', (str(uuid.uuid4()), "version", "1"))
 
-        conn.commit()
-        conn.close()
+                await conn.commit()
     
     #########################################
     # DBProperties関連
     #########################################
-    def get_db_properties(self) -> dict:
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM DBProperties")
-        rows = cur.fetchall()
-        db_properties = {row["name"]: row["value"] for row in rows}
-        conn.close()
+    async def get_db_properties(self) -> dict:
+        async with aiosqlite.connect(self.db_path) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM DBProperties")
+                rows = await cur.fetchall()
+                db_properties = {row["name"]: row["value"] for row in rows}
 
         return db_properties
     
-    def get_db_property(self, name: str) -> Union[str, None]:
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM DBProperties WHERE name=?", (name,))
-        row = cur.fetchone()
+    async def get_db_property(self, name: str) -> Union[str, None]:
+        async with aiosqlite.connect(self.db_path) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM DBProperties WHERE name=?", (name,))
+                row = await cur.fetchone()
 
-        # データが存在しない場合はNoneを返す
-        if row is None or len(row) == 0:
-            return None
-
-        db_property_dict = dict(row)
-        conn.close()
+                # データが存在しない場合はNoneを返す
+                if row is None or len(row) == 0:
+                    return None
+                db_property_dict = dict(row)
 
         return db_property_dict["value"]
     
-    def update_db_property(self, name: str, value: str):
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        if self.get_db_property(name) is None:
-            cur.execute("INSERT INTO DBProperties (id, name, value) VALUES (?, ?, ?)", (str(uuid.uuid4()), name, value))
-        else:
-            cur.execute("UPDATE DBProperties SET value=? WHERE name=?", (value, name))
-        conn.commit()
-        conn.close()
+    async def update_db_property(self, name: str, value: str):
+        async with aiosqlite.connect(self.db_path) as conn:
+            async with conn.cursor() as cur:
+                if await self.get_db_property(name) is None:
+                    await cur.execute("INSERT INTO DBProperties (id, name, value) VALUES (?, ?, ?)", (str(uuid.uuid4()), name, value))
+                else:
+                    await cur.execute("UPDATE DBProperties SET value=? WHERE name=?", (value, name))
+                await conn.commit()
 
-    def delete_db_property(self, name: str):
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute("DELETE FROM DBProperties WHERE name=?", (name,))
-        conn.commit()
-        conn.close()
+    async def delete_db_property(self, name: str):
+        async with aiosqlite.connect(self.db_path) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("DELETE FROM DBProperties WHERE name=?", (name,))
+                await conn.commit()
 

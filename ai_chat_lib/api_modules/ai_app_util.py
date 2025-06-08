@@ -9,8 +9,8 @@ import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
 # アプリケーション初期化時に呼び出される関数
-def init_app() -> None:
-    MainDBUtil.init(True)
+async def init_app() -> None:
+    await MainDBUtil.init(True)
 
 # stdout,stderrを文字列として取得するためラッパー関数を定義
 def capture_stdout_stderr(func):

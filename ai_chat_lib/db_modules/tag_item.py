@@ -1,4 +1,4 @@
-import sqlite3
+import aiosqlite
 import json
 from typing import List, Union, Optional, ClassVar
 import uuid
@@ -40,7 +40,7 @@ class TagItem(BaseModel):
         return False
 
     @classmethod
-    def get_tag_item_objects(cls, request_dict: dict) -> List["TagItem"]:
+    async def get_tag_item_objects(cls, request_dict: dict) -> List["TagItem"]:
         '''
         {"tag_item_requests": []}の形式で渡される
         '''
@@ -50,27 +50,27 @@ class TagItem(BaseModel):
         return [cls(**item) for item in tag_items]
 
     @classmethod
-    def get_tag_items_api(cls, request_json: str):
-        tag_items = cls.get_tag_items()
+    async def get_tag_items_api(cls, request_json: str):
+        tag_items = await cls.get_tag_items()
         result: dict = {}
         result["tag_items"] = [item.dict() for item in tag_items]
         return result
 
     @classmethod
-    def update_tag_items_api(cls, request_json: str):
+    async def update_tag_items_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
-        tag_items = TagItem.get_tag_item_objects(request_dict)
+        tag_items = await TagItem.get_tag_item_objects(request_dict)
         for tag_item in tag_items:
-            cls.update_tag_item(tag_item)
+            await cls.update_tag_item(tag_item)
         result: dict = {}
         return result
 
     @classmethod
-    def delete_tag_items_api(cls, request_json: str):
+    async def delete_tag_items_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
-        tag_items = TagItem.get_tag_item_objects(request_dict)
+        tag_items = await TagItem.get_tag_item_objects(request_dict)
         for tag_item in tag_items:
-            cls.delete_tag_item(tag_item)
+            await cls.delete_tag_item(tag_item)
         result: dict = {}
         return result
 
@@ -78,70 +78,64 @@ class TagItem(BaseModel):
         return self.dict()
 
     @classmethod
-    def get_tag_item(cls, tag_id: str) -> Union["TagItem", None]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM TagItems WHERE id=?", (tag_id,))
-        row = cur.fetchone()
+    async def get_tag_item(cls, tag_id: str) -> Union["TagItem", None]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM TagItems WHERE id=?", (tag_id,))
+                row = await cur.fetchone()
 
-        # データが存在しない場合はNoneを返す
-        if row is None or len(row) == 0:
-            return None
+                # データが存在しない場合はNoneを返す
+                if row is None or len(row) == 0:
+                    return None
 
-        tag_item_dict = dict(row)
-        conn.close()
+                tag_item_dict = dict(row)
 
         return TagItem(**tag_item_dict)
     
     @classmethod
-    def get_tag_items(cls) -> List["TagItem"]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM TagItems")
-        rows = cur.fetchall()
-        tag_items = [TagItem(**dict(row)) for row in rows]
-        conn.close()
+    async def get_tag_items(cls) -> List["TagItem"]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM TagItems")
+                rows = await cur.fetchall()
+                tag_items = [TagItem(**dict(row)) for row in rows]
 
         return tag_items
     
     @classmethod
-    def update_tag_item(cls, tag_item: "TagItem") -> "TagItem":
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        if cls.get_tag_item(tag_item.id) is None:
-            cur.execute("INSERT INTO TagItems VALUES (?, ?, ?)", (tag_item.id, tag_item.tag, tag_item.is_pinned))
-        else:
-            cur.execute("UPDATE TagItems SET tag=?, is_pinned=? WHERE id=?", (tag_item.tag, tag_item.is_pinned, tag_item.id))
-        conn.commit()
-        conn.close()
+    async def update_tag_item(cls, tag_item: "TagItem") -> "TagItem":
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                if await cls.get_tag_item(tag_item.id) is None:
+                    await cur.execute("INSERT INTO TagItems VALUES (?, ?, ?)", (tag_item.id, tag_item.tag, tag_item.is_pinned))
+                else:
+                    await cur.execute("UPDATE TagItems SET tag=?, is_pinned=? WHERE id=?", (tag_item.tag, tag_item.is_pinned, tag_item.id))
+                await conn.commit()
 
         # 更新したTagItemを返す
         return tag_item
     
     @classmethod
-    def delete_tag_item(cls, tag_item: "TagItem"):
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("DELETE FROM TagItems WHERE id=?", (tag_item.id,))
-        conn.commit()
-        conn.close()
-
+    async def delete_tag_item(cls, tag_item: "TagItem"):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("DELETE FROM TagItems WHERE id=?", (tag_item.id,))
+                await conn.commit()
 
     @classmethod
-    def init_tag_item_table(cls):
+    async def init_tag_item_table(cls):
         # TagItemsテーブルが存在しない場合は作成する
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS TagItems (
-                id TEXT NOT NULL PRIMARY KEY,
-                tag TEXT NOT NULL,
-                is_pinned INTEGER NOT NULL
-            )
-        ''')
-        conn.commit()
-        conn.close()
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute('''
+                    CREATE TABLE IF NOT EXISTS TagItems (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        tag TEXT NOT NULL,
+                        is_pinned INTEGER NOT NULL
+                    )
+                ''')
+                await conn.commit()

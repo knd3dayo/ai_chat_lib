@@ -11,14 +11,14 @@ import pandas as pd  # type: ignore
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
-def init_app() -> None:
+async def init_app() -> None:
     """
     アプリケーション初期化時に呼び出される関数
     :return: None
     """
     # MainDBの初期化
     from ai_chat_lib.db_modules import MainDBUtil
-    MainDBUtil.init()
+    await MainDBUtil.init()
     print("MainDB initialized.")
     # 環境変数APP_DATA_PATHの確認
     __check_app_data_path()

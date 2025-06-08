@@ -39,12 +39,12 @@ async def execute_agent(
     return output_text
 
 # エージェント一覧を取得する関数
-def list_agents() -> Annotated[list[dict[str, str]], "List of registered agents, each containing 'name' and 'description'"]:
+async def list_agents() -> Annotated[list[dict[str, str]], "List of registered agents, each containing 'name' and 'description'"]:
     """
     This function retrieves a list of registered agents from the database.
     """
     from ai_chat_lib.db_modules import AutogenAgent
-    agents = AutogenAgent.get_autogen_agent_list()
+    agents = await AutogenAgent.get_autogen_agent_list()
     agent_list = []
     for agent in agents:
         agent_list.append({"name": agent.name, "description": agent.description})
@@ -114,7 +114,7 @@ def move_imports_to_function(code, function_name):
     return updated_code
 
 
-def list_tool_agents() -> Annotated[list[dict[str, str]], "List of registered tools, each containing 'name' and 'description'"]:
+async def list_tool_agents() -> Annotated[list[dict[str, str]], "List of registered tools, each containing 'name' and 'description'"]:
     """
     This function retrieves a list of registered tool agents.
     """
@@ -124,7 +124,7 @@ def list_tool_agents() -> Annotated[list[dict[str, str]], "List of registered to
     logger.debug('start list_tool_agents')
     global autogen_props
     from ai_chat_lib.db_modules import MainDB, AutogenTools
-    tools = AutogenTools.get_autogen_tool_list()
+    tools = await AutogenTools.get_autogen_tool_list()
 
     tool_descption_list = []
     for agent in tools:
@@ -134,7 +134,7 @@ def list_tool_agents() -> Annotated[list[dict[str, str]], "List of registered to
     return tool_descption_list
 
 # FunctionToolを実行するエージェントをwork_agentsに追加
-def register_tool_agent(name: Annotated[str, "Function name"], doc: Annotated[str, "Function documentation"], 
+async def register_tool_agent(name: Annotated[str, "Function name"], doc: Annotated[str, "Function documentation"], 
                          code: Annotated[str, "Python Code"]) -> Annotated[str, "Message indicating that the tool agent has been registered"]:
     """
     This function creates a FunctionTool object with the specified function name, documentation, and Python code.
@@ -160,7 +160,7 @@ def register_tool_agent(name: Annotated[str, "Function name"], doc: Annotated[st
     with open(python_file_path, "w", encoding="utf-8") as f:
         f.write(code)
 
-    AutogenTools.update_autogen_tool(AutogenTools(name=name, description=doc, path=python_file_path))
+    await AutogenTools.update_autogen_tool(AutogenTools(name=name, description=doc, path=python_file_path))
     
     message = f"Registered tool agent: {name}"
     logger.debug(message)
@@ -188,7 +188,7 @@ async def execute_tool_agent(
     try:
         # agent_nameに対応するエージェントを取得
         logger.debug('start execute_tool_agent')
-        tool_list = [ tool for tool in list_tool_agents() if tool["name"] == agent_name]
+        tool_list = [ tool for tool in await list_tool_agents() if tool["name"] == agent_name]
         tool = tool_list[0] if len(tool_list) > 0 else None
 
         if tool is None:

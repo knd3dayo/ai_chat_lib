@@ -42,11 +42,11 @@ class RetrievalQAUtil:
 
 
     # ベクトル検索結果を返すToolを作成する関数
-    def create_vector_search_tools(self, client: LangChainOpenAIClient, vector_search_requests: list[VectorSearchRequest]) -> list[Any]:
+    async def create_vector_search_tools(self, client: LangChainOpenAIClient, vector_search_requests: list[VectorSearchRequest]) -> list[Any]:
         tools = []
         for i in range(len(vector_search_requests)):
             item = vector_search_requests[i]
-            vector_db_item: VectorDBItem = item.get_vector_db_item()
+            vector_db_item: VectorDBItem = await item.get_vector_db_item()
             # ベクトルDBのURLを取得
             # description item.VectorDBDescriptionが空の場合はデフォルトの説明を設定
             description = vector_db_item.description
@@ -86,12 +86,12 @@ class RetrievalQAUtil:
 class LangChainUtil:
 
     @classmethod
-    def vector_search_api(cls, request_json: str):
+    async def vector_search_api(cls, request_json: str):
         # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
 
         # queryを取得
-        vector_search_requests: list[VectorSearchRequest] = VectorSearchRequest.get_vector_search_requests_objects(request_dict)
+        vector_search_requests: list[VectorSearchRequest] = await VectorSearchRequest.get_vector_search_requests_objects(request_dict)
         openai_props = OpenAIProps.create_from_env()
         result = cls.vector_search(openai_props, vector_search_requests)
         return result
@@ -108,7 +108,7 @@ class LangChainUtil:
         return {}
 
     @classmethod
-    def delete_collection_api(cls, request_json: str):
+    async def delete_collection_api(cls, request_json: str):
         # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
 
@@ -116,7 +116,7 @@ class LangChainUtil:
         embedding_data = EmbeddingData.get_embedding_request_objects(request_dict)
         openai_props = OpenAIProps.create_from_env()
 
-        vector_db_item = VectorDBItem.get_vector_db_by_name(embedding_data.name)
+        vector_db_item = await VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
             raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
         vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
@@ -134,7 +134,7 @@ class LangChainUtil:
         embedding_data = EmbeddingData.get_embedding_request_objects(request_dict)
         openai_props = OpenAIProps.create_from_env()
 
-        vector_db_item = VectorDBItem.get_vector_db_by_name(embedding_data.name)
+        vector_db_item = await VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
             raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
         
@@ -156,7 +156,7 @@ class LangChainUtil:
         embedding_data = EmbeddingData.get_embedding_request_objects(request_dict)
         openai_props = OpenAIProps.create_from_env()
 
-        vector_db_item = VectorDBItem.get_vector_db_by_name(embedding_data.name)
+        vector_db_item = await VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
             raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
         vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
@@ -183,7 +183,7 @@ class LangChainUtil:
         :param embedding_data: EmbeddingData
         :return: dict
         """
-        vector_db_item = VectorDBItem.get_vector_db_by_name(embedding_data.name)
+        vector_db_item = await VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
             raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
         
@@ -233,7 +233,7 @@ class LangChainUtil:
 
     # ベクトル検索を行う
     @classmethod
-    def vector_search(cls, openai_props: OpenAIProps, vector_search_requests: list[VectorSearchRequest]) -> dict[str, Any]:    
+    async def vector_search(cls, openai_props: OpenAIProps, vector_search_requests: list[VectorSearchRequest]) -> dict[str, Any]:    
 
         if not openai_props:
             raise ValueError("openai_props is None")
@@ -249,7 +249,7 @@ class LangChainUtil:
                 raise ValueError("request.query is not set")
 
             # vector_db_itemを取得
-            vector_db_item = VectorDBItem.get_vector_db_by_name(request.name)
+            vector_db_item = await VectorDBItem.get_vector_db_by_name(request.name)
             if vector_db_item is None:
                 logger.error(f"VectorDBItem with name {request.name} not found.")
                 raise ValueError(f"vector_db_item is None. name:{request.name}")

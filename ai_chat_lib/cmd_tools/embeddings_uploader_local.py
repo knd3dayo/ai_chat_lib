@@ -50,7 +50,7 @@ async def update_embeddings_from_excel(
         folder_path = row.get("folder_path")
         folder_id: Optional[str] = None
         if folder_path and isinstance(folder_path, str) and folder_path.strip() != "":
-            folder = ContentFoldersCatalog.get_content_folder_by_path(folder_path.strip(), create=True)
+            folder = await ContentFoldersCatalog.get_content_folder_by_path(folder_path.strip(), create=True)
             if not folder:
                 print(f"Warning: Folder not found for path '{folder_path}'. Skipping row {idx}.")
                 continue
@@ -81,7 +81,7 @@ async def update_embeddings_from_excel(
     print(f"{len(df)} 件のEmbeddingを更新しました。")
 
 
-def main():
+async def main():
     load_dotenv()
 
     parser = argparse.ArgumentParser(description="Local Embedding Uploader Tool")
@@ -97,10 +97,10 @@ def main():
         return
 
     # アプリケーションの初期化
-    init_app()
+    await init_app()
 
     asyncio.run(update_embeddings_from_excel(excel_path, name, model))
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

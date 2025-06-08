@@ -1,8 +1,9 @@
-import sqlite3
+import aiosqlite
 import json
 from typing import List, Union, Optional, ClassVar
 from pydantic import BaseModel, field_validator, Field
 from typing import Optional, Union, List
+import ai_chat_lib.resouces.resource_util as resource_util
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -35,8 +36,8 @@ class AutogenGroupChat(BaseModel):
         return []
 
     @classmethod
-    def get_autogen_group_chat_list_api(cls):
-        group_chat_list = cls.get_autogen_group_chat_list()
+    async def get_autogen_group_chat_list_api(cls):
+        group_chat_list = await cls.get_autogen_group_chat_list()
         if not group_chat_list:
             raise ValueError("group_chat_list is not set")
         result = {}
@@ -53,34 +54,34 @@ class AutogenGroupChat(BaseModel):
         return AutogenGroupChat(**request)
 
     @classmethod
-    def get_autogen_group_chat_api(cls, request_json: str):
+    async def get_autogen_group_chat_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         group_chat = AutogenGroupChat.get_autogen_group_chat_object(request_dict)
         if not group_chat:
             raise ValueError("group_chat is not set")
-        group_chat_result = cls.get_autogen_group_chat(group_chat.name)
+        group_chat_result = await cls.get_autogen_group_chat(group_chat.name)
         result: dict = {}
         if group_chat_result:
             result["group_chat"] = group_chat_result.to_dict()
         return result
 
     @classmethod
-    def update_autogen_group_chat_api(cls, request_json: str):
+    async def update_autogen_group_chat_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         group_chat = AutogenGroupChat.get_autogen_group_chat_object(request_dict)
         if not group_chat:
             raise ValueError("group_chat is not set")
-        cls.update_autogen_group_chat(group_chat)
+        await cls.update_autogen_group_chat(group_chat)
         result: dict = {}
         return result
 
     @classmethod
-    def delete_autogen_group_chat_api(cls, request_json: str):
+    async def delete_autogen_group_chat_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         group_chat = AutogenGroupChat.get_autogen_group_chat_object(request_dict)
         if not group_chat:
             raise ValueError("group_chat is not set")
-        cls.delete_autogen_group_chat(group_chat)
+        await cls.delete_autogen_group_chat(group_chat)
         result: dict = {}
         return result
 
@@ -91,78 +92,71 @@ class AutogenGroupChat(BaseModel):
     # AutogenGroupChat関連
     #################################################
     @classmethod
-    def get_autogen_group_chat_list(cls) -> List["AutogenGroupChat"]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM autogen_group_chats")
-        rows = cur.fetchall()
-        group_chats = [AutogenGroupChat(**dict(row)) for row in rows]
-        conn.close()
+    async def get_autogen_group_chat_list(cls) -> List["AutogenGroupChat"]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM autogen_group_chats")
+                rows = await cur.fetchall()
+                group_chats = [AutogenGroupChat(**dict(row)) for row in rows]
 
         return group_chats  
 
     @classmethod
-    def get_autogen_group_chat(cls, group_chat_name: str) -> Union["AutogenGroupChat", None]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM autogen_group_chats WHERE name=?", (group_chat_name,))
-        row = cur.fetchone()
+    async def get_autogen_group_chat(cls, group_chat_name: str) -> Union["AutogenGroupChat", None]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM autogen_group_chats WHERE name=?", (group_chat_name,))
+                row = await cur.fetchone()
 
-        # データが存在しない場合はNoneを返す
-        if row is None or len(row) == 0:
-            return None
+                # データが存在しない場合はNoneを返す
+                if row is None or len(row) == 0:
+                    return None
 
-        group_chat_dict = dict(row)
-        conn.close()
+                group_chat_dict = dict(row)
 
         return AutogenGroupChat(**group_chat_dict)
 
     @classmethod    
-    def update_autogen_group_chat(cls, group_chat: "AutogenGroupChat"):
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        if cls.get_autogen_group_chat(group_chat.name) is None:
-            cur.execute("INSERT INTO autogen_group_chats VALUES (?, ?, ?, ?)", 
-                        (group_chat.name, group_chat.description, group_chat.llm_config_name, 
-                         json.dumps(group_chat.agent_names, ensure_ascii=False)))
-        else:
-            cur.execute("UPDATE autogen_group_chats SET description=?, llm_config_name=?, agent_names_json=? WHERE name=?", 
-                        (group_chat.description, group_chat.llm_config_name, 
-                         json.dumps(group_chat.agent_names, ensure_ascii=False), group_chat.name))
-        conn.commit()
-        conn.close()
+    async def update_autogen_group_chat(cls, group_chat: "AutogenGroupChat"):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            cur = await conn.cursor()
+            if await cls.get_autogen_group_chat(group_chat.name) is None:
+                await cur.execute("INSERT INTO autogen_group_chats VALUES (?, ?, ?, ?)", 
+                                  (group_chat.name, group_chat.description, group_chat.llm_config_name, 
+                                   json.dumps(group_chat.agent_names, ensure_ascii=False)))
+            else:
+                await cur.execute("UPDATE autogen_group_chats SET description=?, llm_config_name=?, agent_names_json=? WHERE name=?", 
+                                  (group_chat.description, group_chat.llm_config_name, 
+                                   json.dumps(group_chat.agent_names, ensure_ascii=False), group_chat.name))
+            await conn.commit()
 
     @classmethod
-    def delete_autogen_group_chat(cls, group_chat: "AutogenGroupChat"):
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute("DELETE FROM autogen_group_chats WHERE name=?", (group_chat.name,))
-        conn.commit()
-        conn.close()
+    async def delete_autogen_group_chat(cls, group_chat: "AutogenGroupChat"):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            cur = await conn.cursor()
+            await cur.execute("DELETE FROM autogen_group_chats WHERE name=?", (group_chat.name,))
+            await conn.commit()
 
     @classmethod    
-    def init_autogen_group_chats_table(cls):
-        # autogen_group_chatsテーブルが存在しない場合は作成する
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS autogen_group_chats (
-                name TEXT PRIMARY KEY,
-                description TEXT,
-                llm_config_name TEXT,
-                agent_names_json TEXT
-            )
-        ''')
-        conn.commit()
-        conn.close()
+    async def init_autogen_group_chats_table(cls):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute('''
+                    CREATE TABLE IF NOT EXISTS autogen_group_chats (
+                        name TEXT PRIMARY KEY,
+                        description TEXT,
+                        llm_config_name TEXT,
+                        agent_names_json TEXT
+                    )
+                ''')
+                await conn.commit()
+
         # デフォルトのautogen_group_chatsを初期化する
-        cls.__init_default_autogen_group_chats()
+        await cls.__init_default_autogen_group_chats()
 
     @classmethod
-    def __init_default_autogen_group_chats(cls):
-        import ai_chat_lib.resouces.resource_util as resource_util
+    async def __init_default_autogen_group_chats(cls):
         # デフォルトのautogen_group_chatsを初期化する
         string_resources = resource_util.get_string_resources()
         description = string_resources.autogen_default_group_chat_description
@@ -172,4 +166,4 @@ class AutogenGroupChat(BaseModel):
             llm_config_name="default",
             agent_names=["planner"]
         )
-        cls.update_autogen_group_chat(default_group_chat)
+        await cls.update_autogen_group_chat(default_group_chat)

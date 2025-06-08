@@ -1,6 +1,6 @@
 from typing import Optional, Union, ClassVar
 from pydantic import BaseModel, Field
-import sqlite3
+import aiosqlite
 import json
 import uuid
 from ai_chat_lib.resouces import *
@@ -29,28 +29,27 @@ class PromptItem(BaseModel):
     get_prompt_item_requests_name: ClassVar[str] = "prompt_item_requests"
 
     @classmethod
-    def init_prompt_item_table(cls):
+    async def init_prompt_item_table(cls):
         # ContentFoldersテーブルが存在しない場合は作成する
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS PromptItems (
-                id TEXT NOT NULL PRIMARY KEY,
-                name TEXT NOT NULL,
-                description TEXT NOT NULL,
-                prompt TEXT NOT NULL,
-                prompt_template_type INTEGER NOT NULL,
-                extended_properties_json TEXT NOT NULL
-            )
-        ''')
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute('''
+                    CREATE TABLE IF NOT EXISTS PromptItems (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        prompt TEXT NOT NULL,
+                        prompt_template_type INTEGER NOT NULL,
+                        extended_properties_json TEXT NOT NULL
+                    )
+                ''')
+                await conn.commit()
 
-        conn.commit()
-        conn.close()
         # 初期のPromptItemsを設定する
-        cls.__init_default_prompt_items()
+        await cls.__init_default_prompt_items()
 
     @classmethod
-    def __init_default_prompt_items(cls):
+    async def __init_default_prompt_items(cls):
         """
         初期のPromptItemsを設定する
         """
@@ -207,7 +206,7 @@ class PromptItem(BaseModel):
             select_existing_tags
         ]:
             prompt_item = PromptItem(**item)
-            cls.update_prompt_item(prompt_item)
+            await cls.update_prompt_item(prompt_item)
 
 
     @classmethod
@@ -222,17 +221,17 @@ class PromptItem(BaseModel):
 
 
     @classmethod
-    def get_prommt_items_api(cls) -> dict:
+    async def get_prommt_items_api(cls) -> dict:
         """
         PromptItemsテーブルから全てのデータを取得し、API用の辞書形式で返す
         """
-        prompt_items = cls.get_prompt_items()
+        prompt_items = await cls.get_prompt_items()
         return {
             "prompt_items": [item.model_dump() for item in prompt_items],
         }
     
     @classmethod
-    def get_prompt_item_api(cls, request_json: str) -> dict:
+    async def get_prompt_item_api(cls, request_json: str) -> dict:
         """
         PromptItemsテーブルから指定されたIDのデータを取得し、API用の辞書形式で返す
         """
@@ -240,7 +239,7 @@ class PromptItem(BaseModel):
         id: Union[str, None] = cls.get_prompt_item_objects(request_dict)[0].id if cls.get_prompt_item_objects(request_dict) else None
         if id is None:
             raise ValueError("id is not set in the request.")
-        prompt_item = cls.get_prompt_item_by_id(id)
+        prompt_item = await cls.get_prompt_item_by_id(id)
         if prompt_item is None:
             return {"prompt_item": None}
         return{
@@ -248,7 +247,7 @@ class PromptItem(BaseModel):
         }
     
     @classmethod
-    def update_prompt_items_api(cls, request_json: str) -> dict:
+    async def update_prompt_items_api(cls, request_json: str) -> dict:
         """
         PromptItemsテーブルのデータを更新する
         """
@@ -258,12 +257,12 @@ class PromptItem(BaseModel):
             raise ValueError("prompt_items is not set in the request.")
         for prompt_item_data in prompt_items_data:
             prompt_item = cls(**prompt_item_data.model_dump())
-            cls.update_prompt_item(prompt_item)
+            await cls.update_prompt_item(prompt_item)
     
         return {}
     
     @classmethod
-    def delete_prompt_items_api(cls, request_json: str) -> dict:
+    async def delete_prompt_items_api(cls, request_json: str) -> dict:
         """
         PromptItemsテーブルから指定されたIDのデータを削除する
         """
@@ -272,126 +271,116 @@ class PromptItem(BaseModel):
         if not prompt_items_data:
             raise ValueError("prompt_items is not set in the request.")
         for prompt_item_data in prompt_items_data:
-            cls.delete_prompt_item(prompt_item_data.id)
+            await cls.delete_prompt_item(prompt_item_data.id)
     
         return {}
 
     @classmethod
-    def get_prompt_items(cls) -> list["PromptItem"]:
+    async def get_prompt_items(cls) -> list["PromptItem"]:
         """
         PromptItemsテーブルから全てのデータを取得する
         """
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM PromptItems")
-        rows = cur.fetchall()
-        conn.close()
-        prompt_items = [PromptItem(**dict(row)) for row in rows]
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM PromptItems")
+                rows = await cur.fetchall()
+                prompt_items = [PromptItem(**dict(row)) for row in rows]
         return prompt_items
 
     @classmethod
-    def get_prompt_item_by_id(cls, id: str) -> Optional["PromptItem"]:
+    async def get_prompt_item_by_id(cls, id: str) -> Optional["PromptItem"]:
         """
         PromptItemsテーブルから指定されたIDのデータを取得する
         """
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM PromptItems WHERE id=?", (id,))
-        row = cur.fetchone()
-        conn.close()
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM PromptItems WHERE id=?", (id,))
+                row = await cur.fetchone()
+                if row is None:
+                    return None
 
-        if row is None:
-            return None
+                return PromptItem(**dict(row))
 
-        return PromptItem(**dict(row))
 
     @classmethod
-    def get_system_defined_prompt_by_name(cls, name: str) -> Optional["PromptItem"]:
+    async def get_system_defined_prompt_by_name(cls, name: str) -> Optional["PromptItem"]:
         """
         PromptItemsテーブルから指定された名前のシステム定義プロンプトを取得する
         """
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM PromptItems WHERE name=? AND prompt_template_type=1", (name,))
-        row = cur.fetchone()
-        conn.close()
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM PromptItems WHERE name=? AND prompt_template_type=1", (name,))
+                row = await cur.fetchone()
+                if row is None:
+                    return None
 
-        if row is None:
-            return None
-
-        return PromptItem(**dict(row))
+                return PromptItem(**dict(row))
 
     @classmethod
-    def get_prompt_item_by_name(cls, name: str) -> Optional["PromptItem"]:
+    async def get_prompt_item_by_name(cls, name: str) -> Optional["PromptItem"]:
         """
         PromptItemsテーブルから指定された名前のデータを取得する
         """
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM PromptItems WHERE name=?", (name,))
-        row = cur.fetchone()
-        conn.close()
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM PromptItems WHERE name=?", (name,))
+                row = await cur.fetchone()
+                if row is None:
+                    return None
 
-        if row is None:
-            return None
-
-        return PromptItem(**dict(row))  
+                return PromptItem(**dict(row))
     
     @classmethod
-    def get_prompt_item_by_description(cls, description: str) -> Optional["PromptItem"]:
+    async def get_prompt_item_by_description(cls, description: str) -> Optional["PromptItem"]:
         """
         PromptItemsテーブルから指定された説明のデータを取得する
         """
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM PromptItems WHERE description=?", (description,))
-        row = cur.fetchone()
-        conn.close()
-
-        if row is None:
-            return None
-
-        return PromptItem(**dict(row))
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM PromptItems WHERE description=?", (description,))
+                row = await cur.fetchone()
+                if row is None:
+                    return None
+                
+                return PromptItem(**dict(row))
     
     @classmethod
-    def update_prompt_item(cls, prompt_item: "PromptItem") -> None:
+    async def update_prompt_item(cls, prompt_item: "PromptItem") -> None:
         """
         PromptItemsテーブルのデータを更新する
         idに一致したデータを更新する
         一致したデータが存在しない場合はinsertする
         """
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        item = cls.get_prompt_item_by_id(prompt_item.id)
-        if item is None:
-            # データが存在しない場合はinsertする
-            cur.execute('''
-                INSERT INTO PromptItems (id, name, description, prompt, prompt_template_type, extended_properties_json)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (prompt_item.id, prompt_item.name, prompt_item.description, prompt_item.prompt,
-                  prompt_item.prompt_template_type, prompt_item.extended_properties_json))
-        else:
-            # データが存在する場合はupdateする
-            cur.execute('''
-                UPDATE PromptItems SET name=?, description=?, prompt=?, prompt_template_type=?, extended_properties_json=?
-                WHERE id=?
-            ''', (prompt_item.name, prompt_item.description, prompt_item.prompt,
-                  prompt_item.prompt_template_type, prompt_item.extended_properties_json, prompt_item.id))
-        conn.commit()
-        conn.close()
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                item = await cls.get_prompt_item_by_id(prompt_item.id)
+                if item is None:
+                    # データが存在しない場合はinsertする
+                    await cur.execute('''
+                        INSERT INTO PromptItems (id, name, description, prompt, prompt_template_type, extended_properties_json)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (prompt_item.id, prompt_item.name, prompt_item.description, prompt_item.prompt,
+                          prompt_item.prompt_template_type, prompt_item.extended_properties_json))
+                else:
+                    # データが存在する場合はupdateする
+                    await cur.execute('''
+                        UPDATE PromptItems SET name=?, description=?, prompt=?, prompt_template_type=?, extended_properties_json=?
+                        WHERE id=?
+                    ''', (prompt_item.name, prompt_item.description, prompt_item.prompt,
+                          prompt_item.prompt_template_type, prompt_item.extended_properties_json, prompt_item.id))
+                await conn.commit()
 
     @classmethod
-    def delete_prompt_item(cls, id: str) -> None:
+    async def delete_prompt_item(cls, id: str) -> None:
         """
         PromptItemsテーブルから指定されたIDのデータを削除する
         """
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute("DELETE FROM PromptItems WHERE id=?", (id,))
-        conn.commit()
-        conn.close()
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("DELETE FROM PromptItems WHERE id=?", (id,))
+                await conn.commit()

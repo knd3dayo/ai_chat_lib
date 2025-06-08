@@ -28,7 +28,7 @@ class VectorSearchRequest(BaseModel):
     vector_search_requests_name: ClassVar[str] = "vector_search_requests"
 
     @classmethod
-    def get_vector_search_requests_objects(cls, request_dict: dict) -> List["VectorSearchRequest"]:
+    async def get_vector_search_requests_objects(cls, request_dict: dict) -> List["VectorSearchRequest"]:
         '''
         {"vector_search_requests": [{...}, ...]} の形式で渡される
         '''
@@ -40,11 +40,11 @@ class VectorSearchRequest(BaseModel):
         for item in request:
             vector_search_request = VectorSearchRequest(**item)
             # search_kwargsのアップデート
-            vector_search_request.search_kwargs = vector_search_request.__update_search_kwargs(vector_search_request.search_kwargs)
+            vector_search_request.search_kwargs = await vector_search_request.__update_search_kwargs(vector_search_request.search_kwargs)
             vector_search_requests.append(vector_search_request)
         return vector_search_requests
 
-    def __update_search_kwargs(self, kwargs: dict) -> dict:
+    async def __update_search_kwargs(self, kwargs: dict) -> dict:
         filter = kwargs.get("filter", None)
         if not filter:
             logger.debug("__update_search_kwargs: filter is not set.")
@@ -52,7 +52,7 @@ class VectorSearchRequest(BaseModel):
         folder_path = filter.get("folder_path", None)
         if folder_path:
             logger.info(f"__update_search_kwargs: folder_path: {folder_path}")
-            temp_folder = ContentFoldersCatalog.get_content_folder_by_path(folder_path)
+            temp_folder = await ContentFoldersCatalog.get_content_folder_by_path(folder_path)
             if temp_folder and temp_folder.id:
                 kwargs["filter"]["folder_id"] = temp_folder.id
             kwargs["filter"].pop("folder_path", None)
@@ -60,10 +60,10 @@ class VectorSearchRequest(BaseModel):
             logger.info("__update_search_kwargs: folder_path is not set.")
         return kwargs
 
-    def get_vector_db_item(self) -> "VectorDBItem":
+    async def get_vector_db_item(self) -> "VectorDBItem":
         if self.vector_db_item:
             return self.vector_db_item
-        vector_db_item = VectorDBItem.get_vector_db_by_name(self.name)
+        vector_db_item = await VectorDBItem.get_vector_db_by_name(self.name)
         if not vector_db_item:
             raise ValueError("VectorDBItem is not found.")
         return vector_db_item

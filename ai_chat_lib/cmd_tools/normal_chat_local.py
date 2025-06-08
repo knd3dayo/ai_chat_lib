@@ -74,7 +74,7 @@ async def main():
     # argparseによるコマンドライン引数の処理
     request_json_file, interactive_mode, message, init_flag = __process_arguments(sys.argv)
     # アプリケーションの初期化
-    init_app()
+    await init_app()
 
     if init_flag:
         # 初期化コマンドが指定された場合は、アプリケーションの初期化のみ実行して終了

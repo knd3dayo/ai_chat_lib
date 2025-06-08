@@ -19,13 +19,13 @@ logger = log_settings.getLogger(__name__)
 class MainDBUtil:
 
     @classmethod
-    def init(cls, upgrade: bool = False):
+    async def init(cls, upgrade: bool = False):
         # main_dbへのパスを取得
         app_db_path = MainDB.get_main_db_path()
-        cls.__init_database(app_db_path, upgrade)
+        await cls.__init_database(app_db_path, upgrade)
 
     @classmethod
-    def __init_database(cls, app_db_path: str, upgrade: bool = False):
+    async def __init_database(cls, app_db_path: str, upgrade: bool = False):
 
         # db_pathが存在しない場合は作成する
         if not os.path.exists(app_db_path):
@@ -33,7 +33,7 @@ class MainDBUtil:
             conn = sqlite3.connect(app_db_path)
             conn.close()
             # テーブルの初期化
-            cls.__init_tables()
+            await cls.__init_tables()
 
         if upgrade:
             # DBのアップグレード処理
@@ -45,23 +45,23 @@ class MainDBUtil:
         pass
 
     @classmethod
-    def __init_tables(cls):
+    async def __init_tables(cls):
         # DBPropertiesテーブルを初期化
-        MainDB.init_db_properties_table()
+        await MainDB.init_db_properties_table()
         # ContentFoldersテーブルを初期化
-        ContentFoldersCatalog.init_content_folder_catalog_table()
+        await ContentFoldersCatalog.init_content_folder_catalog_table()
         # PromptItemsテーブルを初期化
-        PromptItem.init_prompt_item_table()
+        await PromptItem.init_prompt_item_table()
         # TagItemsテーブルを初期化
-        TagItem.init_tag_item_table()
+        await TagItem.init_tag_item_table()
         # VectorDBItemsテーブルを初期化
-        VectorDBItem.init_vector_db_item_table()
+        await VectorDBItem.init_vector_db_item_table()
         # autogen_llm_configsテーブルを初期化
-        AutogenLLMConfig.init_autogen_llm_config_table()
+        await AutogenLLMConfig.init_autogen_llm_config_table()
 
         # autogen_toolsテーブルを初期化
-        AutogenTools.init_autogen_tools_table()
+        await AutogenTools.init_autogen_tools_table()
         # autogen_agentsテーブルを初期化
-        AutogenAgent.init_autogen_agents_table()
+        await AutogenAgent.init_autogen_agents_table()
         # autogen_group_chatsテーブルを初期化
-        AutogenGroupChat.init_autogen_group_chats_table()
+        await AutogenGroupChat.init_autogen_group_chats_table()

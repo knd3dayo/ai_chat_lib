@@ -43,7 +43,7 @@ async def main():
                 raise ValueError("request is not found in props.")
             
             # autogen_props 
-            autogen_props = AutoGenProps.get_autogen_objects(props_dict)
+            autogen_props = await AutoGenProps.get_autogen_objects(props_dict)
 
 
             # メッセージを取得

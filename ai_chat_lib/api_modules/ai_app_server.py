@@ -22,25 +22,25 @@ sio.attach(app)
 @routes.post('/api/get_prompt_items')
 async def get_prompt_items(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_prompt_items(request_json)
+    response = await ai_app_wrapper.get_prompt_items(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 @routes.post('/api/get_prompt_item')
 async def get_prompt_item(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_prompt_item(request_json)
+    response = await ai_app_wrapper.get_prompt_item(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 @routes.post('/api/update_prompt_items')
 async def update_prompt_items(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.update_prompt_items(request_json)
+    response = await ai_app_wrapper.update_prompt_items(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 @routes.post('/api/delete_prompt_items')
 async def delete_prompt_items(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.delete_prompt_items(request_json)
+    response = await ai_app_wrapper.delete_prompt_items(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -50,58 +50,58 @@ async def delete_prompt_items(request: Request) -> Response:
 @routes.post('/api/get_root_content_folders')
 async def get_root_content_folders(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_root_content_folders()
+    response = await ai_app_wrapper.get_root_content_folders()
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 @routes.post('/api/get_content_folders')
 async def get_content_folders(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_content_folders()
+    response = await ai_app_wrapper.get_content_folders()
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 @routes.post('/api/get_content_folders_by_id')
 async def get_content_folders_by_id(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_content_folders_by_id(request_json)
+    response = await ai_app_wrapper.get_content_folders_by_id(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 @routes.post('/api/get_content_folder_by_path')
 async def get_content_folder_by_path(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_content_folder_by_path(request_json)
+    response = await ai_app_wrapper.get_content_folder_by_path(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 @routes.post('/api/update_content_folders')
 async def update_content_folders(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.update_content_folders(request_json)
+    response = await ai_app_wrapper.update_content_folders(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 @routes.post('/api/delete_content_folders')
 async def delete_content_folders(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.delete_content_folders(request_json)
+    response = await ai_app_wrapper.delete_content_folders(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
 @routes.post('/api/get_tag_items')
 async def get_tag_items(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_tag_items(request_json)
+    response = await ai_app_wrapper.get_tag_items(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
 @routes.post('/api/update_tag_items')
 async def update_tag_items(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.update_tag_items(request_json)
+    response = await ai_app_wrapper.update_tag_items(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
 @routes.post('/api/delete_tag_items')
 async def delete_tag_items(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.delete_tag_items(request_json)
+    response = await ai_app_wrapper.delete_tag_items(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -116,28 +116,28 @@ async def openai_chat(request: Request) -> Response:
 @routes.post('/api/get_autogen_llm_config_list')
 async def get_autogen_llm_config_list(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_autogen_llm_config_list()
+    response = await ai_app_wrapper.get_autogen_llm_config_list()
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 # get_autogen_llm_config
 @routes.post('/api/get_autogen_llm_config')
 async def get_autogen_llm_config(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_autogen_llm_config(request_json)
+    response = await ai_app_wrapper.get_autogen_llm_config(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 # update_autogen_llm_config
 @routes.post('/api/update_autogen_llm_config')
 async def update_autogen_llm_config(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.update_autogen_llm_config(request_json)
+    response = await ai_app_wrapper.update_autogen_llm_config(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 # delete_autogen_llm_config
 @routes.post('/api/delete_autogen_llm_config')
 async def delete_autogen_llm_config(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.delete_autogen_llm_config(request_json)
+    response = await ai_app_wrapper.delete_autogen_llm_config(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -145,7 +145,7 @@ async def delete_autogen_llm_config(request: Request) -> Response:
 @routes.post('/api/get_autogen_tool_list')
 async def get_autogen_tool_list(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_autogen_tool_list()
+    response = await ai_app_wrapper.get_autogen_tool_list()
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -153,7 +153,7 @@ async def get_autogen_tool_list(request: Request) -> Response:
 @routes.post('/api/get_autogen_tool')
 async def get_autogen_tool(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_autogen_tool(request_json)
+    response = await ai_app_wrapper.get_autogen_tool(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -161,14 +161,14 @@ async def get_autogen_tool(request: Request) -> Response:
 @routes.post('/api/update_autogen_tool')
 async def update_autogen_tool(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.update_autogen_tool(request_json)
+    response = await ai_app_wrapper.update_autogen_tool(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 # delete_autogen_tool
 @routes.post('/api/delete_autogen_tool')
 async def delete_autogen_tool(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.delete_autogen_tool(request_json)
+    response = await ai_app_wrapper.delete_autogen_tool(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -176,7 +176,7 @@ async def delete_autogen_tool(request: Request) -> Response:
 @routes.post('/api/get_autogen_agent_list')
 async def get_autogen_agent_list(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_autogen_agent_list()
+    response = await ai_app_wrapper.get_autogen_agent_list()
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -184,21 +184,21 @@ async def get_autogen_agent_list(request: Request) -> Response:
 @routes.post('/api/get_autogen_agent')
 async def get_autogen_agent(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_autogen_agent(request_json)
+    response = await ai_app_wrapper.get_autogen_agent(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 # update_autogen_agent
 @routes.post('/api/update_autogen_agent')
 async def update_autogen_agent(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.update_autogen_agent(request_json)
+    response = await ai_app_wrapper.update_autogen_agent(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 # delete_autogen_agent
 @routes.post('/api/delete_autogen_agent')
 async def delete_autogen_agent(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.delete_autogen_agent(request_json)
+    response = await ai_app_wrapper.delete_autogen_agent(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -206,28 +206,28 @@ async def delete_autogen_agent(request: Request) -> Response:
 @routes.post('/api/get_autogen_group_chat_list')
 async def get_autogen_group_chat_list(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_autogen_group_chat_list()
+    response = await ai_app_wrapper.get_autogen_group_chat_list()
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 # get_autogen_group_chat
 @routes.post('/api/get_autogen_group_chat')
 async def get_autogen_group_chat(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_autogen_group_chat(request_json)
+    response = await ai_app_wrapper.get_autogen_group_chat(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 # update_autogen_group_chat
 @routes.post('/api/update_autogen_group_chat')
 async def update_autogen_group_chat(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.update_autogen_group_chat(request_json)
+    response = await ai_app_wrapper.update_autogen_group_chat(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 # delete_autogen_group_chat
 @routes.post('/api/delete_autogen_group_chat')
 async def delete_autogen_group_chat(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.delete_autogen_group_chat(request_json)
+    response = await ai_app_wrapper.delete_autogen_group_chat(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -242,7 +242,7 @@ async def get_token_count(request: Request) -> Response:
 @routes.post('/api/update_vector_db_item')
 async def update_vector_db(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.update_vector_db(request_json)
+    response = await ai_app_wrapper.update_vector_db(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -250,14 +250,14 @@ async def update_vector_db(request: Request) -> Response:
 @routes.post('/api/delete_vector_db_item')
 async def delete_vector_db(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.delete_vector_db(request_json)
+    response = await ai_app_wrapper.delete_vector_db(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
 # get_vector_db_items
 @routes.post('/api/get_vector_db_items')
 async def get_vector_db_items(request: Request) -> Response:
-    response = ai_app_wrapper.get_vector_db_items()
+    response = await ai_app_wrapper.get_vector_db_items()
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -265,7 +265,7 @@ async def get_vector_db_items(request: Request) -> Response:
 @routes.post('/api/get_vector_db_item_by_id')
 async def get_vector_db_by_id(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_vector_db_item_by_id(request_json)
+    response = await ai_app_wrapper.get_vector_db_item_by_id(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -273,7 +273,7 @@ async def get_vector_db_by_id(request: Request) -> Response:
 @routes.post('/api/get_vector_db_item_by_name')
 async def get_vector_db_by_name(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.get_vector_db_item_by_name(request_json)
+    response = await ai_app_wrapper.get_vector_db_item_by_name(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -281,7 +281,7 @@ async def get_vector_db_by_name(request: Request) -> Response:
 @routes.post('/api/vector_search')
 async def vector_search(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.vector_search(request_json)
+    response = await ai_app_wrapper.vector_search(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -289,7 +289,7 @@ async def vector_search(request: Request) -> Response:
 @routes.post('/api/delete_collection')
 async def delete_collection(request: Request) -> Response:
     request_json = await request.text()
-    response = ai_app_wrapper.delete_collection(request_json)
+    response = await ai_app_wrapper.delete_collection(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -428,7 +428,8 @@ async def shutdown_server(request: Request) -> Response:
     os.kill(pid, 2)
     return web.Response(body="{}", status=200, content_type='application/json')
 
-if __name__ == ('__main__'):
+def main():
+    import asyncio
     # 第１引数はAPP_DATA_PATH
     if len(sys.argv) > 1:
         os.environ["APP_DATA_PATH"] = sys.argv[1]
@@ -443,11 +444,14 @@ if __name__ == ('__main__'):
         raise ValueError("OpenAI environment variables are not set correctly")
 
     # アプリケーション初期化
-    ai_app_util.init_app()
+    asyncio.run( ai_app_util.init_app())
 
     port = os.getenv("API_SERVER_PORT", "5000")
     logger.info(f"port={port}")
 
     app.add_routes(routes)
     web.run_app(app, port=int(port) )
+
+if __name__ == ('__main__'):
+    main()
     

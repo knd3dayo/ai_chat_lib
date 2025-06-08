@@ -1,4 +1,4 @@
-import sqlite3
+import aiosqlite
 import json
 from typing import List, Union, Optional, ClassVar
 from pydantic import BaseModel, Field
@@ -23,8 +23,8 @@ class AutogenLLMConfig(BaseModel):
     base_url: Optional[str] = Field(None, description="LLMのベースURL (例: https://api.openai.com/v1)")
 
     @classmethod
-    def get_autogen_llm_config_list_api(cls):
-        llm_config_list = cls.get_autogen_llm_config_list()
+    async def get_autogen_llm_config_list_api(cls):
+        llm_config_list = await cls.get_autogen_llm_config_list()
         if not llm_config_list:
             raise ValueError("llm_config_list is not set")
         result = {}
@@ -32,34 +32,34 @@ class AutogenLLMConfig(BaseModel):
         return result
 
     @classmethod
-    def get_autogen_llm_config_api(cls, request_json: str):
+    async def get_autogen_llm_config_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         llm_config = AutogenLLMConfig.get_autogen_llm_config_object(request_dict)
         if not llm_config:
             raise ValueError("llm_config is not set")
-        llm_config_result = cls.get_autogen_llm_config(llm_config.name)
+        llm_config_result = await cls.get_autogen_llm_config(llm_config.name)
         result: dict = {}
         if llm_config_result:
             result["llm_config"] = llm_config_result.to_dict()
         return result
 
     @classmethod
-    def update_autogen_llm_config_api(cls, request_json: str):
+    async def update_autogen_llm_config_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         llm_config = AutogenLLMConfig.get_autogen_llm_config_object(request_dict)
         if not llm_config:
             raise ValueError("llm_config is not set")
-        cls.update_autogen_llm_config(llm_config)
+        await cls.update_autogen_llm_config(llm_config)
         result: dict = {}
         return result
 
     @classmethod
-    def delete_autogen_llm_config_api(cls, request_json: str):
+    async def delete_autogen_llm_config_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         llm_config = AutogenLLMConfig.get_autogen_llm_config_object(request_dict)
         if not llm_config:
             raise ValueError("llm_config is not set")
-        cls.delete_autogen_llm_config(llm_config)
+        await cls.delete_autogen_llm_config(llm_config)
         result: dict = {}
         return result
 
@@ -76,76 +76,69 @@ class AutogenLLMConfig(BaseModel):
         return self.model_dump()
 
     @classmethod
-    def get_autogen_llm_config_list(cls) -> List["AutogenLLMConfig"]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM autogen_llm_configs")
-        rows = cur.fetchall()
-        llm_configs = [AutogenLLMConfig(**dict(row)) for row in rows]
-        conn.close()
+    async def get_autogen_llm_config_list(cls) -> List["AutogenLLMConfig"]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM autogen_llm_configs")
+                rows = await cur.fetchall()
+                llm_configs = [AutogenLLMConfig(**dict(row)) for row in rows]
 
         return llm_configs
     
     @classmethod
-    def get_autogen_llm_config(cls, llm_config_name: str) -> Union["AutogenLLMConfig", None]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM autogen_llm_configs WHERE name=?", (llm_config_name,))
-        row = cur.fetchone()
+    async def get_autogen_llm_config(cls, llm_config_name: str) -> Union["AutogenLLMConfig", None]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM autogen_llm_configs WHERE name=?", (llm_config_name,))
+                row = await cur.fetchone()
 
-        # データが存在しない場合はNoneを返す
-        if row is None or len(row) == 0:
-            return None
+                # データが存在しない場合はNoneを返す
+                if row is None or len(row) == 0:
+                    return None
 
-        llm_config_dict = dict(row)
-        conn.close()
+                llm_config_dict = dict(row)
 
         return AutogenLLMConfig(**llm_config_dict)
     
     @classmethod
-    def update_autogen_llm_config(cls, llm_config: "AutogenLLMConfig"):
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        if cls.get_autogen_llm_config(llm_config.name) is None:
-            cur.execute("INSERT INTO autogen_llm_configs VALUES (?, ?, ?, ?, ?, ?)", (llm_config.name, llm_config.api_type, llm_config.api_version, llm_config.model, llm_config.api_key, llm_config.base_url))
-        else:
-            cur.execute("UPDATE autogen_llm_configs SET api_type=?, api_version=?, model=?, api_key=?, base_url=? WHERE name=?", (llm_config.api_type, llm_config.api_version, llm_config.model, llm_config.api_key, llm_config.base_url, llm_config.name))
-        conn.commit()
-        conn.close()
+    async def update_autogen_llm_config(cls, llm_config: "AutogenLLMConfig"):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            cur = await conn.cursor()
+            if await cls.get_autogen_llm_config(llm_config.name) is None:
+                await cur.execute("INSERT INTO autogen_llm_configs VALUES (?, ?, ?, ?, ?, ?)", (llm_config.name, llm_config.api_type, llm_config.api_version, llm_config.model, llm_config.api_key, llm_config.base_url))
+            else:
+                await cur.execute("UPDATE autogen_llm_configs SET api_type=?, api_version=?, model=?, api_key=?, base_url=? WHERE name=?", (llm_config.api_type, llm_config.api_version, llm_config.model, llm_config.api_key, llm_config.base_url, llm_config.name))
+            await conn.commit()
+ 
+    @classmethod
+    async def delete_autogen_llm_config(cls, llm_config: "AutogenLLMConfig"):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("DELETE FROM autogen_llm_configs WHERE name=?", (llm_config.name,))
+                await conn.commit()
 
     @classmethod
-    def delete_autogen_llm_config(cls, llm_config: "AutogenLLMConfig"):
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute("DELETE FROM autogen_llm_configs WHERE name=?", (llm_config.name,))
-        conn.commit()
-        conn.close()
+    async def init_autogen_llm_config_table(cls):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute('''
+                    CREATE TABLE IF NOT EXISTS autogen_llm_configs (
+                        name TEXT PRIMARY KEY,
+                        api_type TEXT,
+                        api_version TEXT,
+                        model TEXT,
+                        api_key TEXT,
+                        base_url TEXT
+                    )
+                ''')
+                await conn.commit()
 
-
-    @classmethod
-    def init_autogen_llm_config_table(cls):
-        # autogen_llm_configsテーブルが存在しない場合は作成する
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS autogen_llm_configs (
-                name TEXT PRIMARY KEY,
-                api_type TEXT,
-                api_version TEXT,
-                model TEXT,
-                api_key TEXT,
-                base_url TEXT
-            )
-        ''')
-        conn.commit()
-        conn.close()
         # テーブルの初期化
-        cls.__init_default_autogen_llm_config()
+        await cls.__init_default_autogen_llm_config()
 
     @classmethod
-    def __init_default_autogen_llm_config(cls):
+    async def __init_default_autogen_llm_config(cls):
         # name="default"のAutogentLLMConfigを取得
         autogen_llm_config = cls.get_autogen_llm_config("default")
         # 存在しない場合は初期化処理
@@ -181,7 +174,7 @@ class AutogenLLMConfig(BaseModel):
             }
             autogen_llm_config = AutogenLLMConfig(**params)
             # MainDBに追加
-            cls.update_autogen_llm_config(autogen_llm_config)
+            await cls.update_autogen_llm_config(autogen_llm_config)
         else:
             # 存在する場合は初期化処理を行わない
             logger.info("AutogentLLMConfig is already exists.")

@@ -71,7 +71,7 @@ class ChatUtil:
 
         openai_props = OpenAIProps.create_from_env()
         # context_jsonからVectorSearchRequestを生成
-        vector_search_requests = VectorSearchRequest.get_vector_search_requests_objects(request_dict)
+        vector_search_requests = await VectorSearchRequest.get_vector_search_requests_objects(request_dict)
         # context_jsonからChatRequestContextを生成
         chat_request_context = RequestContext.get_chat_request_context_objects(request_dict)
         # chat_requestを取得
@@ -288,11 +288,11 @@ class ChatUtil:
         client = OpenAIClient(openai_props)
 
         # ベクトル検索関数
-        def vector_search(query: str) -> dict:
+        async def vector_search(query: str) -> dict:
             # vector_db_itemsの各要素にqueryを設定
             for vector_search_request in vector_search_requests:
                 vector_search_request.query = query
-            return LangChainUtil.vector_search(openai_props, vector_search_requests)
+            return await LangChainUtil.vector_search(openai_props, vector_search_requests)
 
         # vector_db_itemsが空の場合はNoneを設定
         vector_search_function: Union[Callable, None] = None if request_context.RAGMode == RequestContext.rag_mode_name_none or (vector_search_requests) == 0 else vector_search

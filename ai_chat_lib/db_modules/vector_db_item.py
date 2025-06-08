@@ -1,4 +1,4 @@
-import sqlite3
+import aiosqlite
 import json
 from typing import List, Union, Optional, ClassVar
 import uuid
@@ -33,33 +33,34 @@ class VectorDBItem(BaseModel):
     '''
 
     @classmethod    
-    def init_vector_db_item_table(cls):
+    async def init_vector_db_item_table(cls):
         # VectorDBItemsテーブルが存在しない場合は作成する
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS VectorDBItems (
-                id TEXT NOT NULL PRIMARY KEY,
-                name TEXT NOT NULL,
-                description TEXT NOT NULL,
-                vector_db_url TEXT NOT NULL,
-                is_use_multi_vector_retriever INTEGER NOT NULL,
-                doc_store_url TEXT NOT NULL,
-                vector_db_type INTEGER NOT NULL,
-                collection_name TEXT NOT NULL,
-                chunk_size INTEGER NOT NULL,
-                default_search_result_limit INTEGER NOT NULL,
-                default_score_threshold REAL NOT NULL DEFAULT 0.5,
-                is_enabled INTEGER NOT NULL,
-                is_system INTEGER NOT NULL
-            )
-        ''')
-        conn.commit()
-        conn.close()
-        cls.__init_default_vector_db_item()
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row
+            async with conn.cursor() as cur:
+                await cur.execute('''
+                    CREATE TABLE IF NOT EXISTS VectorDBItems (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        vector_db_url TEXT NOT NULL,
+                        is_use_multi_vector_retriever INTEGER NOT NULL,
+                        doc_store_url TEXT NOT NULL,
+                        vector_db_type INTEGER NOT NULL,
+                        collection_name TEXT NOT NULL,
+                        chunk_size INTEGER NOT NULL,
+                        default_search_result_limit INTEGER NOT NULL,
+                        default_score_threshold REAL NOT NULL DEFAULT 0.5,
+                        is_enabled INTEGER NOT NULL,
+                        is_system INTEGER NOT NULL
+                    )
+                ''')
+                await conn.commit()
+
+        await cls.__init_default_vector_db_item()
 
     @classmethod
-    def __init_default_vector_db_item(cls):
+    async def __init_default_vector_db_item(cls):
         # name="default"のVectorDBItemを取得
         vector_db_item = VectorDBItem.get_vector_db_by_name("default")
         # 存在しない場合は初期化処理
@@ -82,7 +83,7 @@ class VectorDBItem(BaseModel):
             # VectorDBItemのプロパティを設定
 
             # MainDBに追加
-            cls.update_vector_db_item(vector_db_item)
+            await cls.update_vector_db_item(vector_db_item)
 
         else:
             # 存在する場合は初期化処理を行わない
@@ -149,49 +150,49 @@ class VectorDBItem(BaseModel):
         return values.get("description", "")
 
     @classmethod
-    def update_vector_db_api(cls, request_json: str):
+    async def update_vector_db_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         vector_db_item = VectorDBItem.get_vector_db_item_object(request_dict)
-        cls.update_vector_db_item(vector_db_item)
+        await cls.update_vector_db_item(vector_db_item)
         result: dict = {}
         result["vector_db_item"] = vector_db_item.to_dict()
         return result
 
     @classmethod
-    def delete_vector_db_api(cls, request_json: str):
+    async def delete_vector_db_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         vector_db_item = VectorDBItem.get_vector_db_item_object(request_dict)
-        cls.delete_vector_db_item(vector_db_item)
+        await cls.delete_vector_db_item(vector_db_item)
         result: dict = {}
         result["vector_db_item"] = vector_db_item.to_dict()
         return result
 
     @classmethod
-    def get_vector_db_items_api(cls):
-        vector_db_list = cls.get_vector_db_items()
+    async def get_vector_db_items_api(cls):
+        vector_db_list = await cls.get_vector_db_items()
         result = {}
         result["vector_db_items"] = [item.to_dict() for item in vector_db_list]
         return result
 
     @classmethod
-    def get_vector_db_item_by_id_api(cls, request_json: str):
+    async def get_vector_db_item_by_id_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         vector_db_id = VectorDBItem.get_vector_db_item_object(request_dict).id
         if not vector_db_id:
             raise ValueError("vector_db_id is not set")
-        vector_db_item = cls.get_vector_db_by_id(vector_db_id)
+        vector_db_item = await cls.get_vector_db_by_id(vector_db_id)
         result: dict = {}
         if vector_db_item is not None:
             result["vector_db_item"] = vector_db_item.to_dict()
         return result
 
     @classmethod
-    def get_vector_db_item_by_name_api(cls, request_json: str):
+    async def get_vector_db_item_by_name_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         vector_db_name = VectorDBItem.get_vector_db_item_object(request_dict).name
         if not vector_db_name:
             raise ValueError("vector_db_name is not set")
-        vector_db = cls.get_vector_db_by_name(vector_db_name)
+        vector_db = await cls.get_vector_db_by_name(vector_db_name)
         result: dict = {}
         if vector_db is not None:
             result["vector_db_item"] = vector_db.to_dict()
@@ -224,114 +225,109 @@ class VectorDBItem(BaseModel):
 
     # Idを指定してVectorDBItemのdictを取得する
     @classmethod
-    def get_vector_db_item_dict_by_id(cls, vector_db_item_id: str) -> Union[dict, None]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM VectorDBItems WHERE id=?", (vector_db_item_id,))
-        row = cur.fetchone()
+    async def get_vector_db_item_dict_by_id(cls, vector_db_item_id: str) -> Union[dict, None]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM VectorDBItems WHERE id=?", (vector_db_item_id,))
+                row = await cur.fetchone()
 
-        # データが存在しない場合はNoneを返す
-        if row is None or len(row) == 0:
-            return None
+                # データが存在しない場合はNoneを返す
+                if row is None or len(row) == 0:
+                    return None
 
-        vector_db_item_dict = dict(row)
-        conn.close()
+                vector_db_item_dict = dict(row)
 
         return vector_db_item_dict
 
     # Idを指定してVectorDBItemを取得する
     @classmethod
-    def get_vector_db_by_id(cls, vector_db_item_id: str) -> Union["VectorDBItem", None]:
-        vector_db_item_dict = cls.get_vector_db_item_dict_by_id(vector_db_item_id)
+    async def get_vector_db_by_id(cls, vector_db_item_id: str) -> Union["VectorDBItem", None]:
+        vector_db_item_dict = await cls.get_vector_db_item_dict_by_id(vector_db_item_id)
         if vector_db_item_dict is None:
             return None
         return VectorDBItem(**vector_db_item_dict)
 
     # nameを指定してVectorDBItemのdictを取得する
     @classmethod
-    def get_vector_db_item_dict_by_name(cls, vector_db_item_name: str) -> Union[dict, None]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM VectorDBItems WHERE name=?", (vector_db_item_name,))
-        row = cur.fetchone()
+    async def get_vector_db_item_dict_by_name(cls, vector_db_item_name: str) -> Union[dict, None]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM VectorDBItems WHERE name=?", (vector_db_item_name,))
+                row = await cur.fetchone()
 
-        # データが存在しない場合はNoneを返す
-        if row is None or len(row) == 0:
-            return None
+                # データが存在しない場合はNoneを返す
+                if row is None or len(row) == 0:
+                    return None
 
-        vector_db_item_dict = dict(row)
-        conn.close()
+                vector_db_item_dict = dict(row)
 
         return vector_db_item_dict
 
     # Nameを指定してVectorDBItemを取得する
     @classmethod
-    def get_vector_db_by_name(cls, vector_db_item_name: str) -> Union["VectorDBItem", None]:
-        vector_db_item_dict = cls.get_vector_db_item_dict_by_name(vector_db_item_name)
+    async def get_vector_db_by_name(cls, vector_db_item_name: str) -> Union["VectorDBItem", None]:
+        vector_db_item_dict = await cls.get_vector_db_item_dict_by_name(vector_db_item_name)
         if vector_db_item_dict is None:
             return None
         return VectorDBItem(**vector_db_item_dict)
     
     @classmethod
-    def get_vector_db_items(cls) -> List["VectorDBItem"]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM VectorDBItems")
-        rows = cur.fetchall()
-        vector_db_items = [VectorDBItem(**dict(row)) for row in rows]
-        conn.close()
+    async def get_vector_db_items(cls) -> List["VectorDBItem"]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM VectorDBItems")
+                rows = await cur.fetchall()
+                vector_db_items = [VectorDBItem(**dict(row)) for row in rows]
 
         return vector_db_items
     
     # folder_idを指定してパスを取得する
     @classmethod
-    def get_vector_db_item_path(cls, vector_db_item_id: str) -> str:
-        vector_db_item = cls.get_vector_db_by_id(vector_db_item_id)
+    async def get_vector_db_item_path(cls, vector_db_item_id: str) -> str:
+        vector_db_item = await cls.get_vector_db_by_id(vector_db_item_id)
         if vector_db_item is None:
             raise ValueError("VectorDBItem not found")
         return vector_db_item.vector_db_url
 
     @classmethod
-    def update_vector_db_item(cls, vector_db_item: "VectorDBItem") -> "VectorDBItem":
+    async def update_vector_db_item(cls, vector_db_item: "VectorDBItem") -> "VectorDBItem":
         if not vector_db_item.vector_db_type:
             raise ValueError("vector_db_type must be 1:Chroma or 2:PGVector")
 
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        if cls.get_vector_db_by_id(vector_db_item.id) is None:
-            cur.execute("INSERT INTO VectorDBItems VALUES (?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                         (vector_db_item.id, vector_db_item.name, vector_db_item.description, 
-                          vector_db_item.vector_db_url, vector_db_item.is_use_multi_vector_retriever, 
-                          vector_db_item.doc_store_url, vector_db_item.vector_db_type, 
-                          vector_db_item.collection_name, 
-                          vector_db_item.chunk_size, vector_db_item.default_search_result_limit, 
-                          vector_db_item.default_score_threshold,
-                          vector_db_item.is_enabled, vector_db_item.is_system)
-                          )
-        else:
-            cur.execute("UPDATE VectorDBItems SET name=?, description=?, vector_db_url=?, is_use_multi_vector_retriever=?, doc_store_url=?, vector_db_type=?, collection_name=?, chunk_size=?, default_search_result_limit=?, default_score_threshold=?, is_enabled=?, is_system=? WHERE id=?",
-                         (vector_db_item.name, vector_db_item.description, vector_db_item.vector_db_url, 
-                          vector_db_item.is_use_multi_vector_retriever, vector_db_item.doc_store_url, 
-                          vector_db_item.vector_db_type, vector_db_item.collection_name, 
-                          vector_db_item.chunk_size, 
-                          vector_db_item.default_search_result_limit, 
-                          vector_db_item.default_score_threshold,                          
-                          vector_db_item.is_enabled, 
-                          vector_db_item.is_system, vector_db_item.id)
-                          )
-        conn.commit()
-        conn.close()
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                if cls.get_vector_db_by_id(vector_db_item.id) is None:
+                    await cur.execute("INSERT INTO VectorDBItems VALUES (?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                (vector_db_item.id, vector_db_item.name, vector_db_item.description, 
+                                vector_db_item.vector_db_url, vector_db_item.is_use_multi_vector_retriever, 
+                                vector_db_item.doc_store_url, vector_db_item.vector_db_type, 
+                                vector_db_item.collection_name, 
+                                vector_db_item.chunk_size, vector_db_item.default_search_result_limit, 
+                                vector_db_item.default_score_threshold,
+                                vector_db_item.is_enabled, vector_db_item.is_system)
+                                )
+                else:
+                    await cur.execute("UPDATE VectorDBItems SET name=?, description=?, vector_db_url=?, is_use_multi_vector_retriever=?, doc_store_url=?, vector_db_type=?, collection_name=?, chunk_size=?, default_search_result_limit=?, default_score_threshold=?, is_enabled=?, is_system=? WHERE id=?",
+                                (vector_db_item.name, vector_db_item.description, vector_db_item.vector_db_url, 
+                                vector_db_item.is_use_multi_vector_retriever, vector_db_item.doc_store_url, 
+                                vector_db_item.vector_db_type, vector_db_item.collection_name, 
+                                vector_db_item.chunk_size, 
+                                vector_db_item.default_search_result_limit, 
+                                vector_db_item.default_score_threshold,                          
+                                vector_db_item.is_enabled, 
+                                vector_db_item.is_system, vector_db_item.id)
+                                )
+                await conn.commit()
 
         # 更新したVectorDBItemを返す
         return vector_db_item
 
     @classmethod
-    def delete_vector_db_item(cls, vector_db_item: "VectorDBItem"):
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute("DELETE FROM VectorDBItems WHERE Id=?", (vector_db_item.id,))
-        conn.commit()
-        conn.close()
+    async def delete_vector_db_item(cls, vector_db_item: "VectorDBItem"):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            cur = await conn.cursor()
+            await cur.execute("DELETE FROM VectorDBItems WHERE id=?", (vector_db_item.id,))
+            await conn.commit()

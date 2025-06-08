@@ -11,7 +11,7 @@ mcp = FastMCP("Demo 🚀")
 
 # ベクトル検索ツールを登録
 @mcp.tool()
-def vector_search_mcp(
+async def vector_search_mcp(
     query: Annotated[str, Field(description="String to search for")], 
     num_results: Annotated[int, Field(description="Maximum number of results to display")],
     target_folder: Annotated[str, Field(description="Target folder for vector search (optional)")] = ""
@@ -20,10 +20,10 @@ def vector_search_mcp(
     This function performs a vector search on the specified text and returns the related documents.
     """
     client = LangChainOpenAIClient.create_from_env()
-    vector_store = LangChainVectorStore(
-        vector_store_url=LangChainVectorStore.get_vector_store_path(os.getenv("APP_DATA_PATH", "")),
+    vector_store =  LangChainVectorStore(
+        vector_store_url= LangChainVectorStore.get_vector_store_path(os.getenv("APP_DATA_PATH", "")),
         embedding_client=client,
-        folder_names_file_path=LangChainVectorStore.get_folder_names_file_path(os.getenv("APP_DATA_PATH", ""))
+        folder_paths_file_path=LangChainVectorStore.get_folder_paths_file_path(os.getenv("APP_DATA_PATH", ""))
     )
     params = {}
     params["query"] = query
@@ -33,7 +33,7 @@ def vector_search_mcp(
     if target_folder:
         params["folder_path"] = target_folder
     
-    return vector_store.vector_search(**params)
+    return await vector_store.vector_search(**params)
 
 # 引数解析用の関数
 def parse_args() -> argparse.Namespace:

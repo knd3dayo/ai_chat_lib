@@ -1,4 +1,4 @@
-import sqlite3
+import aiosqlite
 import json
 from typing import List, Union, Optional, ClassVar
 from pydantic import BaseModel
@@ -17,41 +17,41 @@ class AutogenTools(BaseModel):
     description: str = ""
 
     @classmethod
-    def get_autogen_tool_list_api(cls):
-        tools_list = cls.get_autogen_tool_list()
+    async def get_autogen_tool_list_api(cls):
+        tools_list = await cls.get_autogen_tool_list()
         result = {}
         result["tool_list"] = [tool.to_dict() for tool in tools_list]
         return result
 
     @classmethod
-    def get_autogen_tool_api(cls, request_json: str):
+    async def get_autogen_tool_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         tool = AutogenTools.get_autogen_tool_object(request_dict)
         if not tool:
             raise ValueError("tool is not set")
-        tool_result = cls.get_autogen_tool(tool.name)
+        tool_result = await cls.get_autogen_tool(tool.name)
         result: dict = {}
         if tool_result:
             result["tool"] = tool_result.to_dict()
         return result
 
     @classmethod
-    def update_autogen_tool_api(cls, request_json: str):
+    async def update_autogen_tool_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         tool = AutogenTools.get_autogen_tool_object(request_dict)
         if not tool:
             raise ValueError("tool is not set")
-        cls.update_autogen_tool(tool)
+        await cls.update_autogen_tool(tool)
         result: dict = {}
         return result
 
     @classmethod
-    def delete_autogen_tool_api(cls, request_json: str):
+    async def delete_autogen_tool_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         tool = AutogenTools.get_autogen_tool_object(request_dict)
         if not tool:
             raise ValueError("tool is not set")
-        cls.delete_autogen_tool(tool)
+        await cls.delete_autogen_tool(tool)
         result: dict = {}
         return result
 
@@ -71,73 +71,67 @@ class AutogenTools(BaseModel):
         return self.model_dump()
 
     @classmethod
-    def get_autogen_tool(cls, tool_name: str) -> Union["AutogenTools", None]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM autogen_tools WHERE name=?", (tool_name,))
-        row = cur.fetchone()
+    async def get_autogen_tool(cls, tool_name: str) -> Union["AutogenTools", None]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM autogen_tools WHERE name=?", (tool_name,))
+                row = await cur.fetchone()
 
-        # データが存在しない場合はNoneを返す
-        if row is None or len(row) == 0:
-            return None
+                # データが存在しない場合はNoneを返す
+                if row is None or len(row) == 0:
+                    return None
 
-        tool_dict = dict(row)
-        conn.close()
+                tool_dict = dict(row)
 
         return AutogenTools(**tool_dict)
     
     @classmethod
-    def get_autogen_tool_list(cls) -> List["AutogenTools"]:
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        conn.row_factory = sqlite3.Row 
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM autogen_tools")
-        rows = cur.fetchall()
-        tools = [AutogenTools(**dict(row)) for row in rows]
-        conn.close()
+    async def get_autogen_tool_list(cls) -> List["AutogenTools"]:
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM autogen_tools")
+                rows = await cur.fetchall()
+                tools = [AutogenTools(**dict(row)) for row in rows]
 
         return tools
 
     @classmethod
-    def update_autogen_tool(cls, tool: "AutogenTools"):
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        if cls.get_autogen_tool(tool.name) is None:
-            cur.execute("INSERT INTO autogen_tools VALUES (?, ?, ?)", (tool.name, tool.path, tool.description))
-        else:
-            cur.execute("UPDATE autogen_tools SET path=?, description=? WHERE name=?", (tool.path, tool.description, tool.name))
-        conn.commit()
-        conn.close()
+    async def update_autogen_tool(cls, tool: "AutogenTools"):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            cur = await conn.cursor()
+            if await cls.get_autogen_tool(tool.name) is None:
+                await cur.execute("INSERT INTO autogen_tools VALUES (?, ?, ?)", (tool.name, tool.path, tool.description))
+            else:
+                await cur.execute("UPDATE autogen_tools SET path=?, description=? WHERE name=?", (tool.path, tool.description, tool.name))
+            await conn.commit()
 
     @classmethod
-    def delete_autogen_tool(cls, tool: "AutogenTools"):
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute("DELETE FROM autogen_tools WHERE name=?", (tool.name,))
-        conn.commit()
-        conn.close()
+    async def delete_autogen_tool(cls, tool: "AutogenTools"):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            cur = await conn.cursor()
+            await cur.execute("DELETE FROM autogen_tools WHERE name=?", (tool.name,))
+            await conn.commit()
 
 
     @classmethod
-    def init_autogen_tools_table(cls):
-        # autogen_toolsテーブルが存在しない場合は作成する
-        conn = sqlite3.connect(MainDB.get_main_db_path())
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS autogen_tools (
-                name TEXT PRIMARY KEY,
-                path TEXT,
-                description TEXT
-            )
-        ''')
-        conn.commit()
-        conn.close()
-        # Initialize the autogen_tools table
-        cls.__init_default_autogen_tools()
-
+    async def init_autogen_tools_table(cls):
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute('''
+                    CREATE TABLE IF NOT EXISTS autogen_tools (
+                        name TEXT PRIMARY KEY,
+                        path TEXT,
+                        description TEXT
+                    )
+                ''')
+                # Initialize the autogen_tools table
+                await cls.__init_default_autogen_tools()
+                await conn.commit()
+        
     @classmethod
-    def __init_default_autogen_tools(cls):
+    async def __init_default_autogen_tools(cls):
         # デフォルトのautogen_toolsを登録する
         import importlib.util
 
@@ -147,7 +141,7 @@ class AutogenTools(BaseModel):
         if spec and spec.origin:
             description = "This function searches Wikipedia with the specified keywords and returns related articles."
             tool = AutogenTools(name="search_wikipedia_ja", path=spec.origin, description=description)
-            cls.update_autogen_tool(tool)
+            await cls.update_autogen_tool(tool)
 
         # list_files_in_directory
         module_name = "ai_chat_lib.autogen_modules.default_tools"
@@ -155,7 +149,7 @@ class AutogenTools(BaseModel):
         if spec and spec.origin:
             description = "This function lists files in the specified directory."
             tool = AutogenTools(name="list_files_in_directory", path=spec.origin, description=description)
-            cls.update_autogen_tool(tool)
+            await cls.update_autogen_tool(tool)
         
         # extract_file in default_tools
         module_name = "ai_chat_lib.autogen_modules.default_tools"
@@ -163,7 +157,7 @@ class AutogenTools(BaseModel):
         if spec and spec.origin:
             description = "This function extracts files in the specified directory."
             tool = AutogenTools(name="extract_file", path=spec.origin, description=description)
-            cls.update_autogen_tool(tool)
+            await cls.update_autogen_tool(tool)
     
         # check_file in default_tools
         module_name = "ai_chat_lib.autogen_modules.default_tools"
@@ -171,7 +165,7 @@ class AutogenTools(BaseModel):
         if spec and spec.origin:
             description = "This function checks the existence of a file in the specified directory."
             tool = AutogenTools(name="check_file", path=spec.origin, description=description)
-            cls.update_autogen_tool(tool)
+            await cls.update_autogen_tool(tool)
 
         # extract_webpage in default_tools
         module_name = "ai_chat_lib.autogen_modules.default_tools"
@@ -179,7 +173,7 @@ class AutogenTools(BaseModel):
         if spec and spec.origin:
             description = "This function extracts text from a webpage."
             tool = AutogenTools(name="extract_webpage", path=spec.origin, description=description)
-            cls.update_autogen_tool(tool)
+            await cls.update_autogen_tool(tool)
 
         # search_duckduckgo in default_tools
         module_name = "ai_chat_lib.autogen_modules.default_tools"
@@ -187,7 +181,7 @@ class AutogenTools(BaseModel):
         if spec and spec.origin:
             description = "This function searches DuckDuckGo with the specified keywords and returns related articles."
             tool = AutogenTools(name="search_duckduckgo", path=spec.origin, description=description)
-            cls.update_autogen_tool(tool)
+            await cls.update_autogen_tool(tool)
 
         # save_text_file in default_tools
         module_name = "ai_chat_lib.autogen_modules.default_tools"
@@ -195,7 +189,7 @@ class AutogenTools(BaseModel):
         if spec and spec.origin:
             description = "This function saves text to a file."
             tool = AutogenTools(name="save_text_file", path=spec.origin, description=description)
-            cls.update_autogen_tool(tool)
+            await cls.update_autogen_tool(tool)
         
         # arxiv_search in default_tools
         module_name = "ai_chat_lib.autogen_modules.default_tools"
@@ -203,7 +197,7 @@ class AutogenTools(BaseModel):
         if spec and spec.origin:
             description = "This function searches arXiv with the specified keywords and returns related articles."
             tool = AutogenTools(name="arxiv_search", path=spec.origin, description=description)
-            cls.update_autogen_tool(tool)
+            await cls.update_autogen_tool(tool)
         
         # get_current_time in default_tools
         module_name = "ai_chat_lib.autogen_modules.default_tools"
@@ -211,5 +205,5 @@ class AutogenTools(BaseModel):
         if spec and spec.origin:
             description = "This function returns the current time."
             tool = AutogenTools(name="get_current_time", path=spec.origin, description=description)
-            cls.update_autogen_tool(tool)
+            await cls.update_autogen_tool(tool)
         

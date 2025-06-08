@@ -30,7 +30,7 @@ class AutoGenProps:
 
     autogen_props_name = "autogen_props"
     @classmethod
-    def get_autogen_objects(cls, request_dict: dict) -> "AutoGenProps":
+    async def get_autogen_objects(cls, request_dict: dict) -> "AutoGenProps":
         '''
         {"context": {"autogen_props": {}}}の形式で渡される
         '''
@@ -40,7 +40,7 @@ class AutoGenProps:
             raise ValueError("autogen_props is not set")
         
         # vector_db_itemsを取得
-        vector_search_requests = VectorSearchRequest.get_vector_search_requests_objects(request_dict)
+        vector_search_requests = await VectorSearchRequest.get_vector_search_requests_objects(request_dict)
 
         app_db_path = MainDB.get_main_db_path()
         autogen_props = AutoGenProps(app_db_path, props_dict, vector_search_requests)
@@ -66,7 +66,7 @@ class AutoGenProps:
             return True
         return False
 
-    def __init__(self, app_db_path: str ,props_dict: dict, vector_search_requests:list[VectorSearchRequest]):
+    async def __init__(self, app_db_path: str ,props_dict: dict, vector_search_requests:list[VectorSearchRequest]):
 
         # session_token
         self.session_token = props_dict.get("session_token", None)
@@ -129,7 +129,7 @@ class AutoGenProps:
         self.quit_flag = False
 
         # __prepare_autogen_chat
-        self.__prepare_autogen_chat()
+        await self.__prepare_autogen_chat()
 
     def quit(self):
         self.quit_flag = True
@@ -140,19 +140,19 @@ class AutoGenProps:
 
 
     # 指定したnameのGroupChatをDBから取得して、GroupChatを返す
-    def __prepare_autogen_chat(self):
+    async def __prepare_autogen_chat(self):
         if self.chat_type == self.CHAT_TYPE_NORMAL_NAME:
-            self.__prepare_autogen_agent_chat()
+            await self.__prepare_autogen_agent_chat()
         elif self.chat_type == self.CHAT_TYPE_GROUP_NAME:
-            self.__prepare_autogen_group_chat()
+            await self.__prepare_autogen_group_chat()
         else:
             raise ValueError(f"chat_type:{self.chat_type} is not supported")
 
-    def __prepare_autogen_agent_chat(self):
+    async def __prepare_autogen_agent_chat(self):
 
         if self.chat_name is None:
             raise ValueError("chat_name is None")
-        agent = self.__load_agent(self.chat_name)
+        agent = await self.__load_agent(self.chat_name)
         if agent is not None:
             logger.debug(f"agent:{agent.name}")
         else:
@@ -160,9 +160,9 @@ class AutoGenProps:
 
         self.chat_object = agent
 
-    def __prepare_autogen_group_chat(self):
+    async def __prepare_autogen_group_chat(self):
         # chat_objectを取得
-        chat_dict = AutogenGroupChat.get_autogen_group_chat(self.chat_name)
+        chat_dict = await AutogenGroupChat.get_autogen_group_chat(self.chat_name)
         if chat_dict is None:
             raise ValueError(f"GroupChat {self.chat_name} not found in the database.")
 
@@ -183,15 +183,15 @@ class AutoGenProps:
         # SelectorGroupChatを作成
         chat = SelectorGroupChat(
             agents, 
-            model_client=self.__load_client(chat_dict.llm_config_name), 
+            model_client=await self.__load_client(chat_dict.llm_config_name), 
             termination_condition=termination_condition,
             )
         
         self.chat_object = chat
 
     # 指定したnameのAgentをDBから取得して、Agentを返す
-    def __load_agent(self, name: str) -> Union[AssistantAgent, CodeExecutorAgent, None]:
-        agent_dict = AutogenAgent.get_autogen_agent(name)
+    async def __load_agent(self, name: str) -> Union[AssistantAgent, CodeExecutorAgent, None]:
+        agent_dict = await AutogenAgent.get_autogen_agent(name)
         if not agent_dict:
             return None
         # ConversableAgent object用の引数辞書を作成
@@ -248,8 +248,8 @@ class AutoGenProps:
         func.__globals__["autogen_props"] = self
 
         return func
-    def __create_tool(self, name: str):
-        tool_dict = AutogenTools.get_autogen_tool(name)
+    async def __create_tool(self, name: str):
+        tool_dict = await AutogenTools.get_autogen_tool(name)
         if not tool_dict:
             raise ValueError (f"Tool {name} not found in the database.")
  
@@ -263,8 +263,8 @@ class AutoGenProps:
          )
     
     # 指定したnameのLLMConfigをDBから取得して、llm_configを返す    
-    def __load_client(self, name: str) -> Union[OpenAIChatCompletionClient, AzureOpenAIChatCompletionClient]:
-        llm_config_entry = AutogenLLMConfig.get_autogen_llm_config(name)
+    async def __load_client(self, name: str) -> Union[OpenAIChatCompletionClient, AzureOpenAIChatCompletionClient]:
+        llm_config_entry = await AutogenLLMConfig.get_autogen_llm_config(name)
         if not llm_config_entry:
             raise ValueError (f"LLMConfig {name} not found in the database.")
 
@@ -349,7 +349,7 @@ class AutoGenProps:
     # 指定した名前のエージェントを実行する
     async def run_agent(self, agent_name: str, initial_message: str) -> AsyncGenerator:
         # agent_nameのAgentを作成
-        agent = self.__load_agent(agent_name)
+        agent = await self.__load_agent(agent_name)
         if agent is None:
             raise ValueError(f"Agent {agent_name} not found in the database.")
 
@@ -398,7 +398,7 @@ class AutoGenProps:
         result = None # 初期化
         # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
-        autogen_props = AutoGenProps.get_autogen_objects( request_dict)
+        autogen_props = await AutoGenProps.get_autogen_objects( request_dict)
         # chat_requestを取得
         chat_request_dict = request_dict.get(cls.chat_request_name, None)
         if not chat_request_dict:
@@ -424,7 +424,7 @@ class AutoGenProps:
         sys.stderr = buffer
 
         # run_group_chatを実行
-        async for message in autogen_props.run_autogen_chat(input_text):
+        async for message in  autogen_props.run_autogen_chat(input_text):
             if not message:
                 break
             # dictを作成
