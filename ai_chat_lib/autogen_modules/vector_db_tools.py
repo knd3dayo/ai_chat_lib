@@ -1,6 +1,6 @@
 from typing import Callable, Annotated, Any, Union, List
 
-def vector_search(
+async def vector_search(
         query: Annotated[str, "String to search for"],
         num_results: Annotated[int, "Maximum number of results to display"],
         target_folder: Annotated[str, "Target folder for vector search (optional)"] = "",
@@ -25,7 +25,7 @@ def vector_search(
     if target_folder:
         # target_folderのパスからfolder_idを取得
         from ai_chat_lib.db_modules.content_folders_catalog import ContentFoldersCatalog
-        folder = ContentFoldersCatalog.get_content_folder_by_path(target_folder)
+        folder = await ContentFoldersCatalog.get_content_folder_by_path(target_folder)
         if folder:
             search_kwargs["filter"] = {"folder_id": folder.id}
         else:
@@ -40,14 +40,14 @@ def vector_search(
             "filter": None,  # Optional filter can be added here
         },
     )
-    search_results = LangChainUtil.vector_search(openai_props, [vector_search_request])
+    search_results = await LangChainUtil.vector_search(openai_props, [vector_search_request])
     # Retrieve documents from result
     documents = search_results.get("documents", [])
     # Extract content of each document from documents
     result = [doc.get("content", "") for doc in documents]
     return result
 
-def past_chat_history_vector_search(query: Annotated[str, "String to search for"]) -> list[str]:
+async def past_chat_history_vector_search(query: Annotated[str, "String to search for"]) -> list[str]:
     """
     過去のチャット履歴に関連するドキュメントを検索します。
     """
@@ -62,7 +62,7 @@ def past_chat_history_vector_search(query: Annotated[str, "String to search for"
 
     if props.main_vector_db_id is None:
         raise ValueError("main_vector_db_id is not set.")
-    main_vector_db_item = VectorDBItem.get_vector_db_by_id(props.main_vector_db_id)
+    main_vector_db_item = await VectorDBItem.get_vector_db_by_id(props.main_vector_db_id)
     if main_vector_db_item is None:
         raise ValueError("main_vector_db_id is not set.")
     if props.chat_history_folder_id is None:
@@ -74,7 +74,7 @@ def past_chat_history_vector_search(query: Annotated[str, "String to search for"
     # vector_db_prop_listの各要素にinput_textを設定
     for request in props.vector_search_requests:
         request.query = query
-    search_results = LangChainUtil.vector_search(openai_props, props.vector_search_requests)
+    search_results = await LangChainUtil.vector_search(openai_props, props.vector_search_requests)
     # Retrieve documents from result
     documents = search_results.get("documents", [])
     # Extract content of each document from documents

@@ -185,6 +185,25 @@ Options:
         "parent_id": "",
         "folder_path": ""
     },
+    // AutoProcessItem
+    "auto_process_item_requests": {
+        "id": "自動処理ルールアイテムのID",
+        "display_name": "自動処理ルールアイテムの表示名",
+        "description": "自動処理ルールアイテムの説明",
+        "auto_process_item_type": "自動処理ルールアイテムのタイプ", 
+        "action_type": "自動処理ルールアイテムのアクションタイプ",
+    },
+    // AutoProcessRule
+    "auto_process_rule_requests": {
+        "id": "自動処理ルールのID",
+        "rule_name": "自動処理ルールの名前",
+        "is_enabled": true, //"自動処理ルールの説明"
+        "priority": -1, 
+        "conditions_json": "{}",
+        "auto_process_item_id": "自動処理アイテムのID",
+        "target_folder_id": "ルール適用対象フォルダ",
+        "destination_folder_id": "move or copy時の宛先フォルダ"
+    },
     // プロンプトテンプレート
     "prompt_item_requests": {
         "id": "プロンプトテンプレートのID",
@@ -203,14 +222,12 @@ Options:
         "api_key" : "APIキー",
         "base_url" : "BaseURL"
     },
-
     // AutoGenのTool設定の参照、編集のためのディクショナリ。
     "autogen_tool_request": {
         "name": "名前",
         "path": "パス",
         "description": "説明"
     },
-
     // AutoGenのAgent設定の参照、編集のためのディクショナリ。
     "autogen_agent_request": {
         "name": "名前",

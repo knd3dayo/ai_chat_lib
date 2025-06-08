@@ -17,6 +17,50 @@ sio = socketio.AsyncServer(async_mode='aiohttp')
 sio.attach(app)
 
 ########################
+# AutoProcessItem関連
+########################
+@routes.post('/api/get_auto_process_items')
+async def get_auto_process_items(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.get_auto_process_items(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/update_auto_process_items')
+async def update_auto_process_items(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.update_auto_process_items(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json') 
+@routes.post('/api/delete_auto_process_items')
+async def delete_auto_process_items(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.delete_auto_process_items(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+
+########################
+# AutoProcessRule関連
+########################
+@routes.post('/api/get_auto_process_rules')
+async def get_auto_process_rules(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.get_auto_process_rules(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/update_auto_process_rules')
+async def update_auto_process_rules(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.update_auto_process_rules(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/delete_auto_process_rules')
+async def delete_auto_process_rules(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.delete_auto_process_rules(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+
+########################
 # PromptItem関連
 ########################
 @routes.post('/api/get_prompt_items')

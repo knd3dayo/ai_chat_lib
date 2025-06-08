@@ -86,3 +86,21 @@ class StringResources:
         The list of existing tags is as follows:
         """            
 
+    # AutoProcessItem
+    auto_process_item_name_ignore = "Ignore"
+    auto_process_item_description_ignore = "Ignore the item without any processing."
+
+    auto_process_item_name_copy_to_folder = "Copy to Folder"
+    auto_process_item_description_copy_to_folder = "Copy the item to the specified folder."
+
+    auto_process_item_name_move_to_folder = "Move to Folder"
+    auto_process_item_description_move_to_folder = "Move the item to the specified folder."
+
+    auto_process_item_name_extract_text = "Extract Text"
+    auto_process_item_description_extract_text = "Extract text from the item."
+
+    auto_process_item_name_prompt_template = "Prompt Template"
+    auto_process_item_description_prompt_template = "Use the prompt template to process the item."
+
+
+

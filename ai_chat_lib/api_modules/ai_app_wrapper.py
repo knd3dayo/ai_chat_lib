@@ -14,6 +14,32 @@ if "HTTPS_PROXY" not in os.environ:
 # AutoGenのCodeExecutor実行時にUncicodeEncodeErrorが発生するため、Pythonのデフォルトの文字コードをUTF-8に設定
 os.environ["PYTHONUTF8"] = "1"
 ########################
+# AutoProcessItem関連
+########################
+@capture_stdout_stderr_async
+async def get_auto_process_items(request_json: str):
+    return await AutoProcessItem.get_auto_process_items_api(request_json)
+@capture_stdout_stderr_async
+async def update_auto_process_items(request_json: str):
+    return await AutoProcessItem.update_auto_process_items_api(request_json)
+@capture_stdout_stderr_async
+async def delete_auto_process_items(request_json: str):
+    return await AutoProcessItem.delete_auto_process_items_api(request_json)
+
+########################
+# AutoProcessRule関連
+########################
+@capture_stdout_stderr_async
+async def get_auto_process_rules(request_json: str):
+    return await AutoProcessRule.get_auto_process_rules_api(request_json)
+@capture_stdout_stderr_async
+async def update_auto_process_rules(request_json: str):
+    return await AutoProcessRule.update_auto_process_rules_api(request_json)
+@capture_stdout_stderr_async
+async def delete_auto_process_rules(request_json: str):
+    return await AutoProcessRule.delete_auto_process_rules_api(request_json)
+
+########################
 # PromptItem関連
 ########################
 @capture_stdout_stderr_async

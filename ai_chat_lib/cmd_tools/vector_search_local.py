@@ -12,7 +12,7 @@ def parse_args():
     parser.add_argument("-t", "--target_folder", type=str, default="", help="Target folder for vector search (optional)")
     return parser.parse_args()
 
-def main():
+async def main():
     # 環境変数を読み込む
     load_dotenv()
     args = parse_args()
@@ -26,7 +26,7 @@ def main():
         raise EnvironmentError("Environment variable APP_DATA_PATH is not set. Please set it before running this tool.")
 
     # vector_searchを呼び出す
-    results = vector_search(query, num_results, target_folder)
+    results = await vector_search(query, num_results, target_folder)
 
     # 結果を表示
     print(f"Search Query: {query}")
@@ -40,4 +40,5 @@ def main():
         print("--------------------------------------------------")
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())

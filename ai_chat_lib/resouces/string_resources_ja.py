@@ -88,3 +88,19 @@ class StringResourcesJa(StringResources):
         出力はJSON形式で{result:['tag1', 'tag2', 'tag3']}としてください。
         既存のタグ一覧は以下の通りです：
         """            
+
+    # AutoProcessItem
+    auto_process_item_name_ignore = "無視"
+    auto_process_item_description_ignore = "このアイテムを処理せずに無視します。"
+
+    auto_process_item_name_copy_to_folder = "フォルダーにコピー"
+    auto_process_item_description_copy_to_folder = "アイテムを指定したフォルダーにコピーします。"
+
+    auto_process_item_name_move_to_folder = "フォルダーに移動"
+    auto_process_item_description_move_to_folder = "アイテムを指定したフォルダーに移動します。"
+
+    auto_process_item_name_extract_text = "テキスト抽出"
+    auto_process_item_description_extract_text = "アイテムからテキストを抽出します。"
+
+    auto_process_item_name_prompt_template = "プロンプトテンプレート"
+    auto_process_item_description_prompt_template = "プロンプトテンプレートを使ってアイテムを処理します。"

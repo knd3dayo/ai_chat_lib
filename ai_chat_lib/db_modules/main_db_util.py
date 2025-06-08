@@ -12,6 +12,8 @@ from ai_chat_lib.db_modules.autogen_tools import AutogenTools
 from ai_chat_lib.db_modules.autogen_agent import AutogenAgent
 from ai_chat_lib.db_modules.autogen_group_chat import AutogenGroupChat
 from ai_chat_lib.db_modules.prompt_item import PromptItem
+from ai_chat_lib.db_modules.auto_process_item import AutoProcessItem
+from ai_chat_lib.db_modules.auto_process_rule import AutoProcessRule
 
 logger = log_settings.getLogger(__name__)
 
@@ -53,12 +55,16 @@ class MainDBUtil:
         # PromptItemsテーブルを初期化
         await PromptItem.init_prompt_item_table()
         # TagItemsテーブルを初期化
+        # AutoProcessItemテーブルを初期化
+        await AutoProcessItem.init_auto_process_item_table()
+        # AutoProcessRuleテーブルを初期化
+        await AutoProcessRule.init_auto_process_rule_table()
+        # TagItemテーブルを初期化
         await TagItem.init_tag_item_table()
         # VectorDBItemsテーブルを初期化
         await VectorDBItem.init_vector_db_item_table()
         # autogen_llm_configsテーブルを初期化
         await AutogenLLMConfig.init_autogen_llm_config_table()
-
         # autogen_toolsテーブルを初期化
         await AutogenTools.init_autogen_tools_table()
         # autogen_agentsテーブルを初期化

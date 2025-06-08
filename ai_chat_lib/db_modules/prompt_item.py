@@ -18,8 +18,12 @@ class PromptItem(BaseModel):
 	"extended_properties_json"	TEXT NOT NULL,
 	PRIMARY KEY("id")
     )
+    prompt_template_typeの値は以下のように定義される
+    - 0: System Defined Prompt
+    - 1: Modified System Defined Prompt
+    - 2: User Defined Prompt
     """
-    id: str = Field(..., description="Unique identifier for the prompt item")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the prompt item")
     name: str = Field(..., description="Name of the prompt item")
     description: str = Field(..., description="Description of the prompt item")
     prompt: str = Field(..., description="The prompt text")
@@ -54,16 +58,18 @@ class PromptItem(BaseModel):
         初期のPromptItemsを設定する
         """
         resources = resource_util.get_string_resources()
-        title_generation_id = cls.get_system_defined_prompt_by_name("TitleGeneration")
-        if title_generation_id is None:
+        title_generation = await cls.get_system_defined_prompt_by_name("TitleGeneration")
+        if title_generation is None:
             title_generation_id = str(uuid.uuid4())
+        else:
+            title_generation_id = title_generation.id
 
         title_generation =  {
             "id": title_generation_id,
             "name": "TitleGeneration",
             "description": resources.prompt_item_tile_generation,
             "prompt": resources.prompt_item_tile_generation,
-            "prompt_template_type": 1, # 1: System Defined Prompt
+            "prompt_template_type": 0, # 0: System Defined Prompt
             "extended_properties_json": json.dumps({
                 "prompt_result_type": 0, # 0: TextContent, 1: ListContent, 2: TableContent
                 "chat_mode": 0, # 0: Normal Chat 
@@ -74,16 +80,18 @@ class PromptItem(BaseModel):
                 
             }, ensure_ascii=False, indent=4)
         }
-        background_information_generation_id = cls.get_system_defined_prompt_by_name("BackgroundInformationGeneration")
-        if background_information_generation_id is None:
+        background_information_generation = await cls.get_system_defined_prompt_by_name("BackgroundInformationGeneration")
+        if background_information_generation is None:
             background_information_generation_id = str(uuid.uuid4())
+        else:
+            background_information_generation_id = background_information_generation.id
 
         background_information_generation = {
             "id": background_information_generation_id,
             "name": "BackgroundInformationGeneration",
             "description": resources.prompt_item_background_information_generation,
             "prompt": resources.prompt_item_background_information_generation_prompt,
-            "prompt_template_type": 1, # 1: System Defined Prompt
+            "prompt_template_type": 0, # 0: System Defined Prompt
             "extended_properties_json": json.dumps({
                 "prompt_result_type": 0, # 0: TextContent, 1: ListContent, 2: TableContent
                 "chat_mode": 0, # 0: Normal Chat 
@@ -95,15 +103,17 @@ class PromptItem(BaseModel):
             }, ensure_ascii=False, indent=4)
         }
 
-        summary_generation_id = cls.get_system_defined_prompt_by_name("SummaryGeneration")
-        if summary_generation_id is None:
+        summary_generation = await cls.get_system_defined_prompt_by_name("SummaryGeneration")
+        if summary_generation is None:
             summary_generation_id = str(uuid.uuid4())
+        else:
+            summary_generation_id = summary_generation.id
         summary_generation =  {
             "id": summary_generation_id,                
             "name": "SummaryGeneration",
             "description": resources.prompt_item_summary_generation,
             "prompt": resources.prompt_item_summary_generation_prompt,
-            "prompt_template_type": 1, # 1: System Defined Prompt
+            "prompt_template_type": 0, # 0: System Defined Prompt
             "extended_properties_json": json.dumps({
                 "prompt_result_type": 0, # 0: TextContent, 1: ListContent, 2: TableContent
                 "chat_mode": 0, # 0: Normal Chat 
@@ -114,36 +124,40 @@ class PromptItem(BaseModel):
                 
             }, ensure_ascii=False, indent=4)
         }
-        tasks_generation_id = cls.get_system_defined_prompt_by_name("TasksGeneration")
-        if tasks_generation_id is None:
+        tasks_generation = await cls.get_system_defined_prompt_by_name("TasksGeneration")
+        if tasks_generation is None:
             tasks_generation_id = str(uuid.uuid4())
+        else:
+            tasks_generation_id = tasks_generation.id
         tasks_generation = {
             "id": tasks_generation_id,
-                "name": "TasksGeneration",
-                "description": resources.prompt_item_task_generation,
-                "prompt": resources.prompt_item_task_generation_prompt,
-                "prompt_template_type": 1, # 1: System Defined Prompt
-                "extended_properties_json": json.dumps({
-                    "prompt_result_type": 2, # 0: TextContent, 1: ListContent, 2: TableContent
-                    "chat_mode": 0, # 0: Normal Chat 
-                    "split_mode": 2, # 0: No Split, 1: Split Only, 2: Split and Summarize 
-                    "use_taglist": False, # タグリストを使用するかどうか
-                    "rag_mode": 0, # 0: No RAG, 1: Normal RAG, 2: Prompt RAG
-                    "prompt_output_type": 0, # 0: new content, 1: overwrite content, 2: overwrite title, 3: append tag
-                    
-                }, ensure_ascii=False, indent=4)
-            }
+            "name": "TasksGeneration",
+            "description": resources.prompt_item_task_generation,
+            "prompt": resources.prompt_item_task_generation_prompt,
+            "prompt_template_type": 0, # 0: System Defined Prompt
+            "extended_properties_json": json.dumps({
+                "prompt_result_type": 2, # 0: TextContent, 1: ListContent, 2: TableContent
+                "chat_mode": 0, # 0: Normal Chat 
+                "split_mode": 2, # 0: No Split, 1: Split Only, 2: Split and Summarize 
+                "use_taglist": False, # タグリストを使用するかどうか
+                "rag_mode": 0, # 0: No RAG, 1: Normal RAG, 2: Prompt RAG
+                "prompt_output_type": 0, # 0: new content, 1: overwrite content, 2: overwrite title, 3: append tag
+                
+            }, ensure_ascii=False, indent=4)
+        }
 
         # DocumentReliabilityCheck
-        document_reliability_check_id = cls.get_system_defined_prompt_by_name("DocumentReliabilityCheck")
-        if document_reliability_check_id is None:
+        document_reliability_check = await cls.get_system_defined_prompt_by_name("DocumentReliabilityCheck")
+        if document_reliability_check is None:
             document_reliability_check_id = str(uuid.uuid4())
+        else:
+            document_reliability_check_id = document_reliability_check.id
         document_reliability_check = {
             "id": document_reliability_check_id,
             "name": "DocumentReliabilityCheck",
             "description": resources.prompt_item_document_relaiability_check,
             "prompt": resources.prompt_item_document_relaiability_check_prompt,
-            "prompt_template_type": 1, # 1: System Defined Prompt
+            "prompt_template_type": 0, # 0: System Defined Prompt
             "extended_properties_json": json.dumps({
                 "prompt_result_type": 0, # 0: TextContent, 1: ListContent, 2: TableContent
                 "chat_mode": 0, # 0: Normal Chat 
@@ -155,15 +169,17 @@ class PromptItem(BaseModel):
             }, ensure_ascii=False, indent=4)
         }
         # TagGeneration
-        tag_generation_id = cls.get_system_defined_prompt_by_name("TagGeneration")
-        if tag_generation_id is None:
+        tag_generation = await cls.get_system_defined_prompt_by_name("TagGeneration")
+        if tag_generation is None:
             tag_generation_id = str(uuid.uuid4())
+        else:
+            tag_generation_id = tag_generation.id
         tag_generation = {
             "id": tag_generation_id,
             "name": "TagGeneration",
             "description": resources.prompt_item_tag_generation,
             "prompt": resources.prompt_item_tag_generation_prompt,
-            "prompt_template_type": 1, # 1: System Defined Prompt
+            "prompt_template_type": 0, # 0: System Defined Prompt
             "extended_properties_json": json.dumps({
                 "prompt_result_type": 1, # 0: TextContent, 1: ListContent, 2: TableContent 
                 "chat_mode": 0, # 0: Normal Chat 
@@ -175,15 +191,17 @@ class PromptItem(BaseModel):
             }, ensure_ascii=False, indent=4)
         }
         # SelectExistingTags
-        select_existing_tags_id = cls.get_system_defined_prompt_by_name("SelectExistingTags")
-        if select_existing_tags_id is None:
+        select_existing_tags = await cls.get_system_defined_prompt_by_name("SelectExistingTags")
+        if select_existing_tags is None:
             select_existing_tags_id = str(uuid.uuid4())
+        else:
+            select_existing_tags_id = select_existing_tags.id
         select_existing_tags = {
             "id": select_existing_tags_id,
             "name": "SelectExistingTags",
             "description": resources.prompt_item_select_existing_tags,
             "prompt": resources.prompt_item_select_existing_tags_prompt,
-            "prompt_template_type": 1, # 1: System Defined Prompt
+            "prompt_template_type": 0, # 0: System Defined Prompt
             "extended_properties_json": json.dumps({
                 "prompt_result_type": 1, # 0: TextContent, 1: ListContent, 2: TableContent 
                 "chat_mode": 0, # 0: Normal Chat 
