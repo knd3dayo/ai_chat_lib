@@ -39,6 +39,27 @@ async def delete_auto_process_items(request: Request) -> Response:
     return web.Response(body=response, status=200, content_type='application/json')
 
 ########################
+# SearchRule関連
+########################
+@routes.post('/api/get_search_rules')
+async def get_search_rules(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.get_search_rules(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/update_search_rules')
+async def update_search_rules(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.update_search_rules(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/delete_search_rules')
+async def delete_search_rules(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.delete_search_rules(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+########################
 # AutoProcessRule関連
 ########################
 @routes.post('/api/get_auto_process_rules')

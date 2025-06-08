@@ -14,6 +14,7 @@ from ai_chat_lib.db_modules.autogen_group_chat import AutogenGroupChat
 from ai_chat_lib.db_modules.prompt_item import PromptItem
 from ai_chat_lib.db_modules.auto_process_item import AutoProcessItem
 from ai_chat_lib.db_modules.auto_process_rule import AutoProcessRule
+from ai_chat_lib.db_modules.search_rule import SearchRule
 
 logger = log_settings.getLogger(__name__)
 
@@ -59,6 +60,8 @@ class MainDBUtil:
         await AutoProcessItem.init_auto_process_item_table()
         # AutoProcessRuleテーブルを初期化
         await AutoProcessRule.init_auto_process_rule_table()
+        # SearchRuleテーブルを初期化
+        await SearchRule.init_search_rule_table()
         # TagItemテーブルを初期化
         await TagItem.init_tag_item_table()
         # VectorDBItemsテーブルを初期化

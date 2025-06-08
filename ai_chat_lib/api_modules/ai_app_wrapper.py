@@ -14,6 +14,19 @@ if "HTTPS_PROXY" not in os.environ:
 # AutoGenのCodeExecutor実行時にUncicodeEncodeErrorが発生するため、Pythonのデフォルトの文字コードをUTF-8に設定
 os.environ["PYTHONUTF8"] = "1"
 ########################
+# SearchRule関連
+########################
+@capture_stdout_stderr_async
+async def get_search_rules(request_json: str):
+    return await SearchRule.get_search_rules_api(request_json)
+@capture_stdout_stderr_async
+async def update_search_rules(request_json: str):
+    return await SearchRule.update_search_rules_api(request_json)
+@capture_stdout_stderr_async
+async def delete_search_rules(request_json: str):
+    return await SearchRule.delete_search_rules_api(request_json)
+
+########################
 # AutoProcessItem関連
 ########################
 @capture_stdout_stderr_async
