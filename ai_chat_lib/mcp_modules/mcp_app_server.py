@@ -23,7 +23,7 @@ def search_wikipedia_ja_mcp(
     return search_wikipedia_ja(query, lang, num_results)
 
 # ベクトル検索ツールを登録
-def vector_search_mcp(
+async def vector_search_mcp(
     query: Annotated[str, Field(description="String to search for")], 
     num_results: Annotated[int, Field(description="Maximum number of results to display")],
     target_folder: Annotated[str, Field(description="Target folder for vector search (optional)")] = ""
@@ -31,7 +31,7 @@ def vector_search_mcp(
     """
     This function performs a vector search on the specified text and returns the related documents.
     """
-    return vector_search(query, num_results, target_folder)
+    return await vector_search(query, num_results, target_folder)
 
 # 引数解析用の関数
 def parse_args() -> argparse.Namespace:
@@ -50,8 +50,8 @@ def parse_args() -> argparse.Namespace:
 
     return parser.parse_args()
 
-if __name__ == "__main__":
-    # load_dotenv() を使用して環境変数を読み込む
+async def main():
+        # load_dotenv() を使用して環境変数を読み込む
     load_dotenv()
     # 引数を解析
     args = parse_args()
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     print(f"APP_DATA_PATH={app_data_path}")
 
     # ベクトルDBの初期化を行う
-    MainDBUtil.init()
+    await MainDBUtil.init()
 
     # tools オプションが指定されている場合は、ツールを登録
     if args.tools:
@@ -92,3 +92,12 @@ if __name__ == "__main__":
         port = args.port
         print(f"Running in SSE mode with APP_DATA_PATH: {app_data_path}")
         mcp.run(transport="sse", port=port)
+
+
+if __name__ == "__main__":
+    import asyncio
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
