@@ -140,7 +140,7 @@ class AutogenLLMConfig(BaseModel):
     @classmethod
     async def __init_default_autogen_llm_config(cls):
         # name="default"のAutogentLLMConfigを取得
-        autogen_llm_config = cls.get_autogen_llm_config("default")
+        autogen_llm_config = await cls.get_autogen_llm_config("default")
         # 存在しない場合は初期化処理
         if not autogen_llm_config:
             from ai_chat_lib.llm_modules.openai_util import OpenAIProps

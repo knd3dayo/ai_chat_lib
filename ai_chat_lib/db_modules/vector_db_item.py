@@ -62,7 +62,7 @@ class VectorDBItem(BaseModel):
     @classmethod
     async def __init_default_vector_db_item(cls):
         # name="default"のVectorDBItemを取得
-        vector_db_item = VectorDBItem.get_vector_db_by_name("default")
+        vector_db_item = await VectorDBItem.get_vector_db_by_name("default")
         # 存在しない場合は初期化処理
         if not vector_db_item:
             # VectorDBItemを作成
