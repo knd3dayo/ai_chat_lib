@@ -8,6 +8,7 @@ from pydantic import Field
 from ai_chat_lib.autogen_modules.search_wikipedia_ja import search_wikipedia_ja
 from ai_chat_lib.autogen_modules.vector_db_tools import vector_search
 from ai_chat_lib.db_modules.main_db_util import MainDBUtil
+from ai_chat_lib.db_modules.content_folders_catalog import ContentFoldersCatalog
 mcp = FastMCP("Demo 🚀")
 
 # toolは実行時にmcp.tool()で登録する。@mcp.toolは使用しない。
@@ -32,6 +33,14 @@ async def vector_search_mcp(
     This function performs a vector search on the specified text and returns the related documents.
     """
     return await vector_search(query, num_results, target_folder)
+
+# フォルダ情報を取得するツールを登録
+@mcp.tool()
+async def get_folder_paths_mcp() -> Annotated[list[ContentFoldersCatalog], Field(description="List of folders in the vector store")]:
+    """
+    This function retrieves the list of folder paths from the vector store.
+    """
+    return await ContentFoldersCatalog.get_content_folders()
 
 # 引数解析用の関数
 def parse_args() -> argparse.Namespace:
