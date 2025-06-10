@@ -67,6 +67,7 @@ class VectorDBItem(BaseModel):
         if not vector_db_item:
             # VectorDBItemを作成
             params = {
+                "id": str(uuid.uuid4()),
                 "name": "default",
                 "description": "Application default vector db",
                 "vector_db_url": os.path.join(os.getenv("APP_DATA_PATH", ""), "server", "vector_db", "default_vector_db"),
@@ -299,7 +300,7 @@ class VectorDBItem(BaseModel):
 
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
-                if cls.get_vector_db_by_id(vector_db_item.id) is None:
+                if await cls.get_vector_db_by_id(vector_db_item.id) is None:
                     await cur.execute("INSERT INTO VectorDBItems VALUES (?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                 (vector_db_item.id, vector_db_item.name, vector_db_item.description, 
                                 vector_db_item.vector_db_url, vector_db_item.is_use_multi_vector_retriever, 

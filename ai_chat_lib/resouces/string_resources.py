@@ -22,7 +22,7 @@ class StringResources:
     prompt_item_tile_generation = "Tile Generation"
 
     prompt_item_tile_generation_prompt = """
-    Please generate a title from the following text.
+    Please generate a title of up to 50 characters from the following text.
     """
 
     prompt_item_background_information_generation = "Background Information Generation"
