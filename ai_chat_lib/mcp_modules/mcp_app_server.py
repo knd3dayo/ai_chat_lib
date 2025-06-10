@@ -1,5 +1,6 @@
 
 import os, sys
+import asyncio
 from typing import Annotated
 from dotenv import load_dotenv
 import argparse
@@ -9,7 +10,7 @@ from ai_chat_lib.autogen_modules.search_wikipedia_ja import search_wikipedia_ja
 from ai_chat_lib.autogen_modules.vector_db_tools import vector_search
 from ai_chat_lib.db_modules.main_db_util import MainDBUtil
 from ai_chat_lib.db_modules.content_folders_catalog import ContentFoldersCatalog
-mcp = FastMCP("Demo 🚀")
+mcp = FastMCP("Demo 🚀") #type :ignore
 
 # toolは実行時にmcp.tool()で登録する。@mcp.toolは使用しない。
 # Wikipedia検索ツールを登録
@@ -35,7 +36,6 @@ async def vector_search_mcp(
     return await vector_search(query, num_results, target_folder)
 
 # フォルダ情報を取得するツールを登録
-@mcp.tool()
 async def get_folder_paths_mcp() -> Annotated[list[ContentFoldersCatalog], Field(description="List of folders in the vector store")]:
     """
     This function retrieves the list of folder paths from the vector store.
@@ -59,7 +59,7 @@ def parse_args() -> argparse.Namespace:
 
     return parser.parse_args()
 
-async def main():
+def main():
         # load_dotenv() を使用して環境変数を読み込む
     load_dotenv()
     # 引数を解析
@@ -76,7 +76,7 @@ async def main():
     print(f"APP_DATA_PATH={app_data_path}")
 
     # ベクトルDBの初期化を行う
-    await MainDBUtil.init()
+    asyncio.run(MainDBUtil.init())
 
     # tools オプションが指定されている場合は、ツールを登録
     if args.tools:
@@ -92,6 +92,7 @@ async def main():
         # デフォルトのツールを登録
         mcp.tool()(search_wikipedia_ja_mcp)
         mcp.tool()(vector_search_mcp)
+        mcp.tool()(get_folder_paths_mcp)
 
     if mode == "stdio":
         print(f"Running in stdio mode with APP_DATA_PATH: {app_data_path}")
@@ -104,9 +105,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    import asyncio
-    try:
-        asyncio.run(main())
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
+    main()
