@@ -24,7 +24,7 @@ class StringResourcesJa(StringResources):
     prompt_item_tile_generation = "タイトル生成"
 
     prompt_item_tile_generation_prompt = """
-    以下のテキストからタイトルを生成してください。
+    以下のテキストから最大50文字程度のタイトルを生成してください。
     """
 
     prompt_item_background_information_generation = "背景情報生成"

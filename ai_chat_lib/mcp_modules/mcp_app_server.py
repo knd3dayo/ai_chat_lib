@@ -40,7 +40,7 @@ async def get_folder_paths_mcp() -> Annotated[list[ContentFoldersCatalog], Field
     """
     This function retrieves the list of folder paths from the vector store.
     """
-    return await ContentFoldersCatalog.get_content_folders()
+    return await ContentFoldersCatalog.get_content_folders(include_path=True)
 
 # 引数解析用の関数
 def parse_args() -> argparse.Namespace:

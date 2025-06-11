@@ -280,7 +280,7 @@ class ContentFoldersCatalog(BaseModel):
         return root_folders
     
     @classmethod
-    async def get_content_folders(cls) -> List["ContentFoldersCatalog"]:
+    async def get_content_folders(cls, include_path: bool = False) -> List["ContentFoldersCatalog"]:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row 
             async with conn.cursor() as cur:
@@ -288,6 +288,11 @@ class ContentFoldersCatalog(BaseModel):
                 rows = await cur.fetchall()
                 folders = [ContentFoldersCatalog(**dict(row)) for row in rows]
 
+        # include_pathがTrueの場合は、folder_pathを設定する
+        if include_path:
+            for folder in folders:
+                if folder.id:
+                    folder.folder_path = await cls.get_content_folder_path_by_id(folder.id)
         return folders
 
     @classmethod

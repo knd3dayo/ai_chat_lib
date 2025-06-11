@@ -11,7 +11,6 @@ def get_string_resources() -> StringResources:
         lang = "en_US"  # Default to English if locale cannot be determined
     # ロケールに基づいて適切なリソースを返す
     if lang:
-        if lang.startswith("ja"):
+        if lang.lower().startswith("ja"):
             return StringResourcesJa()
-
     return StringResources()
