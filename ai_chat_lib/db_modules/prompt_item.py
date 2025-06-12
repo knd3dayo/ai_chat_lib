@@ -68,7 +68,7 @@ class PromptItem(BaseModel):
             "id": title_generation_id,
             "name": "TitleGeneration",
             "description": resources.prompt_item_tile_generation,
-            "prompt": resources.prompt_item_tile_generation,
+            "prompt": resources.prompt_item_tile_generation_prompt,
             "prompt_template_type": 0, # 0: System Defined Prompt
             "extended_properties_json": json.dumps({
                 "prompt_result_type": 0, # 0: TextContent, 1: ListContent, 2: TableContent
