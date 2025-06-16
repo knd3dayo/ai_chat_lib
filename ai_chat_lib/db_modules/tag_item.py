@@ -53,7 +53,7 @@ class TagItem(BaseModel):
     async def get_tag_items_api(cls, request_json: str):
         tag_items = await cls.get_tag_items()
         result: dict = {}
-        result["tag_items"] = [item.dict() for item in tag_items]
+        result["tag_items"] = [item.model_dump() for item in tag_items]
         return result
 
     @classmethod
