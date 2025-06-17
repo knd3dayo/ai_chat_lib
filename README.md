@@ -156,6 +156,15 @@ Options:
     // -----------------------------------------------------------
     // 設定編集用のディクショナリ
     // -----------------------------------------------------------
+    // 検索ルール
+      "search_rule_requests": [{
+      "id": "検索ルールID",
+      "search_condition_json": "{検索条件}",
+      "is_include_sub_folder": false,
+      "is_global_search": true
+    }
+  ]
+} ,
     // ベクトルDBの参照、編集のためのディクショナリ。
     "vector_db_item_request" : {
         "id": "ベクトルDBのID",

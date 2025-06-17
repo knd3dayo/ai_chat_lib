@@ -26,10 +26,11 @@ class SearchRule(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the search rule")
     name: str = Field(..., description="Name of the search rule")
     search_condition_json: str = Field(..., description="JSON string representing the search conditions")
-    search_folder_id: Optional[str] = Field(None, description="ID of the folder to search in")
-    target_folder_id: Optional[str] = Field(None, description="ID of the target folder for the search results")
     is_include_sub_folder: bool = Field(default=False, description="Whether to include subfolders in the search")
     is_global_search: bool = Field(default=False, description="Whether the search is a global search")
+    search_folder_id: Optional[str] = Field(None, description="ID of the folder to search in")
+    target_folder_id: Optional[str] = Field(None, description="ID of the target folder for the search results")
+
     search_rule_requests_name: ClassVar[str] = "search_rule_requests"
 
     @classmethod
@@ -63,11 +64,13 @@ class SearchRule(BaseModel):
             ''')
             await conn.commit()
     @classmethod
-    async def get_search_rules_api(cls, request_json: str):
-        search_rules = await cls.get_search_rule_objects(json.loads(request_json))
+    async def get_search_rules_api(cls, request_json: str) -> dict:
+        search_rules = await cls.get_search_rules()
         result: dict = {}
-        result["search_rules"] = [item.dict() for item in search_rules]
+        result["search_rules"] = [search_rule.to_dict() for search_rule in search_rules]
+
         return result
+        
     @classmethod
     async def update_search_rules_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
