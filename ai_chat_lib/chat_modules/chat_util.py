@@ -1,5 +1,5 @@
 import json
-from typing import Any, Callable, Union
+from typing import Any, Callable, Union, Coroutine
 import copy
 import time
 import tiktoken
@@ -167,10 +167,10 @@ class ChatUtil:
 
 
     @classmethod
-    def __exec_vector_search(cls, vector_search_function: Callable, query: str) -> tuple[str, dict[str, dict]]:  
+    async def __exec_vector_search(cls, vector_search_function: Callable, query: str) -> tuple[str, dict[str, dict]]:  
         # ベクトル検索結果のdocumentを格納するdictを作成する
         result_documents_dict: dict[str, dict] = {}
-        vector_search_result = vector_search_function(query) 
+        vector_search_result = await vector_search_function(query)
         # vector_search_resultのcontentを取得する
         vector_search_result_contents_text = "\n".join([ document["content"] for document in vector_search_result["documents"]])
 
@@ -182,7 +182,7 @@ class ChatUtil:
         return vector_search_result_contents_text, result_documents_dict
 
     @classmethod
-    def __pre_process_input(
+    async def __pre_process_input(
             cls, client: OpenAIClient, model: str, request_context:RequestContext, last_message_dict: dict, 
             vector_search_function : Union[Callable, None]) -> tuple[list[dict], list[dict]]:
 
@@ -214,7 +214,7 @@ class ChatUtil:
             if vector_search_function:
                 # ベクトル検索用の文字列としてqueryにtarget_messageを設定する
                 query = target_message
-                vector_search_result_contents_text, result_documents_dict = cls.__exec_vector_search(vector_search_function, query)
+                vector_search_result_contents_text, result_documents_dict = await cls.__exec_vector_search(vector_search_function, query)
                 # ベクトル検索結果をcontext_messageに追加する
                 context_message += request_context.RelatedInformationPromptText + vector_search_result_contents_text
 
@@ -297,7 +297,7 @@ class ChatUtil:
         # vector_db_itemsが空の場合はNoneを設定
         vector_search_function: Union[Callable, None] = None if request_context.RAGMode == RequestContext.rag_mode_name_none or (vector_search_requests) == 0 else vector_search
 
-        pre_processed_input_list, docs_list = cls.__pre_process_input(client, model, request_context, last_message_dict, vector_search_function)
+        pre_processed_input_list, docs_list = await cls.__pre_process_input(client, model, request_context, last_message_dict, vector_search_function)
         chat_result_dict_list = []
 
         for pre_processed_input in pre_processed_input_list:
