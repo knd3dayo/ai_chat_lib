@@ -3,7 +3,7 @@ import uuid
 from typing import Tuple, List, Any, Union, Optional
 from collections import defaultdict
 import asyncio
-from pydantic import BaseModel, Field, field_validator, ValidationInfo, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 
 from langchain_core.documents import Document
 from langchain_core.vectorstores import VectorStore
@@ -19,7 +19,7 @@ from openai import RateLimitError
 from ai_chat_lib.langchain_modules.langchain_client import LangChainOpenAIClient
 from ai_chat_lib.langchain_modules.langchain_doc_store import SQLDocStore
 
-from ai_chat_lib.db_modules import EmbeddingData
+from ai_chat_lib.db_modules import EmbeddingData, ContentFoldersCatalog
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -154,9 +154,22 @@ class LangChainVectorDB(BaseModel):
         text_list = self._split_text(content_text, chunk_size=chunk_size)
         for text in text_list:
             doc_id = str(uuid.uuid4())
-            logger.info(f"folder_id:{data.folder_id}")
+            logger.info(f"folder_path:{data.folder_path}")
+            # folderを取得
+            folder = await ContentFoldersCatalog.get_content_folder_by_path(data.folder_path)
+            if not folder:
+                # folderが見つからない場合はfolder_idを空にする
+                logger.warning(f"Folder not found for path: {data.folder_path}. Setting folder_id to empty.")
+                folder_id = ""
+            else:
+                logger.info(f"Folder found: {folder.id} for path: {data.folder_path}")
+                # folder_idを取得
+                folder_id = folder.id
+                if not folder_id:
+                    raise ValueError(f"Folder ID not found for path: {data.folder_path}")
+            
             metadata = LangChainVectorDB.create_metadata(
-                doc_id, data.source_id, data.folder_id, "", data.source_path, data.description)
+                doc_id, data.source_id, folder_id, "", data.source_path, data.description)
             logger.debug("metadata:", metadata)
             document = Document(page_content=text, metadata=metadata)
             document_list.append(document)

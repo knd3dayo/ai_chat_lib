@@ -65,9 +65,7 @@ def capture_stdout_stderr_async(func):
             logger.debug(f"NO_PROXY:{os.environ.get('NO_PROXY')}")
 
             result = await func(*args, **kwargs)
-            # resultがdictでない場合は例外をスロー
-            if not isinstance(result, dict):
-                raise ValueError("result must be dict")
+
         except Exception as e:
             # エラーが発生した場合はエラーメッセージを出力
             logger.error(e)

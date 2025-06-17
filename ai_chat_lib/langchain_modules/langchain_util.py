@@ -93,7 +93,7 @@ class LangChainUtil:
         # queryを取得
         vector_search_requests: list[VectorSearchRequest] = await VectorSearchRequest.get_vector_search_requests_objects(request_dict)
         openai_props = OpenAIProps.create_from_env()
-        result = cls.vector_search(openai_props, vector_search_requests)
+        result = await cls.vector_search(openai_props, vector_search_requests)
         return result
 
     @classmethod
@@ -141,7 +141,10 @@ class LangChainUtil:
         # LangChainVectorDBを生成
         vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
 
-        folder_id = embedding_data.folder_id
+        folder = await ContentFoldersCatalog.get_content_folder_by_path(embedding_data.folder_path)
+        folder_id = folder.id if folder else None
+        if folder_id is None:
+            raise ValueError(f"Folder with path {embedding_data.folder_path} not found.")
         # delete_folder_embeddingsを実行
         await vector_db.delete_folder(folder_id)
 

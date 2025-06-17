@@ -9,7 +9,7 @@ class EmbeddingData(BaseModel):
     name: str
     model: str
     source_id: str
-    folder_id: str 
+    folder_path: str 
     description: str = ""
     content: str
     source_path: str = ""
