@@ -94,14 +94,14 @@ class ContentFoldersCatalog(BaseModel):
     async def get_root_content_folders_api(cls):
         content_folders = await cls.get_root_content_folders()
         result = {}
-        result["content_folders"] = [item.to_dict() for item in content_folders]
+        result["content_folders"] = [await item.to_dict() for item in content_folders]
         return result
 
     @classmethod
     async def get_content_folders_api(cls):
         content_folders = await cls.get_content_folders()
         result = {}
-        result["content_folders"] = [item.to_dict() for item in content_folders]
+        result["content_folders"] = [await item.to_dict() for item in content_folders]
         return result
 
     @classmethod
@@ -113,7 +113,7 @@ class ContentFoldersCatalog(BaseModel):
         content_folder = await cls.get_content_folder_by_id(content_folder_id)
         result: dict = {}
         if content_folder is not None:
-            result["content_folder"] = content_folder.to_dict()
+            result["content_folder"] = await content_folder.to_dict()
         return result
 
     @classmethod
@@ -143,26 +143,26 @@ class ContentFoldersCatalog(BaseModel):
         content_folder = await cls.get_content_folder_by_path(content_folder_path)
         result: dict = {}
         if content_folder is not None:
-            result["content_folder"] = content_folder.to_dict()
+            result["content_folder"] = await content_folder.to_dict()
         return result
 
     @classmethod
-    def get_content_folder_path_by_id_api(cls, request_json: str):
+    async def get_content_folder_path_by_id_api(cls, request_json: str):
         request_dict: dict = json.loads(request_json)
         content_folder_id = cls.get_content_folder_request_objects(request_dict)[0].id
         if not content_folder_id:
             raise ValueError("content_folder_id is not set")
-        content_folder_path = cls.get_content_folder_path_by_id(content_folder_id)
+        content_folder_path = await cls.get_content_folder_path_by_id(content_folder_id)
         result: dict = {}
         if content_folder_path is not None:
             result["content_folder_path"] = content_folder_path
         return result
 
-    def to_dict(self) -> dict:
+    async def to_dict(self) -> dict:
         result = self.model_dump()
         # folder_pathがなければidから取得
         if not result.get("folder_path") and self.id:
-            content_folder_path = ContentFoldersCatalog.get_content_folder_path_by_id(self.id)
+            content_folder_path = await ContentFoldersCatalog.get_content_folder_path_by_id(self.id)
             if content_folder_path:
                 result["folder_path"] = content_folder_path
         return result
@@ -340,7 +340,7 @@ class ContentFoldersCatalog(BaseModel):
                 else:
                     # idが存在する場合は、更新処理を行う
                     folder.id = id
-                    update_params = folder.to_dict()
+                    update_params = await folder.to_dict()
                     # folder_pathは、ContentFoldersCatalogのテーブルには存在しないので、リセットする
                     update_params["folder_path"] = None
 
@@ -443,7 +443,7 @@ class ContentFoldersCatalog(BaseModel):
         return children
 
     @classmethod
-    def get_content_folder_ids_by_path(cls, folder_path: str) -> list[str]:
+    async def get_content_folder_ids_by_path(cls, folder_path: str) -> list[str]:
         # フォルダのパスを分割する
         folder_names = folder_path.split("/")
 
@@ -457,7 +457,7 @@ class ContentFoldersCatalog(BaseModel):
                 # 0からfolder_levelまでのフォルダ名を取得する
                 folder_name = "/".join(folder_names[:folder_level + 1])
 
-            id = cls.get_content_folder_by_path(folder_name)
+            id = await cls.get_content_folder_by_path(folder_name)
             folder_ids.append(id)
 
         return folder_ids

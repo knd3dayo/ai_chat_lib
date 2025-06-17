@@ -285,7 +285,7 @@ class LangChainUtil:
                 folder_id = doc.metadata.get("folder_id", "")
                 if folder_id:
                     # folder_idからfolder_pathを取得
-                    folder_path = ContentFoldersCatalog.get_content_folder_path_by_id(folder_id)
+                    folder_path = await ContentFoldersCatalog.get_content_folder_path_by_id(folder_id)
                     if folder_path:
                         doc.metadata["folder_path"] = folder_path
                     else:
@@ -305,7 +305,7 @@ class LangChainUtil:
                     folder_id = sub_doc.metadata.get("folder_id", "")
                     if folder_id:
                         # folder_idからfolder_pathを取得
-                        folder_path = ContentFoldersCatalog.get_content_folder_path_by_id(folder_id)
+                        folder_path = await ContentFoldersCatalog.get_content_folder_path_by_id(folder_id)
                         if folder_path:
                             sub_doc.metadata["folder_path"] = folder_path
                         else:
