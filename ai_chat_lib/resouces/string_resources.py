@@ -87,7 +87,7 @@ class StringResources:
         """            
 
     # ユーザーがクリップボードにコピーした内容からユーザーが何をしたいのかを推測するプロンプト
-    prompt_item_clipboard_intent = "Clipboard Intent"
+    prompt_item_clipboard_intent = "Predicate User's Intent from Clipboard"
     prompt_item_clipboard_intent_prompt = """
     Please analyze the content copied to the clipboard and determine the user's intent.
     - If the content is a URL, please determine the intent based on the content of the URL.
@@ -97,7 +97,7 @@ class StringResources:
     - If the content is a JSON object, please determine the intent based on the JSON object
     """
     # ユーザーのPCの画面からユーザーが何をしたいのかを推測するプロンプト
-    prompt_item_screen_intent = "Screen Intent"
+    prompt_item_screen_intent = "Predicate User's Intent from Screen"
     prompt_item_screen_intent_prompt = """
     Please analyze the content of the user's screen and determine the user's intent.
     """

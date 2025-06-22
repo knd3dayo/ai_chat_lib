@@ -220,7 +220,7 @@ class PromptItem(BaseModel):
             clipboard_intent_id = clipboard_intent.id
         clipboard_intent = {
             "id": clipboard_intent_id,
-            "name": "ClipboardIntent",
+            "name": "PredictUserIntentFromClipboard",
             "description": resources.prompt_item_clipboard_intent,
             "prompt": resources.prompt_item_clipboard_intent_prompt,
             "prompt_template_type": 0, # 0: System Defined Prompt
@@ -242,7 +242,7 @@ class PromptItem(BaseModel):
             screen_intent_id = screen_intent.id
         screen_intent = {
             "id": screen_intent_id,
-            "name": "ScreenIntent",
+            "name": "PredictUserIntentFromImage",
             "description": resources.prompt_item_screen_intent,
             "prompt": resources.prompt_item_screen_intent_prompt,
             "prompt_template_type": 0, # 0: System Defined Prompt

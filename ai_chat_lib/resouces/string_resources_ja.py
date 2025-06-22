@@ -89,7 +89,7 @@ class StringResourcesJa(StringResources):
         既存のタグ一覧は以下の通りです：
         """            
     # ユーザーがクリップボードにコピーした内容からユーザーが何をしたいのかを推測するプロンプト
-    prompt_item_clipboard_intent = "クリップボードの意図"
+    prompt_item_clipboard_intent = "クリップボードからユーザーの意図を推測"
     prompt_item_clipboard_intent_prompt = """
     ユーザーのクリップボードの内容を分析し、ユーザーの意図を判断してください。
     - 内容がURLの場合は、そのURLの内容に基づいて意図を判断してください。
@@ -100,7 +100,7 @@ class StringResourcesJa(StringResources):
     """
 
     # ユーザーのPCの画面からユーザーが何をしたいのかを推測するプロンプト
-    prompt_item_screen_intent = "画面の意図"
+    prompt_item_screen_intent = "画面からユーザーの意図を推測"
     prompt_item_screen_intent_prompt = """
     ユーザーの画面の内容を分析し、ユーザーの意図を判断してください。
     """

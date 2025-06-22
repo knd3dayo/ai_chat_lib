@@ -73,6 +73,7 @@ class AutogenTools(BaseModel):
     @classmethod
     async def get_autogen_tool(cls, tool_name: str) -> Union["AutogenTools", None]:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row
             async with conn.cursor() as cur:
                 await cur.execute("SELECT * FROM autogen_tools WHERE name=?", (tool_name,))
                 row = await cur.fetchone()

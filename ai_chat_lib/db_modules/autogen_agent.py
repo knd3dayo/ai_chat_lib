@@ -133,8 +133,8 @@ class AutogenAgent(BaseModel):
     @classmethod
     async def get_autogen_agent(cls, agent_name: str) -> Union["AutogenAgent", None]:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
-            conn.row_factory = aiosqlite.Row 
-            async with conn:
+            conn.row_factory = aiosqlite.Row
+            async with conn.cursor() as cur:
                 cur = await conn.execute("SELECT * FROM autogen_agents WHERE name=?", (agent_name,))
                 row = await cur.fetchone()
 
@@ -149,28 +149,28 @@ class AutogenAgent(BaseModel):
     async def update_autogen_agent(cls, agent: "AutogenAgent"):
         
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
-            cur = await conn.cursor()
-            if await cls.get_autogen_agent(agent.name) is None:
-                await cur.execute("INSERT INTO autogen_agents VALUES (?, ?, ?, ?, ?, ?, ?)", 
-                                  (agent.name, agent.description, agent.system_message, 
-                                   agent.code_execution, agent.llm_config_name, 
-                                   json.dumps(agent.tool_names, ensure_ascii=False), 
-                                   json.dumps(agent.vector_db_items,ensure_ascii=False)))
-            else:
-                await cur.execute("UPDATE autogen_agents SET description=?, system_message=?, code_execution=?, llm_config_name=?, tool_names_json=?, vector_db_items_json=? WHERE name=?", 
-                                  (agent.description, agent.system_message, 
-                                   agent.code_execution, agent.llm_config_name, 
-                                   json.dumps(agent.tool_names, ensure_ascii=False), 
-                                   json.dumps(agent.vector_db_items,ensure_ascii=False), 
-                                   agent.name))
-            await conn.commit()
+            async with conn.cursor() as cur:
+                if await cls.get_autogen_agent(agent.name) is None:
+                    await cur.execute("INSERT INTO autogen_agents VALUES (?, ?, ?, ?, ?, ?, ?)", 
+                                    (agent.name, agent.description, agent.system_message, 
+                                    agent.code_execution, agent.llm_config_name, 
+                                    json.dumps(agent.tool_names, ensure_ascii=False), 
+                                    json.dumps(agent.vector_db_items,ensure_ascii=False)))
+                else:
+                    await cur.execute("UPDATE autogen_agents SET description=?, system_message=?, code_execution=?, llm_config_name=?, tool_names_json=?, vector_db_items_json=? WHERE name=?", 
+                                    (agent.description, agent.system_message, 
+                                    agent.code_execution, agent.llm_config_name, 
+                                    json.dumps(agent.tool_names, ensure_ascii=False), 
+                                    json.dumps(agent.vector_db_items,ensure_ascii=False), 
+                                    agent.name))
+                await conn.commit()
     
     @classmethod
     async def delete_autogen_agent(cls, agent: "AutogenAgent"):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
-            cur = await conn.cursor()
-            await cur.execute("DELETE FROM autogen_agents WHERE name=?", (agent.name,))
-            await conn.commit()
+            async with conn.cursor() as cur:
+                await cur.execute("DELETE FROM autogen_agents WHERE name=?", (agent.name,))
+                await conn.commit()
 
     @classmethod
     async def create_table(cls):
