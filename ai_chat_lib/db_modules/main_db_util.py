@@ -22,13 +22,13 @@ logger = log_settings.getLogger(__name__)
 class MainDBUtil:
 
     @classmethod
-    async def init(cls, upgrade: bool = False):
+    async def init(cls, upgrade: bool = False, update_default_data: bool = False):
         # main_dbへのパスを取得
         app_db_path = MainDB.get_main_db_path()
-        await cls.__init_database(app_db_path, upgrade)
+        await cls.__init_database(app_db_path,  upgrade, update_default_data)
 
     @classmethod
-    async def __init_database(cls, app_db_path: str, upgrade: bool = False):
+    async def __init_database(cls, app_db_path: str, upgrade: bool = False, update_default_data: bool = False):
 
         # db_pathが存在しない場合は作成する
         if not os.path.exists(app_db_path):
@@ -42,6 +42,10 @@ class MainDBUtil:
             # DBのアップグレード処理
             cls.__update_database()
 
+        if update_default_data:
+            # デフォルトデータの更新処理
+            await cls.__update_default_data()
+
     @classmethod
     def __update_database(cls):
         # DBのアップグレード処理
@@ -50,27 +54,55 @@ class MainDBUtil:
     @classmethod
     async def __init_tables(cls):
         # DBPropertiesテーブルを初期化
-        await MainDB.init_db_properties_table()
+        await MainDB.create_table()
         # ContentFoldersテーブルを初期化
-        await ContentFoldersCatalog.init_content_folder_catalog_table()
+        await ContentFoldersCatalog.create_table()
         # PromptItemsテーブルを初期化
-        await PromptItem.init_prompt_item_table()
+        await PromptItem.create_table()
         # TagItemsテーブルを初期化
         # AutoProcessItemテーブルを初期化
-        await AutoProcessItem.init_auto_process_item_table()
+        await AutoProcessItem.create_table()
         # AutoProcessRuleテーブルを初期化
-        await AutoProcessRule.init_auto_process_rule_table()
+        await AutoProcessRule.create_table()
         # SearchRuleテーブルを初期化
-        await SearchRule.init_search_rule_table()
+        await SearchRule.create_table()
         # TagItemテーブルを初期化
-        await TagItem.init_tag_item_table()
+        await TagItem.create_table()
         # VectorDBItemsテーブルを初期化
-        await VectorDBItem.init_vector_db_item_table()
+        await VectorDBItem.create_table()
         # autogen_llm_configsテーブルを初期化
-        await AutogenLLMConfig.init_autogen_llm_config_table()
+        await AutogenLLMConfig.create_table()
         # autogen_toolsテーブルを初期化
-        await AutogenTools.init_autogen_tools_table()
+        await AutogenTools.create_table()
         # autogen_agentsテーブルを初期化
-        await AutogenAgent.init_autogen_agents_table()
+        await AutogenAgent.create_table()
         # autogen_group_chatsテーブルを初期化
-        await AutogenGroupChat.init_autogen_group_chats_table()
+        await AutogenGroupChat.create_table()
+
+    @classmethod
+    async def __update_default_data(cls):
+        # DBPropertiesテーブルを初期化
+        # await MainDB.update_default_data()
+        # ContentFoldersテーブルを初期化
+        await ContentFoldersCatalog.update_default_data()
+        # PromptItemsテーブルを初期化
+        await PromptItem.update_default_data()
+        # TagItemsテーブルを初期化
+        # AutoProcessItemテーブルを初期化
+        await AutoProcessItem.update_default_data()
+        # AutoProcessRuleテーブルを初期化
+        # await AutoProcessRule.update_default_data()
+        # SearchRuleテーブルを初期化
+        # await SearchRule.update_default_data()
+        # TagItemテーブルを初期化
+         #await TagItem.update_default_data()
+        # VectorDBItemsテーブルを初期化
+        await VectorDBItem.update_default_data()
+        # autogen_llm_configsテーブルを初期化
+        await AutogenLLMConfig.update_default_data()
+        # autogen_toolsテーブルを初期化
+        await AutogenTools.update_default_data()
+        # autogen_agentsテーブルを初期化
+        await AutogenAgent.update_default_data()
+        # autogen_group_chatsテーブルを初期化
+        await AutogenGroupChat.update_default_data()

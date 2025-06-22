@@ -33,7 +33,7 @@ class PromptItem(BaseModel):
     get_prompt_item_requests_name: ClassVar[str] = "prompt_item_requests"
 
     @classmethod
-    async def init_prompt_item_table(cls):
+    async def create_table(cls):
         # ContentFoldersテーブルが存在しない場合は作成する
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
@@ -50,10 +50,10 @@ class PromptItem(BaseModel):
                 await conn.commit()
 
         # 初期のPromptItemsを設定する
-        await cls.__init_default_prompt_items()
+        await cls.update_default_data()
 
     @classmethod
-    async def __init_default_prompt_items(cls):
+    async def update_default_data(cls):
         """
         初期のPromptItemsを設定する
         """
@@ -212,6 +212,50 @@ class PromptItem(BaseModel):
                 
             }, ensure_ascii=False, indent=4)
         }
+        # prompt_item_clipboard_intent
+        clipboard_intent = await cls.get_system_defined_prompt_by_name("ClipboardIntent")
+        if clipboard_intent is None:
+            clipboard_intent_id = str(uuid.uuid4())
+        else:
+            clipboard_intent_id = clipboard_intent.id
+        clipboard_intent = {
+            "id": clipboard_intent_id,
+            "name": "ClipboardIntent",
+            "description": resources.prompt_item_clipboard_intent,
+            "prompt": resources.prompt_item_clipboard_intent_prompt,
+            "prompt_template_type": 0, # 0: System Defined Prompt
+            "extended_properties_json": json.dumps({
+                "prompt_result_type": 0, # 0: TextContent, 1: ListContent, 2: TableContent 
+                "chat_mode": 0, # 0: Normal Chat 
+                "split_mode": 0, # 0: No Split
+                "use_taglist": False, # タグリストを使用するかどうか
+                "rag_mode": 0, # 0: No RAG, 1: Normal RAG, 2: Prompt RAG
+                "prompt_output_type": 0, # 0: new content, 1: overwrite content, 2: overwrite title, 3: append tag
+                
+            }, ensure_ascii=False, indent=4)
+        }
+        # prompt_item_screen_intent
+        screen_intent = await cls.get_system_defined_prompt_by_name("ScreenIntent")
+        if screen_intent is None:
+            screen_intent_id = str(uuid.uuid4())
+        else:
+            screen_intent_id = screen_intent.id
+        screen_intent = {
+            "id": screen_intent_id,
+            "name": "ScreenIntent",
+            "description": resources.prompt_item_screen_intent,
+            "prompt": resources.prompt_item_screen_intent_prompt,
+            "prompt_template_type": 0, # 0: System Defined Prompt
+            "extended_properties_json": json.dumps({
+                "prompt_result_type": 0, # 0: TextContent, 1: ListContent, 2: TableContent 
+                "chat_mode": 0, # 0: Normal Chat 
+                "split_mode": 0, # 0: No Split
+                "use_taglist": False, # タグリストを使用するかどうか
+                "rag_mode": 0, # 0: No RAG, 1: Normal RAG, 2: Prompt RAG
+                "prompt_output_type": 0, # 0: new content, 1: overwrite content, 2: overwrite title, 3: append tag
+                
+            }, ensure_ascii=False, indent=4)
+        }
 
         # PromptItemsテーブルにデータを挿入する
         for item in [
@@ -221,7 +265,9 @@ class PromptItem(BaseModel):
             tasks_generation,
             document_reliability_check,
             tag_generation,
-            select_existing_tags
+            select_existing_tags,
+            clipboard_intent,
+            screen_intent
         ]:
             prompt_item = PromptItem(**item)
             await cls.update_prompt_item(prompt_item)

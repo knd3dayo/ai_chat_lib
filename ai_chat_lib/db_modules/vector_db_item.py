@@ -33,7 +33,7 @@ class VectorDBItem(BaseModel):
     '''
 
     @classmethod    
-    async def init_vector_db_item_table(cls):
+    async def create_table(cls):
         # VectorDBItemsテーブルが存在しない場合は作成する
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row
@@ -57,10 +57,10 @@ class VectorDBItem(BaseModel):
                 ''')
                 await conn.commit()
 
-        await cls.__init_default_vector_db_item()
+        await cls.update_default_data()
 
     @classmethod
-    async def __init_default_vector_db_item(cls):
+    async def update_default_data(cls):
         # name="default"のVectorDBItemを取得
         vector_db_item = await VectorDBItem.get_vector_db_by_name("default")
         # 存在しない場合は初期化処理

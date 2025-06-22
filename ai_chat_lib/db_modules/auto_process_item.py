@@ -56,7 +56,7 @@ class AutoProcessItem(BaseModel):
     
 
     @classmethod
-    async def init_auto_process_item_table(cls) -> None:
+    async def create_table(cls) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             await conn.execute('''
                 CREATE TABLE IF NOT EXISTS "AutoProcessItems" (
@@ -69,10 +69,10 @@ class AutoProcessItem(BaseModel):
             ''')
             await conn.commit()
 
-        await cls.__init_default_auto_process_item()
+        await cls.update_default_data()
 
     @classmethod
-    async def __init_default_auto_process_item(cls) -> None:
+    async def update_default_data(cls) -> None:
         resources = resource_util.get_string_resources()
 
         # デフォルトの自動処理アイテムを初期化する

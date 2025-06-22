@@ -76,7 +76,9 @@ def main():
     print(f"APP_DATA_PATH={app_data_path}")
 
     # ベクトルDBの初期化を行う
-    asyncio.run(MainDBUtil.init())
+    asyncio.run(
+        MainDBUtil.init(upgrade=True, update_default_data=True)
+    )
 
     # tools オプションが指定されている場合は、ツールを登録
     if args.tools:

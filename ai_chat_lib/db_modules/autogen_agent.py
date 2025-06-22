@@ -173,7 +173,7 @@ class AutogenAgent(BaseModel):
             await conn.commit()
 
     @classmethod
-    async def init_autogen_agents_table(cls):
+    async def create_table(cls):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
                 await cur.execute('''
@@ -188,9 +188,11 @@ class AutogenAgent(BaseModel):
                     )
                 ''')
                 await conn.commit()
+        # テーブルの初期化
+        await cls.update_default_data()
 
     @classmethod
-    async def __init_default_agent(cls):
+    async def update_default_data(cls):
         import ai_chat_lib.resouces.resource_util as resource_util
 
         string_resources = resource_util.get_string_resources()

@@ -72,7 +72,7 @@ class MainDB:
             self.db_path = MainDB.get_main_db_path()
 
     @classmethod
-    async def init_db_properties_table(cls):
+    async def create_table(cls):
         # DBPropertiesテーブルが存在しない場合は作成する
         async with aiosqlite.connect(cls.get_main_db_path()) as conn:
             async with conn.cursor() as cur:

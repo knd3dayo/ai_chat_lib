@@ -119,7 +119,7 @@ class AutogenLLMConfig(BaseModel):
                 await conn.commit()
 
     @classmethod
-    async def init_autogen_llm_config_table(cls):
+    async def create_table(cls):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
                 await cur.execute('''
@@ -135,10 +135,10 @@ class AutogenLLMConfig(BaseModel):
                 await conn.commit()
 
         # テーブルの初期化
-        await cls.__init_default_autogen_llm_config()
+        await cls.update_default_data()
 
     @classmethod
-    async def __init_default_autogen_llm_config(cls):
+    async def update_default_data(cls):
         # name="default"のAutogentLLMConfigを取得
         autogen_llm_config = await cls.get_autogen_llm_config("default")
         # 存在しない場合は初期化処理

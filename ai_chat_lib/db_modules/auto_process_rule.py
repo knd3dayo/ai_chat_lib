@@ -48,7 +48,7 @@ class AutoProcessRule(BaseModel):
         return auto_process_rules
     
     @classmethod
-    async def init_auto_process_rule_table(cls) -> None:
+    async def create_table(cls) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             await conn.execute('''
                 CREATE TABLE IF NOT EXISTS "auto_process_rules" (

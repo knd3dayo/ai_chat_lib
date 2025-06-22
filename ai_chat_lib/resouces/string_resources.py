@@ -86,6 +86,23 @@ class StringResources:
         The list of existing tags is as follows:
         """            
 
+    # ユーザーがクリップボードにコピーした内容からユーザーが何をしたいのかを推測するプロンプト
+    prompt_item_clipboard_intent = "Clipboard Intent"
+    prompt_item_clipboard_intent_prompt = """
+    Please analyze the content copied to the clipboard and determine the user's intent.
+    - If the content is a URL, please determine the intent based on the content of the URL.
+    - If the content is text, please determine the intent based on the text.
+    - If the content is an image, please determine the intent based on the image.
+    - If the content is a file, please determine the intent based on the file.
+    - If the content is a JSON object, please determine the intent based on the JSON object
+    """
+    # ユーザーのPCの画面からユーザーが何をしたいのかを推測するプロンプト
+    prompt_item_screen_intent = "Screen Intent"
+    prompt_item_screen_intent_prompt = """
+    Please analyze the content of the user's screen and determine the user's intent.
+    """
+
+
     # AutoProcessItem
     auto_process_item_name_ignore = "Ignore"
     auto_process_item_description_ignore = "Ignore the item without any processing."

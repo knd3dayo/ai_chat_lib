@@ -49,7 +49,7 @@ class SearchRule(BaseModel):
         return search_rules
     
     @classmethod
-    async def init_search_rule_table(cls) -> None:
+    async def create_table(cls) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             await conn.execute('''
                 CREATE TABLE IF NOT EXISTS "SearchRules" (

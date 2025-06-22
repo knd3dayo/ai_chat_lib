@@ -115,7 +115,7 @@ class AutogenTools(BaseModel):
 
 
     @classmethod
-    async def init_autogen_tools_table(cls):
+    async def create_table(cls):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row 
             async with conn.cursor() as cur:
@@ -127,11 +127,11 @@ class AutogenTools(BaseModel):
                     )
                 ''')
                 # Initialize the autogen_tools table
-                await cls.__init_default_autogen_tools()
+                await cls.update_default_data()
                 await conn.commit()
         
     @classmethod
-    async def __init_default_autogen_tools(cls):
+    async def update_default_data(cls):
         # デフォルトのautogen_toolsを登録する
         import importlib.util
 

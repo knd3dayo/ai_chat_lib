@@ -48,7 +48,7 @@ class ContentFoldersCatalog(BaseModel):
         return False
 
     @classmethod
-    async def init_content_folder_catalog_table(cls):
+    async def create_table(cls):
         # ContentFoldersテーブルが存在しない場合は作成する
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             await conn.execute('''
@@ -64,10 +64,10 @@ class ContentFoldersCatalog(BaseModel):
             ''')
             await conn.commit()
             # インデックスを作成する
-            await cls.__init_content_folder_catalog_index()
+            await cls.update_default_data()
 
     @classmethod
-    async def __init_content_folder_catalog_index(cls):
+    async def update_default_data(cls):
         # parent_idにインデックスを追加
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:

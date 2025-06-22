@@ -139,7 +139,7 @@ class AutogenGroupChat(BaseModel):
             await conn.commit()
 
     @classmethod    
-    async def init_autogen_group_chats_table(cls):
+    async def create_table(cls):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
                 await cur.execute('''
@@ -153,10 +153,10 @@ class AutogenGroupChat(BaseModel):
                 await conn.commit()
 
         # デフォルトのautogen_group_chatsを初期化する
-        await cls.__init_default_autogen_group_chats()
+        await cls.update_default_data()
 
     @classmethod
-    async def __init_default_autogen_group_chats(cls):
+    async def update_default_data(cls):
         # デフォルトのautogen_group_chatsを初期化する
         string_resources = resource_util.get_string_resources()
         description = string_resources.autogen_default_group_chat_description

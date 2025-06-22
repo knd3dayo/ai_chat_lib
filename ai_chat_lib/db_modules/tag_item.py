@@ -127,7 +127,7 @@ class TagItem(BaseModel):
                 await conn.commit()
 
     @classmethod
-    async def init_tag_item_table(cls):
+    async def create_table(cls):
         # TagItemsテーブルが存在しない場合は作成する
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:

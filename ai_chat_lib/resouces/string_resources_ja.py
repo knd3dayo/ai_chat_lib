@@ -88,7 +88,22 @@ class StringResourcesJa(StringResources):
         出力はJSON形式で{result:['tag1', 'tag2', 'tag3']}としてください。
         既存のタグ一覧は以下の通りです：
         """            
+    # ユーザーがクリップボードにコピーした内容からユーザーが何をしたいのかを推測するプロンプト
+    prompt_item_clipboard_intent = "クリップボードの意図"
+    prompt_item_clipboard_intent_prompt = """
+    ユーザーのクリップボードの内容を分析し、ユーザーの意図を判断してください。
+    - 内容がURLの場合は、そのURLの内容に基づいて意図を判断してください。
+    - 内容がテキストの場合は、そのテキストに基づいて意図を判断してください。
+    - 内容が画像の場合は、その画像に基づいて意図を判断してください。
+    - 内容がファイルの場合は、そのファイルに基づいて意図を判断してください。
+    - 内容がJSONオブジェクトの場合は、そのJSONオブジェクトに基づいて意図を判断してください。
+    """
 
+    # ユーザーのPCの画面からユーザーが何をしたいのかを推測するプロンプト
+    prompt_item_screen_intent = "画面の意図"
+    prompt_item_screen_intent_prompt = """
+    ユーザーの画面の内容を分析し、ユーザーの意図を判断してください。
+    """
     # AutoProcessItem
     auto_process_item_name_ignore = "無視"
     auto_process_item_description_ignore = "このアイテムを処理せずに無視します。"

@@ -110,7 +110,7 @@ class OpenAIProps(BaseModel):
         return params
 
     @staticmethod
-    def create_openai_chat_parameter_dict_simple(model: str, prompt: str, temperature: float = 0.5, json_mode: bool = False) -> dict:
+    def create_openai_chat_parameter_dict_simple(model: str, prompt: str, temperature: Union[float, None] = 0.5, json_mode: bool = False) -> dict:
         messages = [{"role": "user", "content": prompt}]
         params: dict[str, Any] = {}
         params["messages"] = messages
