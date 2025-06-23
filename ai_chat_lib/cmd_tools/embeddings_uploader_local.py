@@ -7,7 +7,7 @@ import argparse
 from dotenv import load_dotenv
 import pandas as pd
 
-from ai_chat_lib.db_modules.content_folders_catalog import ContentFoldersCatalog
+from ai_chat_lib.db_modules.content_folder import ContentFolder
 from ai_chat_lib.db_modules.embedding_data import EmbeddingData
 from ai_chat_lib.langchain_modules.langchain_util import LangChainUtil
 from ai_chat_lib.llm_modules.openai_util import OpenAIProps
@@ -48,13 +48,6 @@ async def update_embeddings_from_excel(
             continue
 
         folder_path = row.get("folder_path")
-        folder_id: Optional[str] = None
-        if folder_path and isinstance(folder_path, str) and folder_path.strip() != "":
-            folder = await ContentFoldersCatalog.get_content_folder_by_path(folder_path.strip(), create=True)
-            if not folder:
-                print(f"Warning: Folder not found for path '{folder_path}'. Skipping row {idx}.")
-                continue
-            folder_id = folder.id
 
         description = row.get("description")
         if description is not None and not isinstance(description, str):
@@ -70,7 +63,7 @@ async def update_embeddings_from_excel(
             name=name,
             model=model,
             source_id=source_id,
-            folder_id=folder_id or "",
+            folder_path=folder_path or "",
             content=content.strip(),
             description=description or "",
             source_path=source_path or "",

@@ -120,16 +120,26 @@ class AutogenTools(BaseModel):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row 
             async with conn.cursor() as cur:
-                await cur.execute('''
-                    CREATE TABLE IF NOT EXISTS autogen_tools (
-                        name TEXT PRIMARY KEY,
-                        path TEXT,
-                        description TEXT
-                    )
-                ''')
-                # Initialize the autogen_tools table
-                await cls.update_default_data()
-                await conn.commit()
+                # テーブルが存在するかチェック
+                rows = await cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='autogen_tools'")
+                table = await rows.fetchone()
+                if table is not None:
+                    # テーブルが存在する場合は何もしない
+                    logger.debug("autogen_tools table already exists.")
+                    return
+                else:
+                    # テーブルが存在しない場合は作成する
+                    logger.debug("Creating autogen_tools table.")
+                    await cur.execute('''
+                        CREATE TABLE IF NOT EXISTS autogen_tools (
+                            name TEXT PRIMARY KEY,
+                            path TEXT,
+                            description TEXT
+                        )
+                    ''')
+                    await conn.commit()
+                    # Initialize the autogen_tools table
+                    await cls.update_default_data()
         
     @classmethod
     async def update_default_data(cls):

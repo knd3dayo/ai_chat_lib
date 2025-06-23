@@ -38,26 +38,38 @@ class VectorDBItem(BaseModel):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row
             async with conn.cursor() as cur:
-                await cur.execute('''
-                    CREATE TABLE IF NOT EXISTS VectorDBItems (
-                        id TEXT NOT NULL PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        description TEXT NOT NULL,
-                        vector_db_url TEXT NOT NULL,
-                        is_use_multi_vector_retriever INTEGER NOT NULL,
-                        doc_store_url TEXT NOT NULL,
-                        vector_db_type INTEGER NOT NULL,
-                        collection_name TEXT NOT NULL,
-                        chunk_size INTEGER NOT NULL,
-                        default_search_result_limit INTEGER NOT NULL,
-                        default_score_threshold REAL NOT NULL DEFAULT 0.5,
-                        is_enabled INTEGER NOT NULL,
-                        is_system INTEGER NOT NULL
-                    )
+                # テーブルが存在するかチェック
+                rows = await cur.execute('''
+                    SELECT name FROM sqlite_master WHERE type="table" AND name="VectorDBItems"
                 ''')
-                await conn.commit()
+                table = await rows.fetchone()
+                if table is not None:
+                    # テーブルが存在する場合は何もしない
+                    logger.debug("VectorDBItems table already exists.")
+                    return
+                else:
+                    # テーブルが存在しない場合は作成する
+                    logger.debug("Creating VectorDBItems table.")
+                    await cur.execute('''
+                        CREATE TABLE IF NOT EXISTS VectorDBItems (
+                            id TEXT NOT NULL PRIMARY KEY,
+                            name TEXT NOT NULL,
+                            description TEXT NOT NULL,
+                            vector_db_url TEXT NOT NULL,
+                            is_use_multi_vector_retriever INTEGER NOT NULL,
+                            doc_store_url TEXT NOT NULL,
+                            vector_db_type INTEGER NOT NULL,
+                            collection_name TEXT NOT NULL,
+                            chunk_size INTEGER NOT NULL,
+                            default_search_result_limit INTEGER NOT NULL,
+                            default_score_threshold REAL NOT NULL DEFAULT 0.5,
+                            is_enabled INTEGER NOT NULL,
+                            is_system INTEGER NOT NULL
+                        )
+                    ''')
+                    await conn.commit()
 
-        await cls.update_default_data()
+                    await cls.update_default_data()
 
     @classmethod
     async def update_default_data(cls):

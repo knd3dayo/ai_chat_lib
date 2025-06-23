@@ -31,8 +31,8 @@ class AutoProcessItem(BaseModel):
     - 4:PromptTemplate
  
     '''
-    id: str = Field(..., description="Unique identifier for the auto process item")
-    display_name: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Display name of the auto process item")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the auto process item")
+    display_name: str = Field(..., description="Display name of the auto process item")
     description: str = Field(..., description="Description of the auto process item")
     auto_process_item_type: int = Field(default=1, description="Type of the auto process item, 0 for SystemDefined, 1 for UserDefined")
     action_type: int = Field(..., description="Type of action associated with the auto process item")
@@ -58,18 +58,32 @@ class AutoProcessItem(BaseModel):
     @classmethod
     async def create_table(cls) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS "AutoProcessItems" (
-                    "id" TEXT NOT NULL CONSTRAINT "PK_AutoProcessItems" PRIMARY KEY,
-                    "display_name" TEXT NOT NULL,
-                    "description" TEXT NOT NULL,
-                    "auto_process_item_type" INTEGER NOT NULL,
-                    "action_type" INTEGER NOT NULL
-                )
-            ''')
-            await conn.commit()
+            conn.row_factory = aiosqlite.Row
+            async with conn.cursor() as cur:
+                # テーブルが存在するかチェック
+                rows = await cur.execute('''
+                    SELECT name FROM sqlite_master WHERE type="table" AND name="AutoProcessItems"
+                ''')
+                table = await rows.fetchone()
+                if table is not None:
+                    # テーブルが存在する場合は何もしない
+                    logger.debug("AutoProcessItems table already exists.")
+                    return
+                else:
+                    # テーブルが存在しない場合は作成する
+                    logger.debug("Creating AutoProcessItems table.")
+                    await conn.execute('''
+                        CREATE TABLE IF NOT EXISTS "AutoProcessItems" (
+                            "id" TEXT NOT NULL CONSTRAINT "PK_AutoProcessItems" PRIMARY KEY,
+                            "display_name" TEXT NOT NULL,
+                            "description" TEXT NOT NULL,
+                            "auto_process_item_type" INTEGER NOT NULL,
+                            "action_type" INTEGER NOT NULL
+                        )
+                    ''')
+                    await conn.commit()
 
-        await cls.update_default_data()
+                    await cls.update_default_data()
 
     @classmethod
     async def update_default_data(cls) -> None:

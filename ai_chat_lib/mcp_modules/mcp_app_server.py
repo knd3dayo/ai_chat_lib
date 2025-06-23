@@ -9,7 +9,7 @@ from pydantic import Field
 from ai_chat_lib.autogen_modules.search_wikipedia_ja import search_wikipedia_ja
 from ai_chat_lib.autogen_modules.vector_db_tools import vector_search
 from ai_chat_lib.db_modules.main_db_util import MainDBUtil
-from ai_chat_lib.db_modules.content_folders_catalog import ContentFoldersCatalog
+from ai_chat_lib.db_modules.content_folder import ContentFolder
 mcp = FastMCP("Demo 🚀") #type :ignore
 
 # toolは実行時にmcp.tool()で登録する。@mcp.toolは使用しない。
@@ -36,11 +36,11 @@ async def vector_search_mcp(
     return await vector_search(query, num_results, target_folder)
 
 # フォルダ情報を取得するツールを登録
-async def get_folder_paths_mcp() -> Annotated[list[ContentFoldersCatalog], Field(description="List of folders in the vector store")]:
+async def get_folder_paths_mcp() -> Annotated[list[ContentFolder], Field(description="List of folders in the vector store")]:
     """
     This function retrieves the list of folder paths from the vector store.
     """
-    return await ContentFoldersCatalog.get_content_folders(include_path=True)
+    return await ContentFolder.get_content_folders(include_path=True)
 
 # 引数解析用の関数
 def parse_args() -> argparse.Namespace:
@@ -77,7 +77,7 @@ def main():
 
     # ベクトルDBの初期化を行う
     asyncio.run(
-        MainDBUtil.init(upgrade=True, update_default_data=True)
+        MainDBUtil.init(upgrade=True)
     )
 
     # tools オプションが指定されている場合は、ツールを登録

@@ -10,7 +10,7 @@ logger = log_settings.getLogger(__name__)
 
 # アプリケーション初期化時に呼び出される関数
 async def init_app() -> None:
-    await MainDBUtil.init(update_default_data=False, upgrade=True)
+    await MainDBUtil.init(upgrade=True)
 
 # stdout,stderrを文字列として取得するためラッパー関数を定義
 def capture_stdout_stderr(func):

@@ -175,21 +175,32 @@ class AutogenAgent(BaseModel):
     @classmethod
     async def create_table(cls):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row
             async with conn.cursor() as cur:
-                await cur.execute('''
-                    CREATE TABLE IF NOT EXISTS autogen_agents (
-                        name TEXT PRIMARY KEY,
-                        description TEXT,
-                        system_message TEXT,
-                        code_execution INTEGER,
-                        llm_config_name TEXT,
-                        tool_names_json TEXT,
-                        vector_db_items_json TEXT
-                    )
-                ''')
-                await conn.commit()
-        # テーブルの初期化
-        await cls.update_default_data()
+                # autogen_agentsテーブルが存在しない場合は作成する
+                rows = await cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='autogen_agents'")
+                table = await rows.fetchone()
+                if table is not None:
+                    logger.info("autogen_agents table already exists.")
+                    return
+                else:
+                    logger.info("Creating autogen_agents table.")
+                    # テーブルが存在しない場合は作成する
+
+                    await cur.execute('''
+                        CREATE TABLE IF NOT EXISTS autogen_agents (
+                            name TEXT PRIMARY KEY,
+                            description TEXT,
+                            system_message TEXT,
+                            code_execution INTEGER,
+                            llm_config_name TEXT,
+                            tool_names_json TEXT,
+                            vector_db_items_json TEXT
+                        )
+                    ''')
+                    await conn.commit()
+                    # テーブルの初期化
+                    await cls.update_default_data()
 
     @classmethod
     async def update_default_data(cls):

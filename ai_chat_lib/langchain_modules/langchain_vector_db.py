@@ -19,7 +19,7 @@ from openai import RateLimitError
 from ai_chat_lib.langchain_modules.langchain_client import LangChainOpenAIClient
 from ai_chat_lib.langchain_modules.langchain_doc_store import SQLDocStore
 
-from ai_chat_lib.db_modules import EmbeddingData, ContentFoldersCatalog
+from ai_chat_lib.db_modules import EmbeddingData, ContentFolder
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -156,7 +156,7 @@ class LangChainVectorDB(BaseModel):
             doc_id = str(uuid.uuid4())
             logger.info(f"folder_path:{data.folder_path}")
             # folderを取得
-            folder = await ContentFoldersCatalog.get_content_folder_by_path(data.folder_path)
+            folder = await ContentFolder.get_content_folder_by_path(data.folder_path)
             if not folder:
                 # folderが見つからない場合はfolder_idを空にする
                 logger.warning(f"Folder not found for path: {data.folder_path}. Setting folder_id to empty.")

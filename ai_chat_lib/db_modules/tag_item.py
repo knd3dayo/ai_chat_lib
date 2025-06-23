@@ -130,12 +130,24 @@ class TagItem(BaseModel):
     async def create_table(cls):
         # TagItemsテーブルが存在しない場合は作成する
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
             async with conn.cursor() as cur:
-                await cur.execute('''
-                    CREATE TABLE IF NOT EXISTS TagItems (
-                        id TEXT NOT NULL PRIMARY KEY,
-                        tag TEXT NOT NULL,
-                        is_pinned INTEGER NOT NULL
-                    )
-                ''')
-                await conn.commit()
+                # テーブルが存在するか確認
+                row = await cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='TagItems'")
+                table = await row.fetchone()
+                if table is not None:
+                    # テーブルが存在する場合は何もしない
+                    logger.debug("TagItems table already exists.")
+                    return
+                else:
+                    # テーブルが存在しない場合は作成する
+                    logger.debug("Creating TagItems table.")
+
+                    await cur.execute('''
+                        CREATE TABLE IF NOT EXISTS TagItems (
+                            id TEXT NOT NULL PRIMARY KEY,
+                            tag TEXT NOT NULL,
+                            is_pinned INTEGER NOT NULL
+                        )
+                    ''')
+                    await conn.commit()

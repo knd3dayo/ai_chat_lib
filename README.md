@@ -157,14 +157,12 @@ Options:
     // 設定編集用のディクショナリ
     // -----------------------------------------------------------
     // 検索ルール
-      "search_rule_requests": [{
+    "search_rule_requests": [{
       "id": "検索ルールID",
       "search_condition_json": "{検索条件}",
       "is_include_sub_folder": false,
       "is_global_search": true
-    }
-  ]
-} ,
+    }],
     // ベクトルDBの参照、編集のためのディクショナリ。
     "vector_db_item_request" : {
         "id": "ベクトルDBのID",
@@ -181,7 +179,7 @@ Options:
         "is_system": "システム用のベクトルDBか否か"
     },
     // フォルダ
-    "content_folder_requests": {
+    "content_folder_requests": [{
         "id" : "フォルダのID",
         "folder_name" : "フォルダ名",
         "folder_type_string": "フォルダの種別",
@@ -191,17 +189,42 @@ Options:
         "extended_properties_json" : "",
         "parent_id": "",
         "folder_path": ""
-    },
+    }],
+    // アイテム
+    "content_item_requests": [ {    
+        "id" : "",
+        "folder_id" : "",
+        "created_at" : "",
+        "updated_at" : "",
+        "vectorized_at": "",
+        "content" : "",
+        "description" : "",
+        "content_type" : "",
+        "chat_messages_json" : "",
+        "prompt_chat_result_json" : "",
+        "tag_string" : "",
+        "is_pinned" : "",
+        "cached_base64_string" : "",
+        "extended_properties_json" ""
+    }],
+
+    // 共有タグの参照、編集のためのディクショナリ。現在は未使用
+    "tag_item_requests" : [
+      {  "id" : "タグID",
+        "tag" : "タグ名",
+        "is_pinned" : "ピン留め状態"
+        }
+    ],
     // AutoProcessItem
-    "auto_process_item_requests": {
+    "auto_process_item_requests": [{
         "id": "自動処理ルールアイテムのID",
         "display_name": "自動処理ルールアイテムの表示名",
         "description": "自動処理ルールアイテムの説明",
         "auto_process_item_type": "自動処理ルールアイテムのタイプ", 
         "action_type": "自動処理ルールアイテムのアクションタイプ",
-    },
+    }],
     // AutoProcessRule
-    "auto_process_rule_requests": {
+    "auto_process_rule_requests": [{
         "id": "自動処理ルールのID",
         "rule_name": "自動処理ルールの名前",
         "is_enabled": true, //"自動処理ルールの説明"
@@ -210,16 +233,16 @@ Options:
         "auto_process_item_id": "自動処理アイテムのID",
         "target_folder_id": "ルール適用対象フォルダ",
         "destination_folder_id": "move or copy時の宛先フォルダ"
-    },
+    }],
     // プロンプトテンプレート
-    "prompt_item_requests": {
+    "prompt_item_requests": [{
         "id": "プロンプトテンプレートのID",
         "name": "プロンプトテンプレートの名前",
         "description": "プロンプトテンプレートの説明",
         "prompt_template": "プロンプトテンプレート",
         "prompt_template_type": "プロンプトテンプレートのタイプ",
         "extended_properties_json": "拡張プロパティ"
-    },
+    }],
     // AutoGenのLLM設定の参照、編集のためのディクショナリ。
     "autogen_llm_config_request": {
         "name": "名前",
@@ -252,15 +275,7 @@ Options:
         "description": "説明",
         "llm_config_name": "LLMの設定",
         "agent_names": "AIエージェント"
-    },
-
-    // 共有タグの参照、編集のためのディクショナリ。現在は未使用
-    "tag_item_requests" : [
-      {  "id" : "タグID",
-        "tag" : "タグ名",
-        "is_pinned" : "ピン留め状態"
-        }
-    ]
+    }
 
 }
 ```

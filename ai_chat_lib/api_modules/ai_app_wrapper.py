@@ -73,22 +73,22 @@ async def delete_prompt_items(request_json: str):
 ########################
 @capture_stdout_stderr_async
 async def get_root_content_folders():
-    return await ContentFoldersCatalog.get_root_content_folders_api()
+    return await ContentFolder.get_root_content_folders_api()
 @capture_stdout_stderr_async
 async def get_content_folders():
-    return await ContentFoldersCatalog.get_content_folders_api()
+    return await ContentFolder.get_content_folders_api()
 @capture_stdout_stderr_async
 async def get_content_folders_by_id(request_json: str):
-    return await ContentFoldersCatalog.get_content_folder_by_id_api(request_json)
+    return await ContentFolder.get_content_folder_by_id_api(request_json)
 @capture_stdout_stderr_async
 async def get_content_folder_by_path(request_json: str):
-    return await ContentFoldersCatalog.get_content_folder_by_path_api(request_json)
+    return await ContentFolder.get_content_folder_by_path_api(request_json)
 @capture_stdout_stderr_async
 async def update_content_folders(request_json: str):
-    return await ContentFoldersCatalog.update_content_folders_api(request_json)
+    return await ContentFolder.update_content_folders_api(request_json)
 @capture_stdout_stderr_async
 async def delete_content_folders(request_json: str):
-    return await ContentFoldersCatalog.delete_content_folders_api(request_json)
+    return await ContentFolder.delete_content_folders_api(request_json)
 
 ########################
 # tag関連

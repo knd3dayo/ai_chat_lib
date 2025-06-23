@@ -24,8 +24,8 @@ async def vector_search(
     }
     if target_folder:
         # target_folderのパスからfolder_idを取得
-        from ai_chat_lib.db_modules.content_folders_catalog import ContentFoldersCatalog
-        folder = await ContentFoldersCatalog.get_content_folder_by_path(target_folder)
+        from ai_chat_lib.db_modules.content_folder import ContentFolder
+        folder = await ContentFolder.get_content_folder_by_path(target_folder)
         if folder:
             search_kwargs["filter"] = {"folder_id": folder.id}
         else:

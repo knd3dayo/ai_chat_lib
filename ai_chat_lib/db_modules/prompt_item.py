@@ -6,6 +6,10 @@ import uuid
 from ai_chat_lib.resouces import *
 from ai_chat_lib.db_modules.main_db import MainDB
 
+import ai_chat_lib.log_modules.log_settings as log_settings
+logger = log_settings.getLogger(__name__)
+
+
 class PromptItem(BaseModel):
     """
     以下のテーブル定義のデータを格納するクラス
@@ -36,21 +40,35 @@ class PromptItem(BaseModel):
     async def create_table(cls):
         # ContentFoldersテーブルが存在しない場合は作成する
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row
             async with conn.cursor() as cur:
-                await cur.execute('''
-                    CREATE TABLE IF NOT EXISTS PromptItems (
-                        id TEXT NOT NULL PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        description TEXT NOT NULL,
-                        prompt TEXT NOT NULL,
-                        prompt_template_type INTEGER NOT NULL,
-                        extended_properties_json TEXT NOT NULL
-                    )
+                # テーブルが存在するかチェック
+                rows = await cur.execute('''
+                    SELECT name FROM sqlite_master WHERE type="table" AND name="PromptItems"
                 ''')
-                await conn.commit()
+                table = await rows.fetchone()
+                if table is not None:
+                    # テーブルが存在する場合は何もしない
+                    return
+                
+                else:                    
+                    # テーブルが存在しない場合は作成する
+                    logger.debug("Creating PromptItems table.")
 
-        # 初期のPromptItemsを設定する
-        await cls.update_default_data()
+                    await cur.execute('''
+                        CREATE TABLE IF NOT EXISTS PromptItems (
+                            id TEXT NOT NULL PRIMARY KEY,
+                            name TEXT NOT NULL,
+                            description TEXT NOT NULL,
+                            prompt TEXT NOT NULL,
+                            prompt_template_type INTEGER NOT NULL,
+                            extended_properties_json TEXT NOT NULL
+                        )
+                    ''')
+                    await conn.commit()
+
+                    # 初期のPromptItemsを設定する
+                    await cls.update_default_data()
 
     @classmethod
     async def update_default_data(cls):

@@ -141,19 +141,30 @@ class AutogenGroupChat(BaseModel):
     @classmethod    
     async def create_table(cls):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row
             async with conn.cursor() as cur:
-                await cur.execute('''
-                    CREATE TABLE IF NOT EXISTS autogen_group_chats (
-                        name TEXT PRIMARY KEY,
-                        description TEXT,
-                        llm_config_name TEXT,
-                        agent_names_json TEXT
-                    )
-                ''')
-                await conn.commit()
+                # autogen_group_chatsテーブルが存在しない場合は作成する
+                rows = await cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='autogen_group_chats'")
+                table = await rows.fetchone()
+                if table is not None:
+                    # テーブルが存在する場合は何もしない
+                    logger.info("autogen_group_chats table already exists.")
+                    return
+                else:
+                    logger.info("Creating autogen_group_chats table.")
+                    # テーブルが存在しない場合は作成する
+                    await cur.execute('''
+                        CREATE TABLE IF NOT EXISTS autogen_group_chats (
+                            name TEXT PRIMARY KEY,
+                            description TEXT,
+                            llm_config_name TEXT,
+                            agent_names_json TEXT
+                        )
+                    ''')
+                    await conn.commit()
 
-        # デフォルトのautogen_group_chatsを初期化する
-        await cls.update_default_data()
+                    # デフォルトのautogen_group_chatsを初期化する
+                    await cls.update_default_data()
 
     @classmethod
     async def update_default_data(cls):

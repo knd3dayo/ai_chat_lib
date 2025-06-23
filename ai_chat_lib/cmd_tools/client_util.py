@@ -18,7 +18,7 @@ async def init_app() -> None:
     """
     # MainDBの初期化
     from ai_chat_lib.db_modules import MainDBUtil
-    await MainDBUtil.init(update_default_data=True, upgrade=True)
+    await MainDBUtil.init(upgrade=True)
     print("MainDB initialized.")
     # 環境変数APP_DATA_PATHの確認
     __check_app_data_path()

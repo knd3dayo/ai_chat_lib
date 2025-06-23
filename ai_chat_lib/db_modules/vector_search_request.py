@@ -5,7 +5,7 @@ from typing import Optional
 from typing import Optional, Union, List
 from typing import Optional, List, Dict, Any, Union
 from ai_chat_lib.db_modules.vector_db_item import VectorDBItem
-from ai_chat_lib.db_modules.content_folders_catalog import ContentFoldersCatalog
+from ai_chat_lib.db_modules.content_folder import ContentFolder
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class VectorSearchRequest(BaseModel):
         folder_path = filter.get("folder_path", None)
         if folder_path:
             logger.info(f"__update_search_kwargs: folder_path: {folder_path}")
-            temp_folder = await ContentFoldersCatalog.get_content_folder_by_path(folder_path)
+            temp_folder = await ContentFolder.get_content_folder_by_path(folder_path)
             if temp_folder and temp_folder.id:
                 kwargs["filter"]["folder_id"] = temp_folder.id
             kwargs["filter"].pop("folder_path", None)

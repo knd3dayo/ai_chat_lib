@@ -51,18 +51,32 @@ class SearchRule(BaseModel):
     @classmethod
     async def create_table(cls) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS "SearchRules" (
-                    "id" TEXT NOT NULL CONSTRAINT "PK_SearchRules" PRIMARY KEY,
-                    "name" TEXT NOT NULL,
-                    "search_condition_json" TEXT NOT NULL,
-                    "search_folder_id" TEXT NULL,
-                    "target_folder_id" TEXT NULL,
-                    "is_include_sub_folder" INTEGER NOT NULL,
-                    "is_global_search" INTEGER NOT NULL
-                )
-            ''')
-            await conn.commit()
+            conn.row_factory = aiosqlite.Row
+            async with conn.cursor() as cur:
+                # テーブルが存在するかチェック
+                rows = await cur.execute('''
+                    SELECT name FROM sqlite_master WHERE type="table" AND name="SearchRules"
+                ''')
+                table = await rows.fetchone()
+                if table is not None:
+                    # テーブルが存在する場合は何もしない
+                    logger.debug("SearchRules table already exists.")
+                    return
+                else:
+                    # テーブルが存在しない場合は作成する
+                    logger.debug("Creating SearchRules table.")
+                    await conn.execute('''
+                        CREATE TABLE IF NOT EXISTS "SearchRules" (
+                            "id" TEXT NOT NULL CONSTRAINT "PK_SearchRules" PRIMARY KEY,
+                            "name" TEXT NOT NULL,
+                            "search_condition_json" TEXT NOT NULL,
+                            "search_folder_id" TEXT NULL,
+                            "target_folder_id" TEXT NULL,
+                            "is_include_sub_folder" INTEGER NOT NULL,
+                            "is_global_search" INTEGER NOT NULL
+                        )
+                    ''')
+                    await conn.commit()
     @classmethod
     async def get_search_rules_api(cls, request_json: str) -> dict:
         search_rules = await cls.get_search_rules()

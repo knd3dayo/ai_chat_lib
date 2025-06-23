@@ -76,19 +76,32 @@ class MainDB:
         # DBPropertiesテーブルが存在しない場合は作成する
         async with aiosqlite.connect(cls.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
-                await cur.execute('''
-                    CREATE TABLE IF NOT EXISTS DBProperties (
-                        id TEXT NOT NULL PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        value TEXT NOT NULL
-                    )
+                # テーブルが存在するかチェック
+                rows = await cur.execute('''
+                    SELECT name FROM sqlite_master WHERE type="table" AND name="DBProperties"
                 ''')
-                # version = 1を追加
-                await cur.execute('''
-                    INSERT OR IGNORE INTO DBProperties (id, name, value) VALUES (?, ?, ?)
-                ''', (str(uuid.uuid4()), "version", "1"))
+                table = await rows.fetchone()
+                if table is not None:
+                    # テーブルが存在する場合は何もしない
+                    logger.debug("DBProperties table already exists.")
+                    return
+                else:
+                    # テーブルが存在しない場合は作成する
+                    logger.debug("Creating DBProperties table.")
 
-                await conn.commit()
+                    await cur.execute('''
+                        CREATE TABLE IF NOT EXISTS DBProperties (
+                            id TEXT NOT NULL PRIMARY KEY,
+                            name TEXT NOT NULL,
+                            value TEXT NOT NULL
+                        )
+                    ''')
+                    # version = 1を追加
+                    await cur.execute('''
+                        INSERT OR IGNORE INTO DBProperties (id, name, value) VALUES (?, ?, ?)
+                    ''', (str(uuid.uuid4()), "version", "1"))
+
+                    await conn.commit()
     
     #########################################
     # DBProperties関連

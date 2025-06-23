@@ -141,7 +141,7 @@ class LangChainUtil:
         # LangChainVectorDBを生成
         vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
 
-        folder = await ContentFoldersCatalog.get_content_folder_by_path(embedding_data.folder_path)
+        folder = await ContentFolder.get_content_folder_by_path(embedding_data.folder_path)
         folder_id = folder.id if folder else None
         if folder_id is None:
             raise ValueError(f"Folder with path {embedding_data.folder_path} not found.")
@@ -288,7 +288,7 @@ class LangChainUtil:
                 folder_id = doc.metadata.get("folder_id", "")
                 if folder_id:
                     # folder_idからfolder_pathを取得
-                    folder_path = await ContentFoldersCatalog.get_content_folder_path_by_id(folder_id)
+                    folder_path = await ContentFolder.get_content_folder_path_by_id(folder_id)
                     if folder_path:
                         doc.metadata["folder_path"] = folder_path
                     else:
@@ -308,7 +308,7 @@ class LangChainUtil:
                     folder_id = sub_doc.metadata.get("folder_id", "")
                     if folder_id:
                         # folder_idからfolder_pathを取得
-                        folder_path = await ContentFoldersCatalog.get_content_folder_path_by_id(folder_id)
+                        folder_path = await ContentFolder.get_content_folder_path_by_id(folder_id)
                         if folder_path:
                             sub_doc.metadata["folder_path"] = folder_path
                         else:

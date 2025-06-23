@@ -50,19 +50,33 @@ class AutoProcessRule(BaseModel):
     @classmethod
     async def create_table(cls) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS "auto_process_rules" (
-                    "id" TEXT NOT NULL CONSTRAINT "PK_auto_process_rules" PRIMARY KEY,
-                    "rule_name" TEXT NOT NULL,
-                    "is_enabled" INTEGER NOT NULL,
-                    "priority" INTEGER NOT NULL,
-                    "conditions_json" TEXT NOT NULL,
-                    "auto_process_item_id" TEXT NULL,
-                    "target_folder_id" TEXT NULL,
-                    "destination_folder_id" TEXT NULL
-                )
-            ''')
-            await conn.commit()
+            conn.row_factory = aiosqlite.Row
+            async with conn.cursor() as cur:
+                # テーブルが存在するかチェック
+                rows = await cur.execute('''
+                    SELECT name FROM sqlite_master WHERE type="table" AND name="auto_process_rules"
+                ''')
+                table = await rows.fetchone()
+                if table is not None:
+                    # テーブルが存在する場合は何もしない
+                    logger.debug("auto_process_rules table already exists.")
+                    return
+                else:
+                    # テーブルが存在しない場合は作成する
+                    logger.debug("Creating auto_process_rules table.")
+                    await conn.execute('''
+                        CREATE TABLE IF NOT EXISTS "auto_process_rules" (
+                            "id" TEXT NOT NULL CONSTRAINT "PK_auto_process_rules" PRIMARY KEY,
+                            "rule_name" TEXT NOT NULL,
+                            "is_enabled" INTEGER NOT NULL,
+                            "priority" INTEGER NOT NULL,
+                            "conditions_json" TEXT NOT NULL,
+                            "auto_process_item_id" TEXT NULL,
+                            "target_folder_id" TEXT NULL,
+                            "destination_folder_id" TEXT NULL
+                        )
+                    ''')
+                    await conn.commit()
 
     @classmethod
     async def get_auto_process_rules_api(cls, request_json: str) -> dict:

@@ -121,21 +121,30 @@ class AutogenLLMConfig(BaseModel):
     @classmethod
     async def create_table(cls):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row
             async with conn.cursor() as cur:
-                await cur.execute('''
-                    CREATE TABLE IF NOT EXISTS autogen_llm_configs (
-                        name TEXT PRIMARY KEY,
-                        api_type TEXT,
-                        api_version TEXT,
-                        model TEXT,
-                        api_key TEXT,
-                        base_url TEXT
-                    )
-                ''')
-                await conn.commit()
+                # autogen_llm_configsテーブルが存在しない場合は作成する
+                rows = await cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='autogen_llm_configs'")
+                table = await rows.fetchone()
+                if table is not None:
+                    logger.info("autogen_llm_configs table already exists.")
+                    return
+                else:
+                    logger.info("Creating autogen_llm_configs table.")
+                    await cur.execute('''
+                        CREATE TABLE IF NOT EXISTS autogen_llm_configs (
+                            name TEXT PRIMARY KEY,
+                            api_type TEXT,
+                            api_version TEXT,
+                            model TEXT,
+                            api_key TEXT,
+                            base_url TEXT
+                        )
+                    ''')
+                    await conn.commit()
 
-        # テーブルの初期化
-        await cls.update_default_data()
+                    # テーブルの初期化
+                    await cls.update_default_data()
 
     @classmethod
     async def update_default_data(cls):

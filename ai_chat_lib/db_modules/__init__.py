@@ -1,5 +1,6 @@
 from ai_chat_lib.db_modules.main_db import *
-from ai_chat_lib.db_modules.content_folders_catalog import *
+from ai_chat_lib.db_modules.content_folder import *
+from ai_chat_lib.db_modules.content_item import *
 from ai_chat_lib.db_modules.tag_item import *
 from ai_chat_lib.db_modules.vector_db_item import *
 from ai_chat_lib.db_modules.vector_search_request import *
