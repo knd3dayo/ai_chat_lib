@@ -1,5 +1,8 @@
-# 5秒ごとにプロセスを監視し、異常があれば指定したURLを呼び出す
-# このアプリケーションは、メインアプリのプロセス終了時にFlaskサーバーを停止するためのもの
+"""
+5秒ごとに指定したプロセスID（pid）を監視し、
+プロセスが存在しなくなった場合に指定URLへPOSTリクエストを送信するユーティリティ。
+主にメインアプリ終了時にFlaskサーバーを安全に停止する用途で利用する。
+"""
 
 import sys, os
 import time
@@ -10,9 +13,15 @@ import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
 
-# プロセスを監視する
-def check_process(pid : int, url : str):
-    
+def check_process(pid: int, url: str):
+    """
+    指定したプロセスID（pid）を5秒ごとに監視し、
+    プロセスが存在しなくなった場合に指定URLへPOSTリクエストを送信する。
+
+    Args:
+        pid (int): 監視対象のプロセスID
+        url (str): プロセス終了時にリクエストを送信するURL
+    """
     while True:
         time.sleep(5)
         # pidのプロセスが存在しない場合
@@ -20,9 +29,9 @@ def check_process(pid : int, url : str):
             # 指定したURLにリクエストを送信
             try:
                 os.environ["NO_PROXY"] = "localhost"
-                #エラーを無視してリクエストを送信 timeout=5
+                # エラーを無視してリクエストを送信 timeout=5
                 requests.post(url, timeout=5)
-            except:
+            except Exception:
                 pass
 
             break
@@ -39,4 +48,3 @@ if __name__ == "__main__":
 
     # プロセスを監視
     check_process(pid, url)
-

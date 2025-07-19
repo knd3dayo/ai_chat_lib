@@ -37,6 +37,45 @@ class EmbeddingData(BaseModel):
     # folder_path: str embeddingのフォルダ名. オプション
     folder_path: Optional[str] = Field(default=None, description="Embeddingのフォルダ名. オプション")
 
+class VectorRetrieverWrapper:
+    """
+    A wrapper class for vector retrievers.
+    This class is used to create a retriever with a specific vector store and search parameters.
+    """
+
+    def __init__(self, 
+                 vectorstore: VectorStore, doc_id: str, 
+                 search_kwargs: dict[str, Any] = {}, use_multi_vector_retriever: bool = False, docstore: Optional[SQLDocStore] = None
+                 ):
+        self.vectorstore = vectorstore
+        self.doc_id = doc_id
+        self.search_kwargs = search_kwargs
+        self.use_multi_vector_retriever = use_multi_vector_retriever
+        self.docstore = docstore
+        self.retriever = self.__create_retriever()
+        
+    def __create_retriever(self) -> BaseRetriever:
+        """
+        Create a retriever with the specified vector store and search parameters.
+        Returns:
+            BaseRetriever: A retriever object for vector search.
+        """
+        if self.use_multi_vector_retriever:
+            if not self.docstore:
+                raise ValueError("docstore must be provided for MultiVectorRetriever.")
+
+            logger.debug("Creating a MultiVectorRetriever")
+            return MultiVectorRetriever(
+                vectorstore=self.vectorstore,
+                docstore=self.docstore,
+                id_key=self.doc_id,
+                search_kwargs=self.search_kwargs
+            )
+        else:
+            logger.debug("Creating a regular Retriever")
+            return CustomBaseRetriever(self.vectorstore, **self.search_kwargs)
+
+
 class CustomMultiVectorRetriever(MultiVectorRetriever):
     def _get_relevant_documents(self, query: str, *, run_manager: CallbackManagerForRetrieverRun) -> list[Document]:
         """Get documents relevant to a query.
@@ -68,15 +107,21 @@ class CustomMultiVectorRetriever(MultiVectorRetriever):
 
         return docs
 
+class CustomBaseRetriever(BaseRetriever):
+    """
+    Custom retriever that wraps a vector store and allows for custom search parameters.
+    This class is used to create a retriever with a specific vector store and search parameters.
+    """
 
-def __create_decorated_retriever(self, vectorstore: VectorStore, **kwargs: Any):
-    # ベクトル検索の結果にスコアを追加する
-    @chain
-    def retriever(query: str) -> list[Document]:
+    def __init__(self, vectorstore: VectorStore, **kwargs: Any):
+        self.vectorstore = vectorstore
+        self.kwargs = kwargs
+
+    def _get_relevant_documents(self, query: str, *, run_manager: CallbackManagerForRetrieverRun) -> list[Document]:
         result = []
-        params = kwargs.copy()
+        params = self.kwargs.copy()
         params["query"] = query
-        search_results = vectorstore.similarity_search_with_relevance_scores(**params)
+        search_results = self.vectorstore.similarity_search_with_relevance_scores(**params)
         if not search_results:
             return []
 
@@ -86,7 +131,6 @@ def __create_decorated_retriever(self, vectorstore: VectorStore, **kwargs: Any):
             result.append(doc)
         return result   
 
-    return retriever
 
 class LangChainOpenAIClient(BaseModel):
     """
@@ -213,34 +257,23 @@ class LangChainVectorStore(BaseModel):
         return os.path.join(app_data_path, "folder_paths.json")
     
 
-    from langchain_core.runnables.base import Runnable
-    def create_retriever(self, search_kwargs: dict[str, Any] = {}) -> "BaseRetriever | Runnable[str, list[Document]]":
+    def create_retriever(self, search_kwargs: dict[str, Any] = {}) -> "BaseRetriever":
         # ベクトルDB検索用のRetrieverオブジェクトの作成と設定
 
         if not search_kwargs:
             # デフォルトの検索パラメータを設定
             logger.info("search_kwargs is empty. Set default search_kwargs")
             search_kwargs = {"k": 10}
+        
+        vector_retriver_wrapper = VectorRetrieverWrapper(
+            vectorstore=self.get_vector_store(),
+            doc_id="doc_id",
+            search_kwargs=search_kwargs,
+            use_multi_vector_retriever=self.use_multi_vector_retriever,
+            docstore=SQLDocStore(self.doc_store_url) if self.doc_store_url else None
+        )
+        return vector_retriver_wrapper.retriever
 
-        # IsUseMultiVectorRetriever=Trueの場合はMultiVectorRetrieverを生成
-        if self.use_multi_vector_retriever:
-            logger.info("Creating MultiVectorRetriever")
-            doc_store = SQLDocStore(self.doc_store_url) if self.doc_store_url else None
-            if doc_store is None:
-                raise ValueError("doc_store is None")
-            
-            retriever = CustomMultiVectorRetriever(
-                vectorstore=self.get_vector_store(),
-                docstore=doc_store,
-                id_key="doc_id",
-                search_kwargs=search_kwargs
-            )
-
-        else:
-            logger.debug("Creating a regular Retriever")
-            retriever = __create_decorated_retriever(self.get_vector_store(), **search_kwargs)
-         
-        return retriever
 
     def get_vector_store(self) -> VectorStore:
 

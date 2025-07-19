@@ -1,3 +1,12 @@
+"""
+ai_app_server.py
+
+AIチャットアプリケーションのAPIサーバ本体。
+- Aiohttp + SocketIOによる非同期APIサーバ
+- 各種DB/プロセス/プロンプト/ベクトルDB/タグ等の管理APIを提供
+- サーバ起動(main)・シャットダウン・セッション管理も含む
+"""
+
 import os, sys
 from typing import Any
 
@@ -472,6 +481,11 @@ async def cancel_autogen_chat(request: Request) -> Response:
 
 @sio.on('autogen_chat') # type: ignore
 async def autogen_group_chat(sid, request_json: str):
+    """
+    SocketIOイベント: autogen_chat
+    - クライアントからのチャットリクエストを非同期で処理し、逐次レスポンスをemit
+    - エラー時はtracebackをemitし、完了時はcloseイベントをemit
+    """
     try:
         async for response in ai_app_wrapper.autogen_chat(request_json):
             logger.debug(f"session_token:{AutoGenProps.session_tokens}")
@@ -494,6 +508,12 @@ async def shutdown_server(request: Request) -> Response:
     return web.Response(body="{}", status=200, content_type='application/json')
 
 def main():
+    """
+    APIサーバのエントリーポイント。
+    - APP_DATA_PATH等の環境変数を初期化
+    - OpenAIPropsの環境変数チェック
+    - アプリケーション初期化・ルーティング・サーバ起動
+    """
     import asyncio
     # 第１引数はAPP_DATA_PATH
     if len(sys.argv) > 1:
@@ -519,4 +539,3 @@ def main():
 
 if __name__ == ('__main__'):
     main()
-    

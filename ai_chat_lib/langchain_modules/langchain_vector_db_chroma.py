@@ -39,7 +39,12 @@ class LangChainVectorDBChroma(LangChainVectorDB):
         params: dict[str, Any]= {}
         params["client"] = chromadb.PersistentClient(path=self.vector_db_url, settings=settings)
         params["embedding_function"] = self.langchain_openai_client.get_embedding_client()
-        params["collection_metadata"] = {"hnsw:space":"cosine"}
+        params["collection_metadata"] = {
+            "hnsw:space":"cosine", 
+            "hnsw:construction_ef": 400, 
+            "hnsw:search_ef": 200,
+            "hnsw:max_neighbors": 24,
+        }
         # collectionが指定されている場合
         logger.info(f"collection_name:{self.collection_name}")
         if self.collection_name:

@@ -1,3 +1,11 @@
+"""
+ai_app_wrapper.py
+
+APIサーバの各種エンドポイントに対応するラッパー関数群を提供するモジュール。
+- DB/プロセス/プロンプト/ベクトルDB/タグ/ファイル/外部API等の管理・操作APIを一括でラップ
+- 各関数はAPIサーバのルーティングから呼び出される
+"""
+
 import os, json
 
 from ai_chat_lib.api_modules.ai_app_util import *
@@ -18,6 +26,14 @@ os.environ["PYTHONUTF8"] = "1"
 ########################
 @capture_stdout_stderr_async
 async def get_search_rules(request_json: str):
+    """
+    SearchRuleの取得APIラッパー。
+
+    Args:
+        request_json (str): リクエストパラメータ(JSON文字列)
+    Returns:
+        dict: 検索ルール情報
+    """
     return await SearchRule.get_search_rules_api(request_json)
 @capture_stdout_stderr_async
 async def update_search_rules(request_json: str):

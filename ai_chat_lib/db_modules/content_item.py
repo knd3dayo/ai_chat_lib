@@ -1,9 +1,14 @@
+"""
+content_item.py
+
+ContentItemsテーブルのデータモデルおよび関連DB操作・APIユーティリティを提供するモジュール。
+"""
+
 import aiosqlite
 import json
 from typing import List, Union, Optional, ClassVar
 import uuid
 from pydantic import BaseModel, field_validator, Field
-from typing import Optional, List, Union
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -12,8 +17,11 @@ from ai_chat_lib.db_modules.vector_db_item import MainDB
 
 
 class ContentItem(BaseModel):
-    '''
-    以下のテーブル定義のデータを格納するクラス
+    """
+    ContentItemsテーブルの1レコードを表現するデータモデルクラス。
+    DBとのマッピング、APIリクエスト/レスポンス変換、各種DB操作ユーティリティを提供する。
+
+    テーブル定義:
     CREATE TABLE "ContentItems" (
         "id" TEXT NOT NULL CONSTRAINT "PK_ContentItems" PRIMARY KEY,
         "folder_id" TEXT NULL,
@@ -30,8 +38,8 @@ class ContentItem(BaseModel):
         "cached_base64_string" TEXT NOT NULL,
         "extended_properties_json" TEXT NOT NULL
     )
-    '''
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the auto process item")
+    """
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the content item")
     folder_id: str = Field(..., description="ID of the folder this content item belongs to")
     created_at: str = Field(..., description="Creation timestamp of the content item")
     updated_at: str = Field(..., description="Last updated timestamp of the content item")
@@ -47,8 +55,12 @@ class ContentItem(BaseModel):
     extended_properties_json: str = Field(..., description="JSON string of extended properties for the content item")
 
     content_item_requests_name: ClassVar[str] = "content_item_requests"
+
     @classmethod
     async def create_table(cls):
+        """
+        ContentItemsテーブルをDBに作成する（存在しない場合のみ）。
+        """
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             await conn.execute('''
                 CREATE TABLE IF NOT EXISTS "ContentItems" (
@@ -72,7 +84,9 @@ class ContentItem(BaseModel):
 
     @classmethod
     async def update_default_data(cls):
-        # folder_idにインデックスを追加
+        """
+        ContentItemsテーブルのfolder_idにインデックスを追加する。
+        """
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             await conn.execute('''
                 CREATE INDEX IF NOT EXISTS idx_folder_id ON ContentItems (folder_id)
@@ -81,9 +95,15 @@ class ContentItem(BaseModel):
 
     @classmethod
     def get_content_item_request_objects(cls, request_dict: dict) -> List["ContentItem"]:
-        '''
-        {"content_item_requests": [{...}, ...]} の形式で渡される
-        '''
+        """
+        APIリクエストdictからContentItemオブジェクトリストを生成する。
+
+        Args:
+            request_dict (dict): {"content_item_requests": [{...}, ...]} 形式のリクエスト
+
+        Returns:
+            List[ContentItem]: ContentItemインスタンスのリスト
+        """
         request: Union[List[dict], None] = request_dict.get(cls.content_item_requests_name, None)
         if not request:
             logger.info("content item request is not set. skipping.")
@@ -98,6 +118,15 @@ class ContentItem(BaseModel):
 
     @classmethod
     async def get_content_items_by_folder_id(cls, folder_id: str) -> List["ContentItem"]:
+        """
+        指定フォルダIDに紐づくContentItem一覧を取得する。
+
+        Args:
+            folder_id (str): フォルダID
+
+        Returns:
+            List[ContentItem]: 該当するContentItemのリスト
+        """
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row
             async with conn.cursor() as cur:
@@ -108,6 +137,12 @@ class ContentItem(BaseModel):
 
     @classmethod
     async def get_content_items(cls) -> List["ContentItem"]:
+        """
+        全ContentItemを取得する。
+
+        Returns:
+            List[ContentItem]: 全ContentItemのリスト
+        """
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row
             async with conn.cursor() as cur:
@@ -118,6 +153,15 @@ class ContentItem(BaseModel):
 
     @classmethod
     async def get_content_item_by_id(cls, item_id: str) -> Optional["ContentItem"]:
+        """
+        指定IDのContentItemを取得する。
+
+        Args:
+            item_id (str): ContentItemのID
+
+        Returns:
+            Optional[ContentItem]: 該当するContentItem、存在しない場合はNone
+        """
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row
             async with conn.cursor() as cur:
@@ -129,6 +173,15 @@ class ContentItem(BaseModel):
     
     @classmethod
     async def update_content_item(cls, item: "ContentItem") -> "ContentItem":
+        """
+        ContentItemを新規追加または更新する。
+
+        Args:
+            item (ContentItem): 追加・更新対象のContentItem
+
+        Returns:
+            ContentItem: 追加・更新後のContentItem
+        """
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
                 if await cls.get_content_item_by_id(item.id) is None:
@@ -171,6 +224,12 @@ class ContentItem(BaseModel):
 
     @classmethod
     async def delete_content_item(cls, item: "ContentItem") -> None:
+        """
+        指定ContentItemを削除する。
+
+        Args:
+            item (ContentItem): 削除対象
+        """
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
                 await cur.execute("DELETE FROM ContentItems WHERE id = ?", (item.id,))
@@ -179,6 +238,12 @@ class ContentItem(BaseModel):
 
     @classmethod
     async def delete_content_items_by_folder_id(cls, folder_id: str) -> None:
+        """
+        指定フォルダID配下のContentItemを全削除する。
+
+        Args:
+            folder_id (str): フォルダID
+        """
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
                 await cur.execute("DELETE FROM ContentItems WHERE folder_id = ?", (folder_id,))
@@ -186,15 +251,36 @@ class ContentItem(BaseModel):
         logger.info(f"ContentItems in folder {folder_id} deleted.")
 
     def to_dict(self) -> dict:
+        """
+        ContentItemをdict形式に変換する。
+
+        Returns:
+            dict: ContentItemの辞書表現
+        """
         return self.model_dump()
     
     @classmethod
     async def get_content_items_api(cls) -> dict:
+        """
+        全ContentItemをAPIレスポンス形式で取得する。
+
+        Returns:
+            dict: {"content_items": [ ... ]}
+        """
         content_items = await cls.get_content_items()
         return {"content_items": [item.to_dict() for item in content_items]}
         
     @classmethod
     async def get_content_item_by_id_api(cls, request_json: str) -> dict:
+        """
+        指定IDのContentItemをAPIレスポンス形式で取得する。
+
+        Args:
+            request_json (str): {"content_item_requests": [{"id": ...}]} 形式のJSON
+
+        Returns:
+            dict: {"content_item": {...}}
+        """
         request_dict: dict = json.loads(request_json)
         content_item_requests: List[dict] = request_dict.get(cls.content_item_requests_name, [])
         if not content_item_requests:
@@ -210,6 +296,15 @@ class ContentItem(BaseModel):
     
     @classmethod
     async def get_content_items_by_folder_id_api(cls, request_json: str) -> dict:
+        """
+        指定フォルダID配下のContentItemをAPIレスポンス形式で取得する。
+
+        Args:
+            request_json (str): {"content_item_requests": [{"folder_id": ...}]} 形式のJSON
+
+        Returns:
+            dict: {"content_items": [ ... ]}
+        """
         request_dict: dict = json.loads(request_json)
         content_item_requests: List[dict] = request_dict.get(cls.content_item_requests_name, [])
         if not content_item_requests:
@@ -223,6 +318,15 @@ class ContentItem(BaseModel):
     
     @classmethod
     async def update_content_item_api(cls, request_json: str):
+        """
+        ContentItemの追加・更新をAPIリクエスト形式で受け付けて実行する。
+
+        Args:
+            request_json (str): {"content_item_requests": [ ... ]} 形式のJSON
+
+        Raises:
+            ValueError: リクエスト不備時
+        """
         request_dict: dict = json.loads(request_json)
         content_item_requests: List[dict] = request_dict.get(cls.content_item_requests_name, [])
         if not content_item_requests:
@@ -239,6 +343,15 @@ class ContentItem(BaseModel):
     
     @classmethod
     async def delete_content_item_api(cls, request_json: str):
+        """
+        ContentItemの削除をAPIリクエスト形式で受け付けて実行する。
+
+        Args:
+            request_json (str): {"content_item_requests": [{"id": ...}]} 形式のJSON
+
+        Raises:
+            ValueError: リクエスト不備時や該当ID未存在時
+        """
         request_dict: dict = json.loads(request_json)
         content_item_requests: List[dict] = request_dict.get(cls.content_item_requests_name, [])
         if not content_item_requests:

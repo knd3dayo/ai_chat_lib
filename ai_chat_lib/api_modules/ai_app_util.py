@@ -1,3 +1,12 @@
+"""
+ai_app_util.py
+
+AIチャットアプリケーションのユーティリティ関数群。
+- アプリケーション初期化
+- stdout/stderrキャプチャ用デコレータ（同期・非同期・ジェネレータ対応）
+などを提供する。
+"""
+
 import os, json
 from typing import Any
 from collections.abc import Generator, AsyncGenerator
@@ -8,12 +17,20 @@ from ai_chat_lib.db_modules import MainDBUtil
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
-# アプリケーション初期化時に呼び出される関数
 async def init_app() -> None:
+    """
+    アプリケーション初期化時に呼び出される非同期関数。
+    DBの初期化・マイグレーションを実施する。
+    """
     await MainDBUtil.init(upgrade=True)
 
-# stdout,stderrを文字列として取得するためラッパー関数を定義
 def capture_stdout_stderr(func):
+    """
+    関数のstdout/stderr出力をStringIOでキャプチャし、戻り値dictとともにjson文字列で返すデコレータ。
+
+    Returns:
+        str: 実行結果・ログを含むjson文字列
+    """
     def wrapper(*args, **kwargs) -> str:
         # strout,stderrorをStringIOでキャプチャする
         buffer = StringIO()
@@ -49,8 +66,13 @@ def capture_stdout_stderr(func):
 
     return wrapper
 
-# stdout,stderrを文字列として取得するためラッパー関数を定義
 def capture_stdout_stderr_async(func):
+    """
+    非同期関数のstdout/stderr出力をStringIOでキャプチャし、戻り値dictとともにjson文字列で返すデコレータ。
+
+    Returns:
+        str: 実行結果・ログを含むjson文字列
+    """
     async def wrapper(*args, **kwargs) -> str:
         # strout,stderrorをStringIOでキャプチャする
         buffer = StringIO()
@@ -84,8 +106,13 @@ def capture_stdout_stderr_async(func):
 
     return  wrapper
 
-# stdout,stderrを文字列として取得するためラッパー関数を定義
 def capture_generator_stdout_stderr(func):
+    """
+    ジェネレータ関数のstdout/stderr出力をStringIOでキャプチャし、各yieldごとにjson文字列で返すデコレータ。
+
+    Yields:
+        str: 各イテレーションの実行結果・ログを含むjson文字列
+    """
     def wrapper(*args, **kwargs) -> Generator[str, None, None]:
 
         # strout,stderrorをStringIOでキャプチャする
