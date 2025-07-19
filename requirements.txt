@@ -2,6 +2,8 @@ SQLAlchemy
 psycopg-binary
 psutil
 chardet
+pandas
+python-dotenv
 
 # For OpenAI
 openai
@@ -25,25 +27,17 @@ python-pptx
 openpyxl
 markdown
 pdfminer.six
+beautifulsoup4
+
+# For Web
+wikipedia
+playwright
 
 # For API Server
 aiohttp
-python-socketio
 aiosqlite
 aiofiles
 
-# For AutoGen
-autogen-agentchat
-autogen-ext
-beautifulsoup4
-
-duckduckgo-search
-wikipedia
-playwright
-# For Client
-pandas
-
-# flaml[automl]  # too large
 
 # For MCP
 fastmcp

@@ -9,10 +9,10 @@ AIチャットアプリケーションのユーティリティ関数群。
 
 import os, json
 from typing import Any
-from collections.abc import Generator, AsyncGenerator
+from collections.abc import Generator
 from io import StringIO
 import sys
-from ai_chat_lib.db_modules import MainDBUtil
+from ai_chat_lib.db_modules.main_db_util import MainDBUtil
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)

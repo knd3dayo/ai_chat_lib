@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 import aiosqlite
 import json
 import uuid
-from ai_chat_lib.resouces import *
+from ai_chat_lib.resouces.resource_util import get_string_resources
 from ai_chat_lib.db_modules.main_db import MainDB
 
 import ai_chat_lib.log_modules.log_settings as log_settings
@@ -75,7 +75,7 @@ class PromptItem(BaseModel):
         """
         初期のPromptItemsを設定する
         """
-        resources = resource_util.get_string_resources()
+        resources = get_string_resources()
         title_generation = await cls.get_system_defined_prompt_by_name("TitleGeneration")
         if title_generation is None:
             title_generation_id = str(uuid.uuid4())

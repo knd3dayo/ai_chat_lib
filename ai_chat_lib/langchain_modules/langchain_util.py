@@ -11,7 +11,10 @@ from ai_chat_lib.langchain_modules.langchain_client import LangChainOpenAIClient
 from ai_chat_lib.langchain_modules.langchain_vector_db import LangChainVectorDB
 
 from ai_chat_lib.llm_modules.openai_util import OpenAIProps
-from ai_chat_lib.db_modules import *
+from ai_chat_lib.db_modules.vector_search_request import VectorSearchRequest
+from ai_chat_lib.db_modules.embedding_data import EmbeddingData
+from ai_chat_lib.db_modules.vector_db_item import VectorDBItem
+from ai_chat_lib.db_modules.content_folder import ContentFolder
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)

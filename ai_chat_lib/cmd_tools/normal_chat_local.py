@@ -4,7 +4,7 @@ import asyncio
 import argparse
 
 from ai_chat_lib.cmd_tools.client_util import *
-from ai_chat_lib.chat_modules import ChatUtil
+from ai_chat_lib.chat_modules.chat_util import ChatUtil
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)

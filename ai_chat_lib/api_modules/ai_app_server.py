@@ -8,12 +8,9 @@ AIチャットアプリケーションのAPIサーバ本体。
 """
 
 import os, sys
-from typing import Any
 
 from aiohttp import web
 from aiohttp.web import Request, Response
-import socketio # type: ignore
-from ai_chat_lib.autogen_modules import AutoGenProps
 from ai_chat_lib.api_modules import ai_app_wrapper
 from ai_chat_lib.api_modules import ai_app_util
 
@@ -22,8 +19,6 @@ logger = log_settings.getLogger(__name__)
 
 routes = web.RouteTableDef()
 app = web.Application(client_max_size=1024*1024*300) # 300MB
-sio = socketio.AsyncServer(async_mode='aiohttp')
-sio.attach(app)
 
 ########################
 # AutoProcessItem関連
@@ -183,125 +178,6 @@ async def delete_tag_items(request: Request) -> Response:
 async def openai_chat(request: Request) -> Response:
     request_dict: dict = await request.json()
     response = await ai_app_wrapper.openai_chat_async(request_dict)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
-# get_autogen_llm_config_list
-@routes.post('/api/get_autogen_llm_config_list')
-async def get_autogen_llm_config_list(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.get_autogen_llm_config_list()
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-# get_autogen_llm_config
-@routes.post('/api/get_autogen_llm_config')
-async def get_autogen_llm_config(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.get_autogen_llm_config(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-# update_autogen_llm_config
-@routes.post('/api/update_autogen_llm_config')
-async def update_autogen_llm_config(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.update_autogen_llm_config(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-# delete_autogen_llm_config
-@routes.post('/api/delete_autogen_llm_config')
-async def delete_autogen_llm_config(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.delete_autogen_llm_config(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
-# get_autogen_tool_list
-@routes.post('/api/get_autogen_tool_list')
-async def get_autogen_tool_list(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.get_autogen_tool_list()
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
-# get_autogen_tool
-@routes.post('/api/get_autogen_tool')
-async def get_autogen_tool(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.get_autogen_tool(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
-# update_autogen_tool
-@routes.post('/api/update_autogen_tool')
-async def update_autogen_tool(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.update_autogen_tool(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-# delete_autogen_tool
-@routes.post('/api/delete_autogen_tool')
-async def delete_autogen_tool(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.delete_autogen_tool(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
-# get_autogen_agent_list
-@routes.post('/api/get_autogen_agent_list')
-async def get_autogen_agent_list(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.get_autogen_agent_list()
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
-# get_autogen_agent
-@routes.post('/api/get_autogen_agent')
-async def get_autogen_agent(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.get_autogen_agent(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-# update_autogen_agent
-@routes.post('/api/update_autogen_agent')
-async def update_autogen_agent(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.update_autogen_agent(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-# delete_autogen_agent
-@routes.post('/api/delete_autogen_agent')
-async def delete_autogen_agent(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.delete_autogen_agent(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
-# get_autogen_group_chat_list
-@routes.post('/api/get_autogen_group_chat_list')
-async def get_autogen_group_chat_list(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.get_autogen_group_chat_list()
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-# get_autogen_group_chat
-@routes.post('/api/get_autogen_group_chat')
-async def get_autogen_group_chat(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.get_autogen_group_chat(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-# update_autogen_group_chat
-@routes.post('/api/update_autogen_group_chat')
-async def update_autogen_group_chat(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.update_autogen_group_chat(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-# delete_autogen_group_chat
-@routes.post('/api/delete_autogen_group_chat')
-async def delete_autogen_group_chat(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.delete_autogen_group_chat(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
@@ -465,40 +341,6 @@ async def hello_world(request: Request) -> Response:
     response = ai_app_wrapper.hello_world()
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
-
-
-@routes.post('/api/cancel_autogen_chat')
-async def cancel_autogen_chat(request: Request) -> Response:
-    import json
-    request_json = await request.text()
-    request_data = json.loads(request_json)
-    session_token = request_data.get("session_token")
-    logger.debug(f"cancel_autogen_chat: {session_token}")
-    # session_toknes
-    logger.debug (AutoGenProps.session_tokens)
-    AutoGenProps.remove_session_token(session_token)
-    return web.Response(body="{}", status=200, content_type='application/json')
-
-@sio.on('autogen_chat') # type: ignore
-async def autogen_group_chat(sid, request_json: str):
-    """
-    SocketIOイベント: autogen_chat
-    - クライアントからのチャットリクエストを非同期で処理し、逐次レスポンスをemit
-    - エラー時はtracebackをemitし、完了時はcloseイベントをemit
-    """
-    try:
-        async for response in ai_app_wrapper.autogen_chat(request_json):
-            logger.debug(f"session_token:{AutoGenProps.session_tokens}")
-            await sio.emit("response", response, room=sid)
-
-    except Exception as e:
-        import traceback
-        await sio.emit("error", traceback.format_exc(), room=sid)
-    finally:
-        logger.debug("close")
-        await sio.emit("close", "close", room=sid)
-        await sio.disconnect(sid)
-
 
 @routes.post('/api/shutdown')
 async def shutdown_server(request: Request) -> Response:

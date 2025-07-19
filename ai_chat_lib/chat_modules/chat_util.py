@@ -7,9 +7,9 @@ import time
 import tiktoken
 from openai import  RateLimitError
 
-from ai_chat_lib.llm_modules import OpenAIClient, OpenAIProps
-from ai_chat_lib.langchain_modules import  LangChainUtil
-from ai_chat_lib.db_modules import VectorSearchRequest
+from ai_chat_lib.llm_modules.openai_util import OpenAIClient, OpenAIProps
+from ai_chat_lib.langchain_modules.langchain_util import  LangChainUtil
+from ai_chat_lib.db_modules.vector_search_request import VectorSearchRequest
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)

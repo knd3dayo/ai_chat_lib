@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 import argparse
 from fastmcp import FastMCP
 from pydantic import Field
-from ai_chat_lib.autogen_modules.search_wikipedia_ja import search_wikipedia_ja
-from ai_chat_lib.autogen_modules.vector_db_tools import vector_search
+from ai_chat_lib.web_modules.search_wikipedia_ja import search_wikipedia_ja
+from ai_chat_lib.langchain_modules.vector_db_tools import vector_search
 from ai_chat_lib.db_modules.main_db_util import MainDBUtil
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 mcp = FastMCP("Demo 🚀") #type :ignore

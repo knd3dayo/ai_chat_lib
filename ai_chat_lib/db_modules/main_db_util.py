@@ -13,10 +13,6 @@ from ai_chat_lib.db_modules.content_folder import ContentFolder
 from ai_chat_lib.db_modules.content_item import ContentItem
 from ai_chat_lib.db_modules.vector_db_item import VectorDBItem
 from ai_chat_lib.db_modules.tag_item import TagItem
-from ai_chat_lib.db_modules.autogen_llm_config import AutogenLLMConfig
-from ai_chat_lib.db_modules.autogen_tools import AutogenTools
-from ai_chat_lib.db_modules.autogen_agent import AutogenAgent
-from ai_chat_lib.db_modules.autogen_group_chat import AutogenGroupChat
 from ai_chat_lib.db_modules.prompt_item import PromptItem
 from ai_chat_lib.db_modules.auto_process_item import AutoProcessItem
 from ai_chat_lib.db_modules.auto_process_rule import AutoProcessRule
@@ -97,11 +93,3 @@ class MainDBUtil:
         await TagItem.create_table()
         # VectorDBItemsテーブルを初期化
         await VectorDBItem.create_table()
-        # autogen_llm_configsテーブルを初期化
-        await AutogenLLMConfig.create_table()
-        # autogen_toolsテーブルを初期化
-        await AutogenTools.create_table()
-        # autogen_agentsテーブルを初期化
-        await AutogenAgent.create_table()
-        # autogen_group_chatsテーブルを初期化
-        await AutogenGroupChat.create_table()

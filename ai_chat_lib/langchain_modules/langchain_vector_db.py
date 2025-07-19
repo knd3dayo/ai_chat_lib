@@ -19,7 +19,8 @@ from openai import RateLimitError
 from ai_chat_lib.langchain_modules.langchain_client import LangChainOpenAIClient
 from ai_chat_lib.langchain_modules.langchain_doc_store import SQLDocStore
 
-from ai_chat_lib.db_modules import EmbeddingData, ContentFolder
+from ai_chat_lib.db_modules.embedding_data import EmbeddingData
+from ai_chat_lib.db_modules.content_folder import ContentFolder
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)

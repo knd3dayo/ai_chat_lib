@@ -9,7 +9,6 @@ def search_wikipedia_ja(query: Annotated[str, "String to search for"], lang: Ann
     logger = log_settings.getLogger(__name__)
 
     # Use the Japanese version of Wikipedia
-    wikipedia.set_lang(lang)
     
     # Retrieve search results
     search_results = wikipedia.search(query, results=num_results)

@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 import aiosqlite
 import json
 import uuid
-from ai_chat_lib.resouces import *
+from ai_chat_lib.resouces.resource_util import *
 from ai_chat_lib.db_modules.main_db import MainDB
 
 import ai_chat_lib.log_modules.log_settings as log_settings
@@ -87,7 +87,7 @@ class AutoProcessItem(BaseModel):
 
     @classmethod
     async def update_default_data(cls) -> None:
-        resources = resource_util.get_string_resources()
+        resources = get_string_resources()
 
         # デフォルトの自動処理アイテムを初期化する
         # Ignore
