@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import pandas as pd
 
 from ai_chat_lib.db_modules.content_folder import ContentFolder
-from ai_chat_lib.db_modules.embedding_data import EmbeddingData
+from ai_chat_lib.langchain_modules.embedding_data import EmbeddingData
 from ai_chat_lib.langchain_modules.langchain_util import LangChainUtil
 from ai_chat_lib.llm_modules.openai_util import OpenAIProps
 from ai_chat_lib.cmd_tools.client_util import init_app

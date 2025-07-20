@@ -4,13 +4,13 @@ async def vector_search(
         query: Annotated[str, "String to search for"],
         num_results: Annotated[int, "Maximum number of results to display"],
         target_folder: Annotated[str, "Target folder for vector search (optional)"] = "",
-        ) -> list[str]:
+        ) -> list[dict[str, Any]]:
     """
     This function performs a vector search on the specified text and returns the related documents.
     """
     from ai_chat_lib.langchain_modules.langchain_util import LangChainUtil
     from ai_chat_lib.llm_modules.openai_util import OpenAIProps
-    from ai_chat_lib.db_modules.vector_search_request import VectorSearchRequest
+    from ai_chat_lib.langchain_modules.vector_search_request import VectorSearchRequest
     
     # debug APP_DATA_PATHが設定されているか確認
     import os
@@ -39,9 +39,8 @@ async def vector_search(
             "filter": None,  # Optional filter can be added here
         },
     )
-    search_results = await LangChainUtil.vector_search(openai_props, [vector_search_request])
-    # Retrieve documents from result
-    documents = search_results.get("documents", [])
+    documents = await LangChainUtil.vector_search(openai_props, [vector_search_request])
     # Extract content of each document from documents
-    result = [doc.get("content", "") for doc in documents]
+    result = [doc.model_dump() for doc in documents]
     return result
+

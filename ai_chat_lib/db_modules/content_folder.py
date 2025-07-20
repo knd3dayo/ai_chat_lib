@@ -112,7 +112,10 @@ class ContentFolder(BaseModel):
 
     # idを指定して、idとfolder_nameとparent_idを取得する.再帰的に親フォルダを辿り、folderのパスを生成する
     @classmethod
-    async def get_content_folder_path_by_id(cls, folder_id: str) -> Union[str, None]:
+    async def get_content_folder_path_by_id(cls, folder_id: Optional[str]) -> str:
+        if not folder_id:
+            logger.info("folder_id is not set.")
+            return ""
 
         async def get_folder_name_recursively(folder_id: str, paths: list[str]) -> list[str]:
             # データベースへ接続
@@ -147,7 +150,7 @@ class ContentFolder(BaseModel):
         paths = await get_folder_name_recursively(folder_id, [])
         if len(paths) == 0:
             logger.info(f"Folder with id {folder_id} not found.")
-            return None
+            return ""
         # フォルダのパスを生成する
         folder_path = "/".join(reversed(paths))
         logger.info(f"get_content_folder_path_by_id: Folder path: {folder_path}")

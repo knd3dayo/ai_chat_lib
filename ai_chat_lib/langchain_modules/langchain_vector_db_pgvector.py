@@ -20,9 +20,9 @@ class LangChainVectorDBPGVector(LangChainVectorDB):
 
     def model_post_init(self, __context: Any) -> None:
         self.db = self._load()
-        if self.multi_vector_doc_store_url:
-            logger.info("doc_store_url:", self.multi_vector_doc_store_url)
-            self.doc_store = SQLDocStore(self.multi_vector_doc_store_url)
+        if self.doc_store_url:
+            logger.info("doc_store_url:", self.doc_store_url)
+            self.doc_store = SQLDocStore(self.doc_store_url)
         else:
             logger.info("doc_store_url is None")
 

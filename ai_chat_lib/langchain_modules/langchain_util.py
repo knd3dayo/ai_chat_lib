@@ -1,18 +1,15 @@
 
 import json, sys
+from typing import Any, Generator
 from langchain.docstore.document import Document
-from langchain_core.tools.structured import StructuredTool
-
-from typing import Any
-from pydantic import BaseModel, Field
 
 
 from ai_chat_lib.langchain_modules.langchain_client import LangChainOpenAIClient, LangChainChatParameter
 from ai_chat_lib.langchain_modules.langchain_vector_db import LangChainVectorDB
 
 from ai_chat_lib.llm_modules.openai_util import OpenAIProps
-from ai_chat_lib.db_modules.vector_search_request import VectorSearchRequest
-from ai_chat_lib.db_modules.embedding_data import EmbeddingData
+from ai_chat_lib.langchain_modules.vector_search_request import VectorSearchRequest
+from ai_chat_lib.langchain_modules.embedding_data import EmbeddingData
 from ai_chat_lib.db_modules.vector_db_item import VectorDBItem
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 
@@ -20,76 +17,10 @@ import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
 
-
-class CustomToolInput(BaseModel):
-    question: str = Field(description="question")
-
-class RetrievalQAUtil:
-
-    def __init__(self, client: LangChainOpenAIClient, vector_search_requests:list[VectorSearchRequest]):
-        self.client = client
-        self.vector_search_requests = vector_search_requests
-
-        # ツールのリストを作成
-        self.tools = self.create_vector_search_tools(self.client, self.vector_search_requests)
-
-    
-    # intermediate_stepsをシリアライズする
-    def __serialize_intermediate_step(self, step):
-        return {
-            "tool": step[0].tool,
-            "tool_input": step[0].tool_input,
-            "log": step[0].log,
-            "output": str(step[1]),
-        }
-
-
-    # ベクトル検索結果を返すToolを作成する関数
-    async def create_vector_search_tools(self, client: LangChainOpenAIClient, vector_search_requests: list[VectorSearchRequest]) -> list[Any]:
-        tools = []
-        for i in range(len(vector_search_requests)):
-            item = vector_search_requests[i]
-            vector_db_item: VectorDBItem = await item.get_vector_db_item()
-            # ベクトルDBのURLを取得
-            # description item.VectorDBDescriptionが空の場合はデフォルトの説明を設定
-            description = vector_db_item.description
-            vector_db_url = vector_db_item.vector_db_url
-            doc_store_url = ""
-            if vector_db_item.is_use_multi_vector_retriever:
-                doc_store_url = vector_db_item.doc_store_url
-            collection_name = vector_db_item.collection_name
-            chunk_size = vector_db_item.chunk_size
-
-            # ツールを作成
-            def vector_search_function(question: str) -> list[Document]:
-                # Retrieverを作成
-                search_kwargs = {"k": 4}
-                retriever = LangChainVectorDB(
-                    langchain_openai_client=client, vector_db_url=vector_db_url, 
-                    collection_name= collection_name, 
-                    multi_vector_doc_store_url = doc_store_url, 
-                    chunk_size=chunk_size).create_retriever(search_kwargs)
-                docs: list[Document] = retriever.invoke(question)
-                # page_contentを取得
-                result_docs = []
-                for doc in docs:
-                    result_docs.append(doc)
-                return result_docs
-
-            # StructuredTool.from_functionを使ってToolオブジェクトを作成
-            vector_search_tool = StructuredTool.from_function(
-                func=vector_search_function, name="vector_search_tool-" + str(i), description=description, args_schema=CustomToolInput  
-            )
-
-            tools.append(vector_search_tool)
-
-        return tools
-
-
 class LangChainUtil:
 
     @classmethod
-    async def vector_search_api(cls, request_json: str):
+    async def vector_search_api(cls, request_json: str) -> dict[str, Any]:
         # request_jsonからrequestを作成
         request_dict: dict = json.loads(request_json)
 
@@ -97,7 +28,7 @@ class LangChainUtil:
         vector_search_requests: list[VectorSearchRequest] = await VectorSearchRequest.get_vector_search_requests_objects(request_dict)
         openai_props = OpenAIProps.create_from_env()
         result = await cls.vector_search(openai_props, vector_search_requests)
-        return result
+        return {"documents": [doc.model_dump() for doc in result]}
 
     @classmethod
     def update_collection_api(cls, request_json: str):
@@ -221,7 +152,7 @@ class LangChainUtil:
                 langchain_openai_client = langchain_openai_client,
                 vector_db_url = vector_db_url,
                 collection_name = collection_name,
-                multi_vector_doc_store_url= doc_store_url, 
+                doc_store_url= doc_store_url, 
                 chunk_size = chunk_size)
         # ベクトルDBのタイプがPostgresの場合
         elif vector_db_props.vector_db_type == 2:
@@ -230,7 +161,7 @@ class LangChainUtil:
                 langchain_openai_client = langchain_openai_client,
                 vector_db_url = vector_db_url,
                 collection_name = collection_name,
-                multi_vector_doc_store_url= doc_store_url, 
+                doc_store_url= doc_store_url, 
                 chunk_size = chunk_size)
                 
         else:
@@ -239,13 +170,13 @@ class LangChainUtil:
 
     # ベクトル検索を行う
     @classmethod
-    async def vector_search(cls, openai_props: OpenAIProps, vector_search_requests: list[VectorSearchRequest]) -> dict[str, Any]:    
+    async def vector_search(cls, openai_props: OpenAIProps, vector_search_requests: list[VectorSearchRequest]) -> list[Document]:    
 
         if not openai_props:
             raise ValueError("openai_props is None")
-        
-            
-        result = []
+
+        result_documents = []
+
         # vector_db_propsの要素毎にRetrieverを作成して、検索を行う
         for request in vector_search_requests:
             # debug request.nameが設定されているか確認
@@ -273,59 +204,8 @@ class LangChainUtil:
 
             logger.info(f'Query: {request.query}')
             logger.info(f'SearchKwargs:{request.search_kwargs}')
-            retriever = langchain_db.create_retriever(request.search_kwargs)
-            documents: list[Document] = retriever.invoke(request.query)
+            documents =  await langchain_db.vector_search(request.query, request.search_kwargs)
+            result_documents.extend(documents)
 
-            # 重複排除用のリストを作成
-            doc_ids = []
-
-            for doc in documents:
-                # doc_idを取得
-                doc_id = doc.metadata.get("doc_id", "")
-                # 既にdoc_idが存在する場合はスキップ
-                if doc_id in doc_ids:
-                    continue
-                # doc_idを追加
-                doc_ids.append(doc_id)
-                # folder_idを取得
-                folder_id = doc.metadata.get("folder_id", "")
-                if folder_id:
-                    # folder_idからfolder_pathを取得
-                    folder_path = await ContentFolder.get_content_folder_path_by_id(folder_id)
-                    if folder_path:
-                        doc.metadata["folder_path"] = folder_path
-                    else:
-                        # folder_pathが存在しない場合は空文字を設定
-                        doc.metadata["folder_path"] = ""
-
-                content = doc.page_content
-                doc_dict = LangChainVectorDB.create_metadata_from_document(doc)
-                doc_dict["content"] = content
-
-                sub_docs: list[Document]= doc.metadata.get("sub_docs", [])
-                # sub_docsの要素からcontent, source, source_url,scoreを取得してdictのリストに追加
-                sub_docs_result = []
-                for sub_doc in sub_docs:
-                    content = sub_doc.page_content
-                    # folder_idを取得
-                    folder_id = sub_doc.metadata.get("folder_id", "")
-                    if folder_id:
-                        # folder_idからfolder_pathを取得
-                        folder_path = await ContentFolder.get_content_folder_path_by_id(folder_id)
-                        if folder_path:
-                            sub_doc.metadata["folder_path"] = folder_path
-                        else:
-                            # folder_pathが存在しない場合は空文字を設定
-                            sub_doc.metadata["folder_path"] = ""
-
-                    sub_doc_dict = LangChainVectorDB.create_metadata_from_document(sub_doc)
-                    sub_doc_dict["content"] = content
-                    sub_docs_result.append(sub_doc_dict)
-
-                doc_dict["sub_docs"] = sub_docs_result
-                result.append(doc_dict)
-
-            # logger.debug(f"documents:\n{documents}")
-            
-        return {"documents": result}
+        return result_documents
     

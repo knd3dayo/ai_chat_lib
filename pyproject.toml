@@ -9,12 +9,6 @@ authors = [
     { name = "knd3dayo", email = "knd3dayo@gmail.com" }
 ]
 
-[tool.setuptools]
-packages = ["ai_chat_lib"]  # または find_packages() 相当の定義
-
-[tool.setuptools.package-data]
-# 必要であれば、パッケージに含めるファイルを指定できます
-
 dynamic = ["dependencies"]
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

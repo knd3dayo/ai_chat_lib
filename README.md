@@ -58,28 +58,7 @@ Options:
     // -----------------------------------------------------------
     // 基本設定
     // -----------------------------------------------------------
-    // autogenを使用する場合の基本設定用ディクショナリ AutoGenを使用しない場合には不要
-    "autogen_props": {
-        // str: autogenの作業用ディレクトリ
-        "work_dir": "",
-        // str: ツール出力ディレクトリ
-        "tool_dir": "",
-        // str: チャット履歴フォルダのフォルダID
-        "chat_history_folder_id": "",
-        // AutoGenのチャットタイプ： group,normalのいずれか。groupの場合はグループチャット、normalの場合はAgentチャット
-        "chat_type": "group",
-        // AutoGenのチャット設定名
-        "chat_name": "default",
-        // チャット終了条件の文字列
-        "terminate_msg": "TERMINATE",
-        // チャット終了条件のメッセージ数 
-        "max_msg": 15,
-        // チャット終了条件のタイムアウト時間
-        "timeout": 120,
-        // str: セッションキャンセル用のトークン。UUIDなどの一意の値を指定する
-        "session_token": ""
-    },
-
+    
     // -----------------------------------------------------------
     // リクエスト毎のディクショナリ
     // -----------------------------------------------------------
@@ -242,41 +221,7 @@ Options:
         "prompt_template": "プロンプトテンプレート",
         "prompt_template_type": "プロンプトテンプレートのタイプ",
         "extended_properties_json": "拡張プロパティ"
-    }],
-    // AutoGenのLLM設定の参照、編集のためのディクショナリ。
-    "autogen_llm_config_request": {
-        "name": "名前",
-        "api_type" : "APIのタイプ",
-        "api_version" : "APIバージョン",
-        "model" : "モデル",
-        "api_key" : "APIキー",
-        "base_url" : "BaseURL"
-    },
-    // AutoGenのTool設定の参照、編集のためのディクショナリ。
-    "autogen_tool_request": {
-        "name": "名前",
-        "path": "パス",
-        "description": "説明"
-    },
-    // AutoGenのAgent設定の参照、編集のためのディクショナリ。
-    "autogen_agent_request": {
-        "name": "名前",
-        "description": "説明",
-        "system_message": "システムメッセージ",
-        "code_execution" : "コード実行",
-        "llm_config_name" : "LLMの設定",
-        "tool_names" : "ツール名",
-        "vector_db_props" : "vector_db_props"
-    },
-
-    // AutoGenのグループチャット設定の参照、編集のためのディクショナリ。
-    "autogen_group_chat_request": {
-        "name": "名前",
-        "description": "説明",
-        "llm_config_name": "LLMの設定",
-        "agent_names": "AIエージェント"
-    }
-
+    }]
 }
 ```
 

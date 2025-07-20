@@ -6,10 +6,11 @@ import copy
 import time
 import tiktoken
 from openai import  RateLimitError
+from langchain.docstore.document import Document
 
 from ai_chat_lib.llm_modules.openai_util import OpenAIClient, OpenAIProps
 from ai_chat_lib.langchain_modules.langchain_util import  LangChainUtil
-from ai_chat_lib.db_modules.vector_search_request import VectorSearchRequest
+from ai_chat_lib.langchain_modules.vector_search_request import VectorSearchRequest
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -301,26 +302,10 @@ class ChatUtil:
         last_message = message_dict["content"][text_content_index]["text"]
         return text_content_index, last_message
 
-
-    @classmethod
-    async def __exec_vector_search(cls, vector_search_function: Callable, query: str) -> tuple[str, dict[str, dict]]:  
-        # ベクトル検索結果のdocumentを格納するdictを作成する
-        result_documents_dict: dict[str, dict] = {}
-        vector_search_result = await vector_search_function(query)
-        # vector_search_resultのcontentを取得する
-        vector_search_result_contents_text = "\n".join([ document["content"] for document in vector_search_result["documents"]])
-
-        # 参考ドキュメント一覧用のdocument一覧の作成。source_idが重複しているdocumentを排除する。
-        for document in vector_search_result["documents"]:
-            logger.info(document)
-            result_documents_dict[document["doc_id"]] = document
-
-        return vector_search_result_contents_text, result_documents_dict
-
     @classmethod
     async def __pre_process_input(
             cls, client: OpenAIClient, model: str, request_context:RequestContext, last_message_dict: dict, 
-            vector_search_function : Union[Callable, None]) -> tuple[list[dict], list[dict]]:
+            vector_search_requests : list[VectorSearchRequest]) -> tuple[list[dict], list[dict]]:
 
         # "messages"の最後のtext要素を取得する       
         last_text_content_index, original_last_message = cls.__get_last_message(last_message_dict)
@@ -347,12 +332,15 @@ class ChatUtil:
 
             # RAGモードの処理
             # None以外の場合はvector_search_functionが設定されているので、ベクトル検索を実行する
-            if vector_search_function:
+            if len(vector_search_requests) > 0 and request_context.RAGMode != RequestContext.rag_mode_name_none:
                 # ベクトル検索用の文字列としてqueryにtarget_messageを設定する
-                query = target_message
-                vector_search_result_contents_text, result_documents_dict = await cls.__exec_vector_search(vector_search_function, query)
+                for vector_search_request in vector_search_requests:
+                    vector_search_request.query = target_message
+
+                result_documents = await LangChainUtil.vector_search(client.props, vector_search_requests)
+                texts = [doc.page_content for doc in result_documents]  
                 # ベクトル検索結果をcontext_messageに追加する
-                context_message += request_context.RelatedInformationPromptText + vector_search_result_contents_text
+                context_message += request_context.RelatedInformationPromptText + "\n".join(texts) + "\n\n"
 
             # last_messageをdeepcopyする
             result_last_message = copy.deepcopy(last_message_dict)
@@ -426,17 +414,7 @@ class ChatUtil:
         # OpenAIClientを取得する
         client = OpenAIClient(openai_props)
 
-        # ベクトル検索関数
-        async def vector_search(query: str) -> dict:
-            # vector_db_itemsの各要素にqueryを設定
-            for vector_search_request in vector_search_requests:
-                vector_search_request.query = query
-            return await LangChainUtil.vector_search(openai_props, vector_search_requests)
-
-        # vector_db_itemsが空の場合はNoneを設定
-        vector_search_function: Union[Callable, None] = None if request_context.RAGMode == RequestContext.rag_mode_name_none or (vector_search_requests) == 0 else vector_search
-
-        pre_processed_input_list, docs_list = await cls.__pre_process_input(client, model, request_context, last_message_dict, vector_search_function)
+        pre_processed_input_list, docs_list = await cls.__pre_process_input(client, model, request_context, last_message_dict, vector_search_requests)
         chat_result_dict_list = []
 
         for pre_processed_input in pre_processed_input_list:

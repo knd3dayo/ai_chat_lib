@@ -199,7 +199,7 @@ class LangChainVectorStore(BaseModel):
         embedding_client (LangChainOpenAIClient): Embedding client for generating embeddings.
         use_multi_vector_retriever (bool): Flag to use MultiVectorRetriever, defaults to False.
         doc_store_url (Optional[str]): URL for the document store, if applicable.
-        multi_vector_chunk_size (int): Chunk size for MultiVectorRetriever, defaults to 1000.
+        parent_chunk_size (int): Chunk size for MultiVectorRetriever, defaults to 1000.
     """
     
     # vector store type 現在はchromaのみ対応. chroma以外はエラーを返す。defaults to chroma.
@@ -220,8 +220,8 @@ class LangChainVectorStore(BaseModel):
     use_multi_vector_retriever: bool = Field(default=False, description="Flag to use MultiVectorRetriever, defaults to False")
     # doc store url for MultiVectorRetriever
     doc_store_url: Optional[str] = Field(default=None, description="URL for the document store, if applicable")
-    # chunk size for MultiVectorRetriever
-    multi_vector_chunk_size: int = Field(default=1000, description="Chunk size for MultiVectorRetriever")
+    # chunk size for Parent Data
+    parent_chunk_size: int = Field(default=1000, description="Chunk size for Parent Data")
 
     @field_validator("vector_store_type")
     def validate_vector_store_type(cls, value: str, info: ValidationInfo) -> str:
@@ -388,7 +388,7 @@ class LangChainVectorStore(BaseModel):
         This method splits the content of each document into chunks.
         """
         sub_docs = []
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=self.multi_vector_chunk_size, chunk_overlap=0)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=self.parent_chunk_size, chunk_overlap=0)
         for doc in source_documents:
             doc_id = doc.metadata.get("doc_id", str(uuid.uuid4()))
             splited_docs = text_splitter.split_documents([doc])
