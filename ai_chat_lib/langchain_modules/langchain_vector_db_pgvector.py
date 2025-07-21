@@ -1,7 +1,5 @@
 
 from typing import Any, Sequence, Tuple, List
-from calendar import c
-import sys
 
 from langchain_postgres import PGVector
 from langchain_postgres.vectorstores import PGVector
@@ -9,7 +7,6 @@ from sqlalchemy.orm import Session
 import sqlalchemy
 from sqlalchemy.sql import text
 from langchain_core.vectorstores import VectorStore
-from ai_chat_lib.langchain_modules.langchain_util import LangChainOpenAIClient
 from ai_chat_lib.langchain_modules.langchain_vector_db import LangChainVectorDB
 from ai_chat_lib.langchain_modules.langchain_doc_store import SQLDocStore
 

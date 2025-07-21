@@ -19,6 +19,9 @@ async def main():
     num_results = args.num_results
     target_folder = args.target_folder
 
+    if args.app_data_path:
+        os.environ["APP_DATA_PATH"] = args.app_data_path
+
     # 環境変数APP_DATA_PATHが設定されているか確認
     app_data_path = os.getenv("APP_DATA_PATH")
     if not app_data_path:

@@ -1,13 +1,11 @@
 import os, sys
 
 from typing import Tuple, List, Any
-from pydantic import BaseModel, Field, field_validator, ValidationInfo
 import chromadb.config
 from langchain_chroma.vectorstores import Chroma # type: ignore
 import chromadb
 from langchain_core.vectorstores import VectorStore # type: ignore
 
-from ai_chat_lib.langchain_modules.langchain_util import LangChainOpenAIClient
 from ai_chat_lib.langchain_modules.langchain_vector_db import LangChainVectorDB
 
 from ai_chat_lib.langchain_modules.langchain_doc_store import SQLDocStore
@@ -19,8 +17,8 @@ class LangChainVectorDBChroma(LangChainVectorDB):
     
     def model_post_init(self, __context: Any) -> None:
         self.db = self._load()
+
         if self.doc_store_url:
-            logger.info(f"doc_store_url: {self.doc_store_url}")
             self.doc_store = SQLDocStore(self.doc_store_url)
         else:
             logger.info("doc_store_url is None")
@@ -43,7 +41,7 @@ class LangChainVectorDBChroma(LangChainVectorDB):
             "hnsw:space":"cosine", 
             "hnsw:construction_ef": 400, 
             "hnsw:search_ef": 200,
-            "hnsw:max_neighbors": 24,
+            "hnsw:M": 24,
         }
         # collectionが指定されている場合
         logger.info(f"collection_name:{self.collection_name}")

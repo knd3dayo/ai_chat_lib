@@ -12,6 +12,8 @@ from ai_chat_lib.langchain_modules.vector_search_request import VectorSearchRequ
 from ai_chat_lib.langchain_modules.embedding_data import EmbeddingData
 from ai_chat_lib.db_modules.vector_db_item import VectorDBItem
 from ai_chat_lib.db_modules.content_folder import ContentFolder
+from ai_chat_lib.langchain_modules.langchain_vector_db_chroma import LangChainVectorDBChroma
+from ai_chat_lib.langchain_modules.langchain_vector_db_pgvector import LangChainVectorDBPGVector
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -147,16 +149,15 @@ class LangChainUtil:
 
         # ベクトルDBのタイプがChromaの場合
         if vector_db_props.vector_db_type == 1:
-            from ai_chat_lib.langchain_modules.langchain_vector_db_chroma import LangChainVectorDBChroma
             return LangChainVectorDBChroma(
                 langchain_openai_client = langchain_openai_client,
                 vector_db_url = vector_db_url,
                 collection_name = collection_name,
                 doc_store_url= doc_store_url, 
                 chunk_size = chunk_size)
+        
         # ベクトルDBのタイプがPostgresの場合
         elif vector_db_props.vector_db_type == 2:
-            from ai_chat_lib.langchain_modules.langchain_vector_db_pgvector import LangChainVectorDBPGVector
             return LangChainVectorDBPGVector(
                 langchain_openai_client = langchain_openai_client,
                 vector_db_url = vector_db_url,
@@ -190,9 +191,9 @@ class LangChainUtil:
             if vector_db_item is None:
                 logger.error(f"VectorDBItem with name {request.name} not found.")
                 raise ValueError(f"vector_db_item is None. name:{request.name}")
-            
-            langchain_db = cls.get_vector_db(openai_props, vector_db_item, request.model)
-            
+
+            langchain_db = LangChainUtil.get_vector_db(openai_props, vector_db_item, request.model)
+
             # デバッグ出力
             logger.info('ベクトルDBの設定')
             logger.info(f'''
@@ -202,10 +203,12 @@ class LangChainUtil:
                         ChunkSize:{vector_db_item.chunk_size} IsUseMultiVectorRetriever:{vector_db_item.is_use_multi_vector_retriever}
                         ''')
 
+
             logger.info(f'Query: {request.query}')
             logger.info(f'SearchKwargs:{request.search_kwargs}')
             documents =  await langchain_db.vector_search(request.query, request.search_kwargs)
             result_documents.extend(documents)
+
 
         return result_documents
     
