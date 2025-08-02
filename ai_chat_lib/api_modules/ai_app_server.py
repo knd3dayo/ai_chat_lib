@@ -19,6 +19,79 @@ logger = log_settings.getLogger(__name__)
 
 routes = web.RouteTableDef()
 app = web.Application(client_max_size=1024*1024*300) # 300MB
+########################
+# ContentItem関連
+########################
+@routes.post('/api/get_content_items')
+async def get_content_items(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.get_content_items(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/update_content_items')
+async def update_content_items(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.update_content_items(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/delete_content_items')
+async def delete_content_items(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.delete_content_items(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/get_content_items_by_folder_id')
+async def get_content_items_by_folder_id(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.get_content_items_by_folder_id(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/get_content_item_by_id')
+async def get_content_item_by_id(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.get_content_item_by_id(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+
+########################
+# ContentFolders関連
+########################
+@routes.post('/api/get_root_content_folders')
+async def get_root_content_folders(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.get_root_content_folders()
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/get_content_folders')
+async def get_content_folders(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.get_content_folders()
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/get_content_folder_by_id')
+async def get_content_folder_by_id(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.get_content_folder_by_id(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/get_content_folder_by_path')
+async def get_content_folder_by_path(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.get_content_folder_by_path(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/update_content_folders')
+async def update_content_folders(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.update_content_folders(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/delete_content_folders')
+async def delete_content_folders(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.delete_content_folders(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
 
 ########################
 # AutoProcessItem関連
@@ -113,45 +186,6 @@ async def delete_prompt_items(request: Request) -> Response:
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
 
-########################
-# ContentFolders関連
-########################
-@routes.post('/api/get_root_content_folders')
-async def get_root_content_folders(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.get_root_content_folders()
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/get_content_folders')
-async def get_content_folders(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.get_content_folders()
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/get_content_folders_by_id')
-async def get_content_folders_by_id(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.get_content_folders_by_id(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/get_content_folder_by_path')
-async def get_content_folder_by_path(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.get_content_folder_by_path(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/update_content_folders')
-async def update_content_folders(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.update_content_folders(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/delete_content_folders')
-async def delete_content_folders(request: Request) -> Response:
-    request_json = await request.text()
-    response = await ai_app_wrapper.delete_content_folders(request_json)
-    logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
 
 @routes.post('/api/get_tag_items')
 async def get_tag_items(request: Request) -> Response:

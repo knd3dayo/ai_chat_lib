@@ -221,7 +221,25 @@ Options:
         "prompt_template": "プロンプトテンプレート",
         "prompt_template_type": "プロンプトテンプレートのタイプ",
         "extended_properties_json": "拡張プロパティ"
-    }]
+    }],
+    // 検索リクエスト
+    "search_request": {
+      "description": "str",
+      "content": "str",
+      "tags": "str",
+      "source_application_name": "str",
+      "source_application_title": "str",
+      "start_time_str": "str",
+      "end_time_str": "str",
+      "enable_start_time": "bool",
+      "enable_end_time": "bool",
+      "exclude_description": "bool",
+      "exclude_content": "bool",
+      "exclude_tags: bool",
+      "exclude_source_application_name": "bool",
+      "exclude_source_application_title": "bool"
+    }
+
 }
 ```
 

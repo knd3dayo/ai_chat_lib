@@ -21,12 +21,87 @@ from ai_chat_lib.db_modules.prompt_item import PromptItem
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 from ai_chat_lib.db_modules.tag_item import TagItem
 from ai_chat_lib.db_modules.vector_db_item import VectorDBItem
+from ai_chat_lib.db_modules.content_item import ContentItem
 
 # Proxy環境下でのSSLエラー対策。HTTPS_PROXYが設定されていない場合はNO_PROXYを設定する
 if "HTTPS_PROXY" not in os.environ:
     os.environ["NO_PROXY"] = "*"
 # AutoGenのCodeExecutor実行時にUncicodeEncodeErrorが発生するため、Pythonのデフォルトの文字コードをUTF-8に設定
 os.environ["PYTHONUTF8"] = "1"
+########################
+# ContentItem関連
+########################
+@capture_stdout_stderr_async
+async def get_content_items(request_json: str):
+    """
+    ContentItemの取得APIラッパー。
+
+    Args:
+        request_json (str): リクエストパラメータ(JSON文字列)
+    Returns:
+        dict: ContentItem情報
+    """
+    return await ContentItem.get_content_items_api()
+
+@capture_stdout_stderr_async
+async def get_content_items_by_folder_id(request_json: str):
+    """
+    ContentItemのフォルダID指定取得APIラッパー。
+
+    Args:
+        request_json (str): リクエストパラメータ(JSON文字列)
+    Returns:
+        dict: ContentItem情報
+    """
+    return await ContentItem.get_content_items_by_folder_id_api(request_json)
+
+@capture_stdout_stderr_async
+async def get_content_item_by_id(request_json: str):
+    """
+    ContentItemのID指定取得APIラッパー。
+
+    Args:
+        request_json (str): リクエストパラメータ(JSON文字列)
+    Returns:
+        dict: ContentItem情報
+    """
+    return await ContentItem.get_content_item_by_id_api(request_json)
+
+@capture_stdout_stderr_async
+async def update_content_items(request_json: str):  
+    """
+    ContentItemの更新APIラッパー。
+
+    Args:
+        request_json (str): リクエストパラメータ(JSON文字列)
+    Returns:
+        dict: 更新結果
+    """
+    return await ContentItem.update_content_items_api(request_json)
+@capture_stdout_stderr_async
+async def delete_content_items(request_json: str):
+    """
+    ContentItemの削除APIラッパー。
+
+    Args:
+        request_json (str): リクエストパラメータ(JSON文字列)
+    Returns:
+        dict: 削除結果
+    """
+    return await ContentItem.delete_content_items_api(request_json)
+
+@capture_stdout_stderr_async
+async def search_content_items(request_json: str):
+    """
+    ContentItemの検索APIラッパー。
+
+    Args:
+        request_json (str): リクエストパラメータ(JSON文字列)
+    Returns:
+        dict: 検索結果
+    """
+    return await ContentItem.search_content_items_api(request_json)
+
 ########################
 # SearchRule関連
 ########################
@@ -100,7 +175,7 @@ async def get_root_content_folders():
 async def get_content_folders():
     return await ContentFolder.get_content_folders_api()
 @capture_stdout_stderr_async
-async def get_content_folders_by_id(request_json: str):
+async def get_content_folder_by_id(request_json: str):
     return await ContentFolder.get_content_folder_by_id_api(request_json)
 @capture_stdout_stderr_async
 async def get_content_folder_by_path(request_json: str):

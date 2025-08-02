@@ -14,8 +14,8 @@ class VectorSearchRequest(BaseModel):
         default="default",
         description="Name of the vector search request. This is used to identify the request in the system."
     )
-    query: str = Field(
-        ...,
+    query: Optional[str] = Field(
+        default="",
         description="The query string to search for in the vector database. This is the main input for the vector search."
     )
     model: str = Field(

@@ -14,7 +14,7 @@ import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
 from ai_chat_lib.db_modules.vector_db_item import MainDB
-
+from ai_chat_lib.db_modules.search_condition import SearchCondition
 
 class ContentItem(BaseModel):
     """
@@ -237,6 +237,55 @@ class ContentItem(BaseModel):
         logger.info(f"ContentItem with id {item.id} deleted.")
 
     @classmethod
+    async def search_content_items(cls, search_condition: SearchCondition) -> List["ContentItem"]:
+        """
+        検索条件に基づいてContentItemを検索する。
+
+        Args:
+            search_condition (SearchCondition): 検索条件
+
+        Returns:
+            List[ContentItem]: 検索結果のContentItemリスト
+        """
+        query = "SELECT * FROM ContentItems WHERE 1=1"
+        params = []
+
+        if search_condition.description and not search_condition.exclude_description:
+            query += " AND description LIKE ?"
+            params.append(f"%{search_condition.description}%")
+        
+        if search_condition.content and not search_condition.exclude_content:
+            query += " AND content LIKE ?"
+            params.append(f"%{search_condition.content}%")
+        
+        if search_condition.tags and not search_condition.exclude_tags:
+            query += " AND tag_string LIKE ?"
+            params.append(f"%{search_condition.tags}%")
+        
+        if search_condition.source_application_name and not search_condition.exclude_source_application_name:
+            query += " AND source_application_name LIKE ?"
+            params.append(f"%{search_condition.source_application_name}%")
+        
+        if search_condition.source_application_title and not search_condition.exclude_source_application_title:
+            query += " AND source_application_title LIKE ?"
+            params.append(f"%{search_condition.source_application_title}%")
+        
+        if search_condition.enable_start_time and search_condition.start_time_str:
+            query += " AND created_at >= ?"
+            params.append(search_condition.start_time_str)
+        
+        if search_condition.enable_end_time and search_condition.end_time_str:
+            query += " AND created_at <= ?"
+            params.append(search_condition.end_time_str)
+
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row
+            async with conn.cursor() as cur:
+                await cur.execute(query, tuple(params))
+                rows = await cur.fetchall()
+                return [ContentItem(**dict(row)) for row in rows]
+
+    @classmethod
     async def delete_content_items_by_folder_id(cls, folder_id: str) -> None:
         """
         指定フォルダID配下のContentItemを全削除する。
@@ -259,6 +308,8 @@ class ContentItem(BaseModel):
         """
         return self.model_dump()
     
+    
+
     @classmethod
     async def get_content_items_api(cls) -> dict:
         """
@@ -317,7 +368,7 @@ class ContentItem(BaseModel):
         return {"content_items": [item.to_dict() for item in content_items]}
     
     @classmethod
-    async def update_content_item_api(cls, request_json: str):
+    async def update_content_items_api(cls, request_json: str) -> dict:
         """
         ContentItemの追加・更新をAPIリクエスト形式で受け付けて実行する。
 
@@ -340,9 +391,10 @@ class ContentItem(BaseModel):
         for item in content_items:
             updated_item = await cls.update_content_item(item)
             updated_items.append(updated_item.to_dict())
-    
+        return {}
+        
     @classmethod
-    async def delete_content_item_api(cls, request_json: str):
+    async def delete_content_items_api(cls, request_json: str) -> dict:
         """
         ContentItemの削除をAPIリクエスト形式で受け付けて実行する。
 
@@ -366,3 +418,22 @@ class ContentItem(BaseModel):
             raise ValueError(f"ContentItem with id {item_id} not found.")
         
         await cls.delete_content_item(content_item)
+        return {}
+
+    @classmethod
+    async def search_content_items_api(cls, request_json: str) -> dict:
+        """
+        ContentItemの検索をAPIリクエスト形式で受け付けて実行する。
+
+        Args:
+            request_json (str): {"search_request": { ... }} 形式のJSON
+
+        Returns:
+            dict: {"content_items": [ ... ]}
+        """
+        request_dict: dict = json.loads(request_json)
+        search_condition_data = request_dict.get("search_request", {})
+        search_condition = SearchCondition(**search_condition_data)
+
+        content_items = await cls.search_content_items(search_condition)
+        return {"content_items": [item.to_dict() for item in content_items]}

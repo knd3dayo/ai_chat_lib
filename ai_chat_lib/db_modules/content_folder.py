@@ -219,7 +219,7 @@ class ContentFolder(BaseModel):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row 
             async with conn.cursor() as cur:
-                await cur.execute("SELECT * FROM ContentFoldersCatalog WHERE parent_id IS NULL")
+                await cur.execute("SELECT * FROM ContentFoldersCatalog WHERE parent_id IS NULL AND is_root_folder=1")
                 rows = await cur.fetchall()
                 root_folders = [ContentFolder(**dict(row)) for row in rows]
 
