@@ -181,6 +181,12 @@ async def get_content_folder_by_id(request_json: str):
 async def get_content_folder_by_path(request_json: str):
     return await ContentFolder.get_content_folder_by_path_api(request_json)
 @capture_stdout_stderr_async
+async def get_parent_content_folder_by_id(request_json: str):
+    return await ContentFolder.get_parent_content_folder_by_id_api(request_json)
+@capture_stdout_stderr_async
+async def get_child_content_folders_by_id(request_json: str):
+    return await ContentFolder.get_child_content_folders_by_id_api(request_json)
+@capture_stdout_stderr_async
 async def update_content_folders(request_json: str):
     return await ContentFolder.update_content_folders_api(request_json)
 @capture_stdout_stderr_async

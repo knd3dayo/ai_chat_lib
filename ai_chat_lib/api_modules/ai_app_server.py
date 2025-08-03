@@ -80,6 +80,19 @@ async def get_content_folder_by_path(request: Request) -> Response:
     response = await ai_app_wrapper.get_content_folder_by_path(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/get_parent_content_folder_by_id')
+async def get_parent_content_folder_by_id(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.get_parent_content_folder_by_id(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+@routes.post('/api/get_child_content_folders_by_id')
+async def get_child_content_folders_by_id(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.get_child_content_folders_by_id(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+
 @routes.post('/api/update_content_folders')
 async def update_content_folders(request: Request) -> Response:
     request_json = await request.text()

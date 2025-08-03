@@ -259,6 +259,38 @@ class ContentFolder(BaseModel):
 
         return ContentFolder(**folder_dict)
 
+    # 親フォルダを取得する。
+    @classmethod
+    async def get_parent_content_folder_by_id(cls, folder: "ContentFolder") -> Union["ContentFolder", None]:
+        if not folder.parent_id:
+            return None
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM ContentFoldersCatalog WHERE id=?", (folder.parent_id,))
+                row = await cur.fetchone()
+
+                # データが存在しない場合はNoneを返す
+                if row is None or len(row) == 0:
+                    return None
+
+                folder_dict = dict(row)
+
+        return ContentFolder(**folder_dict)
+    
+
+    # 子フォルダを取得する。
+    @classmethod
+    async def get_child_content_folders_by_id(cls, folder: "ContentFolder") -> List["ContentFolder"]:
+        if not folder.id:
+            return []
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            conn.row_factory = aiosqlite.Row 
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM ContentFoldersCatalog WHERE parent_id=?", (folder.id,))
+                rows = await cur.fetchall()
+                return [ContentFolder(**dict(row)) for row in rows]
+
     @classmethod
     async def update_content_folder(cls, folder: "ContentFolder"):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
@@ -433,6 +465,35 @@ class ContentFolder(BaseModel):
         result: dict = {}
         if content_folder is not None:
             result["content_folder"] = await content_folder.to_dict()
+        return result
+
+    @classmethod
+    async def get_parent_content_folder_by_id_api(cls, request_json: str) -> dict:
+        request_dict: dict = json.loads(request_json)
+        content_folder_id = cls.get_content_folder_request_objects(request_dict)[0].id
+        if not content_folder_id:
+            raise ValueError("content_folder_id is not set")
+        content_folder = await cls.get_content_folder_by_id(content_folder_id)
+        if not content_folder:
+            raise ValueError("content_folder is not found")
+        parent_content_folder = await cls.get_parent_content_folder_by_id(content_folder)
+        result: dict = {}
+        if parent_content_folder is not None:
+            result["content_folders"] = await parent_content_folder.to_dict()
+        return result
+    
+    @classmethod
+    async def get_child_content_folders_by_id_api(cls, request_json: str) -> dict:
+        request_dict: dict = json.loads(request_json)
+        content_folder_id = cls.get_content_folder_request_objects(request_dict)[0].id
+        if not content_folder_id:
+            raise ValueError("content_folder_id is not set")
+        content_folder = await cls.get_content_folder_by_id(content_folder_id)
+        if not content_folder:
+            raise ValueError("content_folder is not found")
+        child_content_folders = await cls.get_child_content_folders_by_id(content_folder)
+        result: dict = {}
+        result["content_folders"] = [await item.to_dict() for item in child_content_folders]
         return result
 
     @classmethod
