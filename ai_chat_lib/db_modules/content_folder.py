@@ -103,11 +103,6 @@ class ContentFolder(BaseModel):
         return [cls(**item) for item in content_folders]
     async def to_dict(self) -> dict:
         result = self.model_dump()
-        # folder_pathがなければidから取得
-        if not result.get("folder_path") and self.id:
-            content_folder_path = await ContentFolder.get_content_folder_path_by_id(self.id)
-            if content_folder_path:
-                result["folder_path"] = content_folder_path
         return result
 
     # idを指定して、idとfolder_nameとparent_idを取得する.再帰的に親フォルダを辿り、folderのパスを生成する
