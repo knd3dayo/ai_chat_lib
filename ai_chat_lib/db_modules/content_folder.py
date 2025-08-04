@@ -310,9 +310,9 @@ class ContentFolder(BaseModel):
                     logger.info(f"ContentFolder {folder.folder_name} is not exists. Create new folder.")
                     if not folder.id:
                         folder.id = str(uuid.uuid4())
-                    sql = f"INSERT INTO ContentFoldersCatalog (id, folder_type_string, parent_id, folder_name, description, extended_properties_json) VALUES (?, ?, ?, ?, ?, ?)"
+                    sql = f"INSERT INTO ContentFoldersCatalog (id, folder_type_string, parent_id, folder_name, description, extended_properties_json, is_root_folder) VALUES (?, ?, ?, ?, ?, ?, ?)"
                     logger.info(f"SQL: {sql}")
-                    insert_params = (folder.id, folder.folder_type_string, folder.parent_id, folder.folder_name, folder.description, folder.extended_properties_json)
+                    insert_params = (folder.id, folder.folder_type_string, folder.parent_id, folder.folder_name, folder.description, folder.extended_properties_json, int(folder.is_root_folder))
                     logger.info(f"Params: {insert_params}")
                     await cur.execute(sql , insert_params)
                 else:
