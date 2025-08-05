@@ -475,7 +475,13 @@ class ChatUtil:
     @classmethod
     def get_token_count(cls, model: str, input_text: str) -> int:
         # completion_modelに対応するencoderを取得する
-        encoder = tiktoken.encoding_for_model(model)
+        # 暫定処理 
+        # "gpt-4.1-": "o200k_base",  # e.g., gpt-4.1-nano, gpt-4.1-mini
+        # "gpt-4.5-": "o200k_base", # e.g., gpt-4.5-preview
+        if model.startswith("gpt-4.1-") or model.startswith("gpt-4.5-"):
+            encoder = tiktoken.get_encoding("o200k_base")
+        else:
+            encoder = tiktoken.encoding_for_model(model)
         # token数を取得する
         return len(encoder.encode(input_text))
    
