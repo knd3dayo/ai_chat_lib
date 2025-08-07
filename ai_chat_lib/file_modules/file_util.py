@@ -1,3 +1,4 @@
+from typing import Optional, Union
 from magika import Magika
 from magika.types import MagikaResult 
 from chardet.universaldetector import UniversalDetector
@@ -147,11 +148,11 @@ class FileUtil:
         return res.output.mime_type
 
     @classmethod
-    async def extract_text_from_file_async(cls, filename):
+    async def extract_text_from_file_async(cls, filename) -> str:
         res, encoding = cls.identify_type(filename)
         
         if res is None:
-            return None
+            return ""
         logger.debug(res.output.mime_type)
         result = None        
         if res.output.mime_type.startswith("text/"):

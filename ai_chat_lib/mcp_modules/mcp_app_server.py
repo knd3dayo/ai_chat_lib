@@ -9,8 +9,17 @@ from pydantic import Field
 from ai_chat_lib.web_modules.search_wikipedia_ja import search_wikipedia_ja
 import ai_chat_lib.langchain_modules.vector_db_tools as vector_db_tools
 from ai_chat_lib.db_modules.main_db_util import MainDBUtil
+from ai_chat_lib.file_modules.file_util import FileUtil
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 mcp = FastMCP("Demo 🚀") #type :ignore
+
+async def extract_text_from_file_mcp(
+    file_path: Annotated[str, Field(description="Path to the file to extract text from")]
+    ) -> Annotated[str, Field(description="Extracted text from the file")]:
+    """
+    This function extracts text from a file at the specified path.
+    """
+    return await FileUtil.extract_text_from_file_async(file_path)
 
 # toolは実行時にmcp.tool()で登録する。@mcp.toolは使用しない。
 # Wikipedia検索ツールを登録
