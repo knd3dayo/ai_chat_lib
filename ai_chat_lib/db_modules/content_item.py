@@ -281,6 +281,9 @@ class ContentItem(BaseModel):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row
             async with conn.cursor() as cur:
+                params_str = query + "".join(params)
+                logger.debug(f"Executing search query: {params_str}")
+
                 await cur.execute(query, tuple(params))
                 rows = await cur.fetchall()
                 return [ContentItem(**dict(row)) for row in rows]

@@ -149,6 +149,15 @@ async def delete_search_rules(request: Request) -> Response:
     response = await ai_app_wrapper.delete_search_rules(request_json)
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
+
+#search_content_items
+@routes.post('/api/search_content_items')
+async def search_content_items(request: Request) -> Response:
+    request_json = await request.text()
+    response = await ai_app_wrapper.search_content_items(request_json)
+    logger.debug(response)
+    return web.Response(body=response, status=200, content_type='application/json')
+
 ########################
 # AutoProcessRule関連
 ########################

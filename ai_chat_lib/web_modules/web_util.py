@@ -45,12 +45,11 @@ class WebUtil:
         """
         async with async_playwright() as p:
             # EdgeのWebドライバーを取得
-            edge_driver = await p.chromium.launch(headless=True, executable_path="msedge")
-            browser = edge_driver
+            browser = await p.chromium.launch(headless=True, channel="msedge")
             page = await browser.new_page()
             await page.goto(url)
             page_html = await page.content()
-            await page.close()
+            await browser.close()
 
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(page_html, "html.parser")

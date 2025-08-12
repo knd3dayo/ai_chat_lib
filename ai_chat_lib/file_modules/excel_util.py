@@ -17,9 +17,10 @@ class ExcelUtil:
             raise ValueError("request is not set.")
         # file_pathとdata_jsonを取得
         file_path = request.get("file_path", None)
-        data_json = request.get("data_json", None)
+        data_json = request.get("data_json", "[]")
+        data = json.loads(data_json)
 
-        return file_path, data_json
+        return file_path, data
 
     @classmethod
     def get_sheet_names_api(cls, request_json: str):
