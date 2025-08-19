@@ -317,5 +317,6 @@ def import_from_excel(request_json: str):
     return ExcelUtil.import_from_excel_api(request_json)
 
 # テスト用
-def hello_world():
-    return {"output": "Hello, World!"}
+def hello_world() -> str:
+    result = {"output": "Hello, World!"}
+    return json.dumps(result, ensure_ascii=False)

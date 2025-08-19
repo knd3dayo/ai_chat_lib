@@ -7,12 +7,16 @@ AIチャットアプリケーションのAPIサーバ本体。
 - サーバ起動(main)・シャットダウン・セッション管理も含む
 """
 
+
 import os, sys
 
 from aiohttp import web
 from aiohttp.web import Request, Response
 from ai_chat_lib.api_modules import ai_app_wrapper
 from ai_chat_lib.api_modules import ai_app_util
+
+# CORS対応のためaiohttp_corsをインポート
+import aiohttp_cors
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -393,7 +397,6 @@ async def import_from_excel(request: Request) -> Response:
 # hello_world
 @routes.post('/api/hello_world')
 async def hello_world(request: Request) -> Response:
-    request_json = await request.text()
     response = ai_app_wrapper.hello_world()
     logger.debug(response)
     return web.Response(body=response, status=200, content_type='application/json')
@@ -433,6 +436,18 @@ def main():
     logger.info(f"port={port}")
 
     app.add_routes(routes)
+
+    # CORS設定: 全てのオリジン・メソッド・ヘッダーを許可
+    cors = aiohttp_cors.setup(app, defaults={
+        "*": aiohttp_cors.ResourceOptions(
+            allow_credentials=True,
+            expose_headers="*",
+            allow_headers="*",
+        )
+    })
+    for route in list(app.router.routes()):
+        cors.add(route)
+
     web.run_app(app, port=int(port) )
 
 if __name__ == ('__main__'):
