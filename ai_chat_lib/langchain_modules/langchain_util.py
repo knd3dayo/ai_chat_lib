@@ -72,7 +72,8 @@ class LangChainUtil:
 
         vector_db_item = await VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
-            raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
+            # VectorDBItemが見つからない場合は空の辞書を返す
+            return {}
         
         # LangChainVectorDBを生成
         vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
