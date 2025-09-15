@@ -4,7 +4,7 @@ import asyncio
 import argparse
 
 from ai_chat_lib.cmd_tools.client_util import *
-from ai_chat_lib.chat_modules.chat_util import ChatUtil
+from ai_chat_lib.chat_modules.chat_util import ChatUtil, ChatOutput
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -40,8 +40,8 @@ async def run_chat_async(request_dict: dict ):
     :return: レスポンス辞書
     """
     # run_openai_chat_async_apiを実行
-    response_dict = await ChatUtil.run_openai_chat_async_api(request_dict)
-    output:str = response_dict.get("output", "")
+    chat_output = await ChatUtil.run_openai_chat_async_api(request_dict)
+    output:str = chat_output.output
     if output:
         print(output)
     else:
@@ -58,9 +58,9 @@ async def run_chat_interactive_async(request_dict: dict) -> None:
         input_message = input("User: ")
         # ユーザーメッセージを追加
         add_normal_chat_message("user", input_message, request_dict)
-        response_dict = await ChatUtil.run_openai_chat_async_api(request_dict)
+        chat_output = await ChatUtil.run_openai_chat_async_api(request_dict)
         # レスポンスを取得
-        output = response_dict.get("output")
+        output = chat_output.output
         if output:
             print(f"Assistant:\n{output}")
             # レスポンスを追加

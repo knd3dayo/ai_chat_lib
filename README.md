@@ -82,7 +82,6 @@ Options:
     // chat_requestの補助的なディクショナリ。
     // マージチャット(複数のドキュメントに同一のプロンプトを与えた結果をマージ)やサイズの大きいドキュメントを分割する場合などに使用.
     "chat_request_context": {
-        "chat_mode": "Normal",
         // 分割処理を行うかどうか。
         // * None:   
         //   何もしない。 入力のサイズが最大トークン数を超えた場合はエラーとなる。
@@ -92,8 +91,11 @@ Options:
         // * SplitAndSummarize: 
         //   NormalSplit分割&マージした後、サマリーの生成を行う。サマリー生成にはsummarize_prompt_textで指定したプロンプトが適用される。
         "split_mode": "None",
+        "split_token_count": 8000,
+        "max_images_per_request": 4,
         "prompt_template_text": "",
         "summarize_prompt_text": "",
+        "related_items": {}
         // RAGを有効にするかどうか。
         // * None:  
         //   RAGを使用しない。
@@ -103,6 +105,9 @@ Options:
         //   rag_prompt_textで指示した内容を入力に適用した結果を元にベクトル検索を行う。
         "rag_mode": "None",
         "rag_mode_prompt_text": "",
+        "vector_search_requests_json": "[]"
+
+
     },
     // ベクトル検索を行う場合のディクショナリ。ベクトル検索APIを実行する場合に使用する。
     "vector_search_requests": [
