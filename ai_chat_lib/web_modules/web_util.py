@@ -81,7 +81,7 @@ class WebUtil:
             query (str): The search query.
             site (str, optional): If specified, restricts the search to this site. Defaults to "".
             max_results (int, optional): The maximum number of results to return. Defaults to 10.
-            detail (bool, optional): If True, returns detailed results. Defaults to False.
+            detail (bool, optional): If True, returns detailed results including the page content and a list of links from the result pages. Defaults to False.
         Returns:
             list[DDGSSearchResult]: A list of search results, each containing the title, href, and body.
         """

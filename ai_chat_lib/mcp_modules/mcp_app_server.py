@@ -58,7 +58,7 @@ async def ddgs_search(
     query: Annotated[str, "The search query"],
     max_results: Annotated[int, "Maximum number of results to return"] = 10,
     site: Annotated[str, "Site to restrict the search to (optional)"] = "",
-    detail: Annotated[bool, "If True, returns detailed results"] = False
+    detail: Annotated[bool, "If True, returns detailed results including the page content and a list of links from the result pages. Default is False"] = False
 ) -> Annotated[list[WebSearchResult], "List of search results from DuckDuckGo"]:
     return await WebUtil.ddgs_search(query, max_results, site, detail)
         
@@ -114,6 +114,7 @@ async def main():
         mcp.tool()(search_wikipedia_ja_mcp)
         mcp.tool()(vector_search_mcp)
         mcp.tool()(get_vector_folder_paths_mcp)
+        mcp.tool()(ddgs_search)
 
     if mode == "stdio":
         print(f"Running in stdio mode with APP_DATA_PATH: {app_data_path}")
