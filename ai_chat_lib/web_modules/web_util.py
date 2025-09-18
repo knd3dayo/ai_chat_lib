@@ -2,10 +2,19 @@ from typing import Any, Union
 from typing import Annotated
 import json
 from playwright.async_api import async_playwright
+from ddgs import DDGS
+from pydantic import BaseModel
 from ai_chat_lib.file_modules.file_util import FileUtil
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
+
+class WebSearchResult(BaseModel):
+    title: str
+    href: str
+    body: str
+    page_content: str = ""
+    links: list[tuple[str, str]] = []
 
 
 class WebUtil:
@@ -59,3 +68,33 @@ class WebUtil:
         urls: list[tuple[str, str]] = [(a.get("href"), a.get_text()) for a in soup.find_all("a")] # type: ignore
         return sanitized_text, urls
 
+    @classmethod
+    async def ddgs_search(
+        cls, query: Annotated[str, "The search query"],
+        max_results: Annotated[int, "Maximum number of results to return"] = 10,
+        site: Annotated[str, "Site to restrict the search to (optional)"] = "",
+        detail: Annotated[bool, "If True, returns detailed results"] = False
+    ) -> Annotated[list[WebSearchResult], "List of search results from DuckDuckGo"]:
+        
+        """ This function performs a search using DuckDuckGo's search engine via the ddgs library.
+        Args:
+            query (str): The search query.
+            site (str, optional): If specified, restricts the search to this site. Defaults to "".
+            max_results (int, optional): The maximum number of results to return. Defaults to 10.
+            detail (bool, optional): If True, returns detailed results. Defaults to False.
+        Returns:
+            list[DDGSSearchResult]: A list of search results, each containing the title, href, and body.
+        """
+        if site:
+            query = f"site:{site} {query}"
+        results = DDGS().text(query, max_results=max_results)
+        search_results = [WebSearchResult(title=res.get("title", ""), href=res.get("href", ""), body=res.get("body", "")) for res in results]
+        if detail:
+            for res in search_results:
+                logger.debug(f"Title: {res.title}\nURL: {res.href}\nBody: {res.body}\n")
+                page_content, links = await cls.extract_webpage(res.href)
+                res.page_content = page_content
+                res.links = links
+
+        return search_results
+    

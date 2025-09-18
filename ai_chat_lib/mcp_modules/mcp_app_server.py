@@ -11,6 +11,8 @@ import ai_chat_lib.langchain_modules.vector_db_tools as vector_db_tools
 from ai_chat_lib.db_modules.main_db_util import MainDBUtil
 from ai_chat_lib.file_modules.file_util import FileUtil
 from ai_chat_lib.db_modules.content_folder import ContentFolder
+from ai_chat_lib.web_modules.web_util import WebUtil, WebSearchResult
+
 mcp = FastMCP("Demo 🚀") #type :ignore
 
 async def extract_text_from_file_mcp(
@@ -50,6 +52,16 @@ async def get_vector_folder_paths_mcp() -> Annotated[list[ContentFolder], Field(
     This function retrieves the list of folder paths from the vector store.
     """
     return await ContentFolder.get_content_folders(include_path=True)
+
+# duckduckgo_searchツールで検索した結果を返す
+async def ddgs_search(
+    query: Annotated[str, "The search query"],
+    max_results: Annotated[int, "Maximum number of results to return"] = 10,
+    site: Annotated[str, "Site to restrict the search to (optional)"] = "",
+    detail: Annotated[bool, "If True, returns detailed results"] = False
+) -> Annotated[list[WebSearchResult], "List of search results from DuckDuckGo"]:
+    return await WebUtil.ddgs_search(query, max_results, site, detail)
+        
 
 # 引数解析用の関数
 def parse_args() -> argparse.Namespace:
