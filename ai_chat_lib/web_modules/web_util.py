@@ -1,6 +1,7 @@
 from typing import Any, Union
 from typing import Annotated
 import json
+import os
 from playwright.async_api import async_playwright
 from ddgs import DDGS
 from pydantic import BaseModel
@@ -53,12 +54,28 @@ class WebUtil:
         This function extracts text and links from the specified URL of a web page.
         """
         async with async_playwright() as p:
+            app_data_path = os.getenv("APP_DATA_PATH", "")
+            if app_data_path:
+                auth_json_path = os.path.join(app_data_path, "auth.json")
+            else:
+                auth_json_path = "auth.json"
             # EdgeのWebドライバーを取得
             browser = await p.chromium.launch(headless=True, channel="msedge")
-            page = await browser.new_page()
-            await page.goto(url)
-            page_html = await page.content()
-            await browser.close()
+            try:
+                if not os.path.exists(auth_json_path):
+                    # auth.jsonが存在しない場合は新規作成
+                    page = await browser.new_page()
+                else:
+                    page = await browser.new_page(storage_state="auth.json")
+                
+                await page.goto(url)
+                page_html = await page.content()
+                await browser.close()
+            except Exception as e:
+                logger.error(f"Error extracting webpage: {e}")
+                return "", []
+            finally:
+                await browser.close()
 
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(page_html, "html.parser")
