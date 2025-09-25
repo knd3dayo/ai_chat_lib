@@ -13,7 +13,7 @@ from ai_chat_lib.langchain_modules.langchain_util import  LangChainUtil
 from ai_chat_lib.file_modules.excel_util import ExcelUtil
 from ai_chat_lib.file_modules.file_util import FileUtil
 from ai_chat_lib.web_modules.web_util import WebUtil
-from ai_chat_lib.chat_modules.chat_util import ChatUtil, ChatOutput
+from ai_chat_lib.chat_modules.chat_util import ChatUtil, CompletionOutput
 from ai_chat_lib.db_modules.search_rule import SearchRule
 from ai_chat_lib.db_modules.auto_process_item import AutoProcessItem
 from ai_chat_lib.db_modules.auto_process_rule import AutoProcessRule
@@ -213,7 +213,7 @@ async def delete_tag_items(request_json: str):
 ########################
 @capture_stdout_stderr_async
 async def openai_chat_async(request_dict: dict) -> dict:
-    chat_output: ChatOutput = await ChatUtil.run_openai_chat_async_api(request_dict)
+    chat_output: CompletionOutput = await ChatUtil.run_openai_chat_async_api(request_dict)
     return chat_output.model_dump()
 
 @capture_stdout_stderr

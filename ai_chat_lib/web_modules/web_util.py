@@ -60,13 +60,13 @@ class WebUtil:
             else:
                 auth_json_path = "auth.json"
             # EdgeのWebドライバーを取得
-            browser = await p.chromium.launch(headless=True, channel="msedge")
+            browser = await p.chromium.launch(headless=False, channel="msedge")
             try:
                 if not os.path.exists(auth_json_path):
                     # auth.jsonが存在しない場合は新規作成
                     page = await browser.new_page()
                 else:
-                    page = await browser.new_page(storage_state="auth.json")
+                    page = await browser.new_page(storage_state=auth_json_path)
                 
                 await page.goto(url)
                 page_html = await page.content()

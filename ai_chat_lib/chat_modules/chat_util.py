@@ -1,13 +1,10 @@
 import json
-from typing import Any, Callable, Union, Optional, ClassVar
-import base64
+from typing import ClassVar
 from pydantic import BaseModel, Field
 import copy
-import time
 import tiktoken
-from openai import  RateLimitError
 
-from ai_chat_lib.llm_modules.openai_util import OpenAIClient, OpenAIProps
+from ai_chat_lib.llm_modules.openai_util import OpenAIClient, OpenAIProps, CompletionRequest, CompletionOutput
 from ai_chat_lib.langchain_modules.langchain_util import  LangChainUtil
 from ai_chat_lib.langchain_modules.vector_search_request import VectorSearchRequest
 
@@ -49,160 +46,12 @@ class ChatRequestContext(BaseModel):
             raise ValueError("request_context is not set.")
         return cls(**chat_request_context_dict)
 
-class ChatRequest(BaseModel):
-
-    messages: list[dict] = Field(default=[], description="List of chat messages in the conversation.")
-    model: str = Field(default="gpt-4o", description="The model used for the chat conversation.")
-    
-    # option fields
-    temperature: Optional[float] = Field(default=0.7, description="Sampling temperature for the model.")
-    response_format: Optional[dict] = Field(default=None, description="Format of the response from the model.")
-
-    
-    user_role_name: ClassVar[str]  = "user"
-    assistant_role_name: ClassVar[str]  = "assistant"
-    system_role_name: ClassVar[str]  = "system"
-
-
-    def add_image_message_by_path(self, role: str, content:str, image_path: str) -> None:
-        """
-        Add an image message to the chat history using a local image file path.
-        Args:
-            role (str): The role of the message sender (e.g., 'user', 'assistant').
-            content (str): The text content of the message.
-            image_path (str): The local file path to the image.
-        """
-        if not role or not image_path:
-            logger.error("Role and image path must be provided.")
-            return
-        # Convert local image path to data URL
-        with open(image_path, "rb") as image_file:
-            image_data = image_file.read()
-        # Encode the image data to base64
-        if isinstance(image_data, bytes):
-            image_data = base64.b64encode(image_data).decode('utf-8')
-        # Create the image URL in data URL format
-        mime_type = "image/jpeg"  # Assuming JPEG, adjust as necessary
-        image_url = f"data:{mime_type};base64,{image_data}"
-        self.add_image_message(role, content, image_url)
-
-    def add_image_message(self, role: str, content: str, image_url: str) -> None:
-        """
-        Add an image message to the chat history.
-        Args:
-            role (str): The role of the message sender (e.g., 'user', 'assistant').
-            content (str): The text content of the message.
-            image_url (str): The URL of the image to be included in the message.
-        """
-        
-        if not role or not image_url:
-            logger.error("Role and image URL must be provided.")
-            return
-        content_item = [
-            {"type": "image_url", "image_url": {"url": image_url}}
-            ]
-        if content:
-            content_item.append({"type": "text", "text": content})
-
-        self.messages.append({"role": role, "content": content_item})
-        logger.debug(f"Image message added: {role}: {image_url}")
-
-
-    def add_text_message(self, role: str, content: str) -> None:
-        """
-        Add a message to the chat history.
-        
-        Args:
-            role (str): The role of the message sender (e.g., 'user', 'assistant').
-            content (str): The content of the message.
-        """
-        if not role or not content:
-            logger.error("Role and content must be provided.")
-            return
-        content_item = [{"type": "text", "text": content}]
-        self.messages.append({"role": role, "content": content_item})
-        logger.debug(f"Message added: {role}: {content}")
-
-    def add_user_text_message(self, content: str) -> None:
-        """
-        Add a user message to the chat history.
-        
-        Args:
-            content (str): The content of the user message.
-        """
-        self.add_text_message(self.user_role_name, content)
-
-    def add_assistant_text_message(self, content: str) -> None:
-        """
-        Add an assistant message to the chat history.
-        
-        Args:
-            content (str): The content of the assistant message.
-        """
-        self.add_text_message(self.assistant_role_name, content)
-    
-    def add_system_text_message(self, content: str) -> None:
-        """        Add a system message to the chat history.
-        Args:
-            content (str): The content of the system message.
-        """
-        self.add_text_message(self.system_role_name, content)
-
-    def get_last_message(self) -> Optional[dict]:
-        """
-        Get the last message in the chat history.
-        
-        Returns:
-            Optional[dict]: The last message dictionary or None if no messages exist.
-        """
-        if self.messages:
-            last_message = self.messages[-1]
-            logger.debug(f"Last message retrieved: {last_message}")
-            return last_message
-        else:
-            logger.debug("No messages found.")
-            return None
-
-    def add_messages(self, messages: list[dict]) -> None:
-        """
-        Add multiple messages to the chat history.
-        
-        Args:
-            messages (list[dict]): A list of message dictionaries to add.
-        """
-        if not messages:
-            logger.error("No messages provided to add.")
-            return
-        self.messages.extend(messages)
-        logger.debug(f"Added {len(messages)} messages to chat history.")            
-
-    def to_dict(self) -> dict:
-        """
-        Convert the chat messages to a dictionary format.
-        
-        Returns:
-            dict: A dictionary representation of the chat messages.
-        """
-        params = {}
-        params["messages"] = self.messages
-        params["model"] = self.model
-        if self.temperature is not None:
-            params["temperature"] = self.temperature
-        if self.response_format is not None:
-            params["response_format"] = self.response_format
-        logger.debug(f"Converting chat messages to dict: {params}")
-        return params
-
-class ChatOutput(BaseModel):
-    output: str = Field(default="", description="The output text from the chat model.")
-    total_tokens: int = Field(default=0, description="The total number of tokens used in the chat interaction.")
-    documents: Optional[list[dict]] = Field(default=None, description="List of documents retrieved during the chat interaction.")
 
 class ChatUtil:
 
     chat_request_name = "chat_request"
     @classmethod
-    async def run_openai_chat_async_api(cls, request_dict: dict) -> ChatOutput:
+    async def run_openai_chat_async_api(cls, request_dict: dict) -> CompletionOutput:
 
         openai_props = OpenAIProps.create_from_env()
         # context_jsonからVectorSearchRequestを生成
@@ -214,7 +63,7 @@ class ChatUtil:
         if not chat_request_dict:
             raise ValueError("chat_request is not set")
         # chat_request_dictからChatRequestを生成
-        chat_request_dict = ChatRequest(**chat_request_dict)
+        chat_request_dict = CompletionRequest(**chat_request_dict)
 
         return await cls.run_openai_chat_async(openai_props, chat_request_context, chat_request_dict, vector_search_requests)
 
@@ -275,14 +124,6 @@ class ChatUtil:
         # result_message_listを返す
         return result_message_list
 
-
-    @classmethod
-    def __get_last_message_dict(cls, input_dict: dict) -> dict:
-        '''
-        input_dictのmessagesのtext要素を取得する
-        '''
-        return input_dict["messages"][-1]
-
     @classmethod
     def __get_last_message_image_urls(cls, message_dict: dict) -> tuple[int, list[str]]:
         '''
@@ -320,8 +161,8 @@ class ChatUtil:
 
     @classmethod
     async def __pre_process_input(
-            cls, client: OpenAIClient, model: str, request_context: ChatRequestContext, original_chat_request: ChatRequest, 
-            vector_search_requests : list[VectorSearchRequest]) -> tuple[list[ChatRequest], list[dict]]:
+            cls, client: OpenAIClient, model: str, request_context: ChatRequestContext, original_chat_request: CompletionRequest, 
+            vector_search_requests : list[VectorSearchRequest]) -> tuple[list[CompletionRequest], list[dict]]:
         # pre_process_inputを実行する
         chat_request = copy.deepcopy(original_chat_request)
 
@@ -331,7 +172,7 @@ class ChatUtil:
             raise ValueError("No last message found in input_dict")
 
         # 結果格納用のChatRequestのリストを作成する
-        result_chat_request_list: list[ChatRequest] = []
+        result_chat_request_list: list[CompletionRequest] = []
 
         # "messages"の最後のtext要素を取得する       
         last_text_content_index, original_last_message = cls.__get_last_message_text(last_message_dict)
@@ -398,7 +239,7 @@ class ChatUtil:
             result_chat_request = copy.deepcopy(chat_request)
             # image_urlsをresult_chat_requestに追加する
             for image_url in image_urls:
-                result_chat_request.add_image_message(ChatRequest.user_role_name, "", image_url)
+                result_chat_request.add_image_message(CompletionRequest.user_role_name, "", image_url)
             # result_chat_request_listにresult_chat_requestを追加する
             result_chat_request_list.append(result_chat_request)
 
@@ -406,8 +247,8 @@ class ChatUtil:
 
     @classmethod
     async def __post_process_output_async(cls, client: OpenAIClient, request_context: ChatRequestContext, 
-                            input_dict: ChatRequest, chat_output_list: list[ChatOutput],
-                            docs_list: list[dict]) -> ChatOutput:
+                            input_dict: CompletionRequest, chat_output_list: list[CompletionOutput],
+                            docs_list: list[dict]) -> CompletionOutput:
 
         # RequestContextのSplitModeがNormalSplitの場合はchat_result_dict_listのoutputを結合した文字列とtotal_tokensを集計した結果を返す
         if request_context.split_mode == ChatRequestContext.split_mode_name_normal:
@@ -418,7 +259,7 @@ class ChatUtil:
                 output += f"output:[{i}]\n {chat_output_list[i].output}\n"
                 total_tokens += chat_output_list[i].total_tokens
 
-            return ChatOutput(output=output, total_tokens=total_tokens, documents=docs_list)
+            return CompletionOutput(output=output, total_tokens=total_tokens, documents=docs_list)
 
         # RequestContextのSplitModeがSplitAndSummarizeの場合はSummarize用のoutputを作成する
         if request_context.split_mode == ChatRequestContext.split_mode_name_split_and_summarize:
@@ -439,9 +280,9 @@ class ChatUtil:
             total_tokens = sum([chat_output.total_tokens for chat_output in chat_output_list])
             # openai_chatの入力用のdictを作成する
             summary_input_dict = OpenAIProps.create_openai_chat_parameter_dict_simple(input_dict.model, summary_input, input_dict.temperature,  False)
-            summary_chat_request = ChatRequest(**summary_input_dict)
+            summary_chat_request = CompletionRequest(**summary_input_dict)
             # chatを実行する
-            summary_chat_output = await cls.call_openai_completion_async(client, summary_chat_request)
+            summary_chat_output = await client.run_completion_async(summary_chat_request)
             # total_tokensを更新する
             summary_chat_output.total_tokens = total_tokens + summary_chat_output.total_tokens
             summary_chat_output.documents = docs_list
@@ -453,7 +294,7 @@ class ChatUtil:
             return chat_output
 
     @classmethod
-    async def run_openai_chat_async(cls, openai_props: OpenAIProps, request_context: ChatRequestContext ,input_dict: ChatRequest, vector_search_requests : list[VectorSearchRequest]) -> ChatOutput:
+    async def run_openai_chat_async(cls, openai_props: OpenAIProps, request_context: ChatRequestContext ,input_dict: CompletionRequest, vector_search_requests : list[VectorSearchRequest]) -> CompletionOutput:
         # ★TODO 分割モードの場合とそうでない場合で処理を分ける
         # 分割モードの場合はそれまでのチャット履歴をどうするか？
         
@@ -471,7 +312,7 @@ class ChatUtil:
 
         for pre_processed_chat_request in  pre_processed_chat_request_list:
 
-            chat_result_dict = await cls.call_openai_completion_async(client, pre_processed_chat_request)
+            chat_result_dict = await client.run_completion_async(pre_processed_chat_request)
             # chat_result_dictをchat_result_dict_listに追加する
             chat_result_dict_list.append(chat_result_dict)
 
@@ -479,41 +320,6 @@ class ChatUtil:
         result_dict = await cls.__post_process_output_async(client, request_context, input_dict, chat_result_dict_list, docs_list)
         return result_dict
     
-    @classmethod
-    async def call_openai_completion_async(cls, client: OpenAIClient, input_dict: ChatRequest) -> ChatOutput:
-        # openai.
-        # RateLimitErrorが発生した場合はリトライする
-        # リトライ回数は最大で3回
-        # リトライ間隔はcount*30秒
-        # リトライ回数が5回を超えた場合はRateLimitErrorをraiseする
-        # リトライ回数が5回以内で成功した場合は結果を返す
-        # OpenAIのchatを実行する
-        completion_client = client.get_completion_client()
-        count = 0
-        response = None
-        while count < 3:
-            try:
-                response = await completion_client.chat.completions.create(
-                    **input_dict.to_dict()
-                )
-                break
-            except RateLimitError as e:
-                count += 1
-                # rate limit errorが発生した場合はリトライする旨を表示。英語
-                logger.warn(f"RateLimitError has occurred. Retry after {count*30} seconds.")
-                time.sleep(count*30)
-                if count == 5:
-                    raise e
-        if response is None:
-            raise RuntimeError("Failed to get a response from OpenAI after retries.")
-        # token情報を取得する
-        total_tokens = response.usage.total_tokens
-        # contentを取得する
-        content = response.choices[0].message.content
-
-        # dictにして返す
-        logger.info(f"chat output:{json.dumps(content, ensure_ascii=False, indent=2)}")
-        return ChatOutput(output=content, total_tokens=total_tokens)
 
     @classmethod
     def get_token_count(cls, model: str, input_text: str) -> int:

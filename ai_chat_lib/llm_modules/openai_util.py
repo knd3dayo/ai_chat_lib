@@ -5,9 +5,160 @@ from mimetypes import guess_type
 from typing import Any, Union, ClassVar
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Any, Tuple, List
+from openai import RateLimitError
+import time
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
+
+class CompletionRequest(BaseModel):
+
+    messages: list[dict] = Field(default=[], description="List of chat messages in the conversation.")
+    model: str = Field(default="gpt-4o", description="The model used for the chat conversation.")
+    
+    # option fields
+    temperature: Optional[float] = Field(default=0.7, description="Sampling temperature for the model.")
+    response_format: Optional[dict] = Field(default=None, description="Format of the response from the model.")
+    
+    user_role_name: ClassVar[str]  = "user"
+    assistant_role_name: ClassVar[str]  = "assistant"
+    system_role_name: ClassVar[str]  = "system"
+
+
+    def add_image_message_by_path(self, role: str, content:str, image_path: str) -> None:
+        """
+        Add an image message to the chat history using a local image file path.
+        Args:
+            role (str): The role of the message sender (e.g., 'user', 'assistant').
+            content (str): The text content of the message.
+            image_path (str): The local file path to the image.
+        """
+        if not role or not image_path:
+            logger.error("Role and image path must be provided.")
+            return
+        # Convert local image path to data URL
+        with open(image_path, "rb") as image_file:
+            image_data = image_file.read()
+        # Encode the image data to base64
+        if isinstance(image_data, bytes):
+            image_data = base64.b64encode(image_data).decode('utf-8')
+        # Create the image URL in data URL format
+        mime_type = "image/jpeg"  # Assuming JPEG, adjust as necessary
+        image_url = f"data:{mime_type};base64,{image_data}"
+        self.add_image_message(role, content, image_url)
+
+    def add_image_message(self, role: str, content: str, image_url: str) -> None:
+        """
+        Add an image message to the chat history.
+        Args:
+            role (str): The role of the message sender (e.g., 'user', 'assistant').
+            content (str): The text content of the message.
+            image_url (str): The URL of the image to be included in the message.
+        """
+        
+        if not role or not image_url:
+            logger.error("Role and image URL must be provided.")
+            return
+        content_item = [
+            {"type": "image_url", "image_url": {"url": image_url}}
+            ]
+        if content:
+            content_item.append({"type": "text", "text": content})
+
+        self.messages.append({"role": role, "content": content_item})
+        logger.debug(f"Image message added: {role}: {image_url}")
+
+
+    def add_text_message(self, role: str, content: str) -> None:
+        """
+        Add a message to the chat history.
+        
+        Args:
+            role (str): The role of the message sender (e.g., 'user', 'assistant').
+            content (str): The content of the message.
+        """
+        if not role or not content:
+            logger.error("Role and content must be provided.")
+            return
+        content_item = [{"type": "text", "text": content}]
+        self.messages.append({"role": role, "content": content_item})
+        logger.debug(f"Message added: {role}: {content}")
+
+    def add_user_text_message(self, content: str) -> None:
+        """
+        Add a user message to the chat history.
+        
+        Args:
+            content (str): The content of the user message.
+        """
+        self.add_text_message(self.user_role_name, content)
+
+    def add_assistant_text_message(self, content: str) -> None:
+        """
+        Add an assistant message to the chat history.
+        
+        Args:
+            content (str): The content of the assistant message.
+        """
+        self.add_text_message(self.assistant_role_name, content)
+    
+    def add_system_text_message(self, content: str) -> None:
+        """        Add a system message to the chat history.
+        Args:
+            content (str): The content of the system message.
+        """
+        self.add_text_message(self.system_role_name, content)
+
+    def get_last_message(self) -> Optional[dict]:
+        """
+        Get the last message in the chat history.
+        
+        Returns:
+            Optional[dict]: The last message dictionary or None if no messages exist.
+        """
+        if self.messages:
+            last_message = self.messages[-1]
+            logger.debug(f"Last message retrieved: {last_message}")
+            return last_message
+        else:
+            logger.debug("No messages found.")
+            return None
+
+    def add_messages(self, messages: list[dict]) -> None:
+        """
+        Add multiple messages to the chat history.
+        
+        Args:
+            messages (list[dict]): A list of message dictionaries to add.
+        """
+        if not messages:
+            logger.error("No messages provided to add.")
+            return
+        self.messages.extend(messages)
+        logger.debug(f"Added {len(messages)} messages to chat history.")            
+
+    def to_dict(self) -> dict:
+        """
+        Convert the chat messages to a dictionary format.
+        
+        Returns:
+            dict: A dictionary representation of the chat messages.
+        """
+        params = {}
+        params["messages"] = self.messages
+        params["model"] = self.model
+        if self.temperature is not None:
+            params["temperature"] = self.temperature
+        if self.response_format is not None:
+            params["response_format"] = self.response_format
+        logger.debug(f"Converting chat messages to dict: {params}")
+        return params
+
+class CompletionOutput(BaseModel):
+    output: str = Field(default="", description="The output text from the chat model.")
+    total_tokens: int = Field(default=0, description="The total number of tokens used in the chat interaction.")
+    documents: Optional[list[dict]] = Field(default=None, description="List of documents retrieved during the chat interaction.")
+
 
 class OpenAIProps(BaseModel):
     openai_key: str = Field(default="", alias="openai_key")
@@ -191,3 +342,38 @@ class OpenAIClient:
         # モデルのリストを取得する
         model_id_list = [ model.id for model in response.data]
         return model_id_list
+
+    async def run_completion_async(self, input_dict: CompletionRequest) -> CompletionOutput:
+        # openai.
+        # RateLimitErrorが発生した場合はリトライする
+        # リトライ回数は最大で3回
+        # リトライ間隔はcount*30秒
+        # リトライ回数が5回を超えた場合はRateLimitErrorをraiseする
+        # リトライ回数が5回以内で成功した場合は結果を返す
+        # OpenAIのchatを実行する
+        completion_client = self.get_completion_client()
+        count = 0
+        response = None
+        while count < 3:
+            try:
+                response = await completion_client.chat.completions.create(
+                    **input_dict.to_dict()
+                )
+                break
+            except RateLimitError as e:
+                count += 1
+                # rate limit errorが発生した場合はリトライする旨を表示。英語
+                logger.warn(f"RateLimitError has occurred. Retry after {count*30} seconds.")
+                time.sleep(count*30)
+                if count == 5:
+                    raise e
+        if response is None:
+            raise RuntimeError("Failed to get a response from OpenAI after retries.")
+        # token情報を取得する
+        total_tokens = response.usage.total_tokens
+        # contentを取得する
+        content = response.choices[0].message.content
+
+        # dictにして返す
+        logger.info(f"chat output:{json.dumps(content, ensure_ascii=False, indent=2)}")
+        return CompletionOutput(output=content, total_tokens=total_tokens)
