@@ -127,7 +127,7 @@ async def main():
         mcp.tool()(get_vector_folder_paths_mcp)
         mcp.tool()(ddgs_search)
         mcp.tool()(extract_text_from_file_mcp)
-        mcp.tool()(analyze_image_mcp)
+        # mcp.tool()(analyze_image_mcp)
 
     if mode == "stdio":
         print(f"Running in stdio mode with APP_DATA_PATH: {app_data_path}")
