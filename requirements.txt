@@ -43,3 +43,6 @@ aiofiles
 
 # For MCP
 fastmcp
+
+# Personal libraries
+analyze_image_mcp@git+https://github.com/knd3dayo/analyze_image_mcp.git

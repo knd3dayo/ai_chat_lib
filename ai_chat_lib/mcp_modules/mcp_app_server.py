@@ -12,7 +12,7 @@ from ai_chat_lib.db_modules.main_db_util import MainDBUtil
 from ai_chat_lib.file_modules.file_util import FileUtil
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 from ai_chat_lib.web_modules.web_util import WebUtil, WebSearchResult
-from ai_chat_lib.chat_modules.image_chat_util import ImageChatUtil, ImageAnalysisResponse, ImageAnalysisResponsePair
+from analyze_image_mcp.mcp_modules.mcp_app_server import analyze_image_mcp, analyze_two_images_mcp
 
 mcp = FastMCP("Demo 🚀") #type :ignore
 
@@ -63,29 +63,6 @@ async def ddgs_search(
 ) -> Annotated[list[WebSearchResult], "List of search results from DuckDuckGo"]:
     return await WebUtil.ddgs_search(query, max_results, site, detail)
         
-# 画像を分析
-async def analyze_image_mcp(
-    image_path: Annotated[str, Field(description="Absolute path to the image file to analyze. e.g., /path/to/image.jpg")],
-    prompt: Annotated[str, Field(description="Prompt to analyze the image")]
-    ) -> Annotated[ImageAnalysisResponse, Field(description="Analysis result of the image")]:
-    """
-    This function analyzes an image using the specified prompt and returns the analysis result.
-    """
-    response = await ImageChatUtil.generate_image_analysis_response_async(image_path, prompt)
-    return response
-
-# 2枚の画像の分析を行う
-async def analyze_two_images_mcp(
-    image_path1: Annotated[str, Field(description="Absolute path to the first image file to analyze. e.g., /path/to/image1.jpg")],
-    image_path2: Annotated[str, Field(description="Absolute path to the second image file to analyze. e.g., /path/to/image2.jpg")],
-    prompt: Annotated[str, Field(description="Prompt to analyze the images")]
-    ) -> Annotated[ImageAnalysisResponsePair, Field(description="Analysis result of the images")]:
-    """
-    This function analyzes two images using the specified prompt and returns the analysis result.
-    """
-    response = await ImageChatUtil.generate_image_pair_analysis_response_async(image_path1, image_path2, prompt)
-    return response
-
 
 # 引数解析用の関数
 def parse_args() -> argparse.Namespace:

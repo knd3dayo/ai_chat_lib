@@ -54,23 +54,27 @@ class WebUtil:
         This function extracts text and links from the specified URL of a web page.
         """
         async with async_playwright() as p:
-            app_data_path = os.getenv("APP_DATA_PATH", "")
-            if app_data_path:
-                auth_json_path = os.path.join(app_data_path, "auth.json")
-            else:
-                auth_json_path = "auth.json"
+            headless = os.getenv("PLAYWRIGHT_HEADLESS", "false").lower() == "true"
+            channel = os.getenv("PLAYWRIGHT_BROWSER", "msedge").lower()
+            auth_json_path = os.getenv("PLAYWRIGHT_AUTH_JSON", "")
+            
+            if not os.path.exists(auth_json_path):
+                auth_json_path = ""
+            
             # EdgeのWebドライバーを取得
-            browser = await p.chromium.launch(headless=False, channel="msedge")
+            browser = await p.chromium.launch(headless=headless, channel=channel)
             try:
-                if not os.path.exists(auth_json_path):
-                    # auth.jsonが存在しない場合は新規作成
-                    page = await browser.new_page()
-                else:
+                if auth_json_path:
                     page = await browser.new_page(storage_state=auth_json_path)
+                else:        
+                    page = await browser.new_page()
                 
                 await page.goto(url)
                 page_html = await page.content()
-                await browser.close()
+
+                if auth_json_path:
+                    await page.context.storage_state(path=auth_json_path)
+
             except Exception as e:
                 logger.error(f"Error extracting webpage: {e}")
                 return "", []
@@ -81,6 +85,9 @@ class WebUtil:
         soup = BeautifulSoup(page_html, "html.parser")
         text = soup.get_text()
         sanitized_text = FileUtil.sanitize_text(text)
+        if not sanitized_text or len(sanitized_text) == 0:
+            return "", []
+
         # Retrieve href attribute and text from <a> tags
         urls: list[tuple[str, str]] = [(a.get("href"), a.get_text()) for a in soup.find_all("a")] # type: ignore
         return sanitized_text, urls
