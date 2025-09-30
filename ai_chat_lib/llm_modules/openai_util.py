@@ -158,31 +158,6 @@ class CompletionRequest(BaseModel):
         self.messages.append({"role": role, "content": content_item})
         logger.debug(f"Message added: {role}: {content}")
 
-    def add_user_text_message(self, content: str) -> None:
-        """
-        Add a user message to the chat history.
-        
-        Args:
-            content (str): The content of the user message.
-        """
-        self.add_text_message(self.user_role_name, content)
-
-    def add_assistant_text_message(self, content: str) -> None:
-        """
-        Add an assistant message to the chat history.
-        
-        Args:
-            content (str): The content of the assistant message.
-        """
-        self.add_text_message(self.assistant_role_name, content)
-    
-    def add_system_text_message(self, content: str) -> None:
-        """        Add a system message to the chat history.
-        Args:
-            content (str): The content of the system message.
-        """
-        self.add_text_message(self.system_role_name, content)
-
     def get_last_message(self) -> Optional[dict]:
         """
         Get the last message in the chat history.

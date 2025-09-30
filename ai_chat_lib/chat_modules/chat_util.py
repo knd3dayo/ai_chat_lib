@@ -161,18 +161,27 @@ class ChatUtil:
 
     @classmethod
     async def __pre_process_input(
-            cls, client: OpenAIClient, model: str, request_context: ChatRequestContext, original_chat_request: CompletionRequest, 
-            vector_search_requests : list[VectorSearchRequest]) -> tuple[list[CompletionRequest], list[dict]]:
+            cls, client: OpenAIClient, model: str, request_context: ChatRequestContext, original_chat_request: CompletionRequest,
+            vector_search_requests: list[VectorSearchRequest]) -> tuple[list[CompletionRequest], list[dict]]:
+        '''
+        メッセージ分割、ベクトル検索を実行する
+        split_modeがNoneの場合はメッセージ分割を実行しない。
+        split_modeがNone以外の場合はメッセージ分割を実行する。また、image_urlも分割する
+        その後、rag_modeがNone以外の場合はベクトル検索を実行する
+        返り値は、分割後のChatRequestのリストとベクトル検索結果のリスト
+        '''
+
+
+        # 結果格納用のChatRequestのリストを作成する
+        result_chat_request_list: list[CompletionRequest] = []
+
         # pre_process_inputを実行する
         chat_request = copy.deepcopy(original_chat_request)
-
         # chat_requestのmessagesの最後の要素を取得する
         last_message_dict = chat_request.messages.pop()
         if not last_message_dict:
             raise ValueError("No last message found in input_dict")
 
-        # 結果格納用のChatRequestのリストを作成する
-        result_chat_request_list: list[CompletionRequest] = []
 
         # "messages"の最後のtext要素を取得する       
         last_text_content_index, original_last_message = cls.__get_last_message_text(last_message_dict)
@@ -184,43 +193,47 @@ class ChatUtil:
         # split_token_countを超える場合は分割する
 
         result_documents_dict = {}  # Ensure this is always defined
+        vector_search_result_message = ""
 
-        # SplitoModeの処理 SplitModeがNone以外の場合は分割する
-        if request_context.split_mode != ChatRequestContext.split_mode_name_none:
-            splited_messages = cls.split_message(original_last_message.split("\n"), model, request_context.split_token_count)
-        else:
-            splited_messages = [original_last_message]
+        # rag_modeの処理 rag_modeがNone以外の場合はベクトル検索を実行する
+        if len(vector_search_requests) > 0 and request_context.rag_mode != ChatRequestContext.rag_mode_name_none:
+            # ベクトル検索用の文字列としてqueryにtarget_messageを設定する
+            for vector_search_request in vector_search_requests:
+                vector_search_request.query = original_last_message
+
+            result_documents = await LangChainUtil.vector_search(client.props, vector_search_requests)
+            texts = [doc.page_content for doc in result_documents]  
+            # ベクトル検索結果のメッセージを作成する
+            vector_search_result_message = request_context.related_information_prompt_text + "\n".join(texts) + "\n\n"
+
+        # split_modeがNoneの場合は、context_message, original_last_message, vector_search_result_messageを結合して
+        # chat_requestのmessagesに追加する
+        if request_context.split_mode == ChatRequestContext.split_mode_name_none:
+            chat_request.add_text_message(CompletionRequest.user_role_name, 
+                f"{request_context.prompt_template_text}\n{original_last_message}\n\n{vector_search_result_message}")
+            # image_urlが存在する場合はchat_requestに追加する
+            for image_url in image_urls:
+                chat_request.append_image_to_last_message(CompletionRequest.user_role_name, image_url)
+
+            # result_chat_request_listにchat_requestを追加する
+            result_chat_request_list.append(chat_request)
+            return result_chat_request_list, [ value for value in result_documents_dict.values()]
+
+        # SplitModeがNone以外の場合はoriginal_last_messageを分割する
+        splited_messages = cls.split_message(original_last_message.split("\n"), model, request_context.split_token_count)
 
         for i in range(0, len(splited_messages)):
             # 分割したメッセージを取得する毎に、プロンプトテンプレートと関連情報を取得する
             target_message = splited_messages[i]
-            # context_message 
-            context_message = ""
-            if i > 0 and len(request_context.prompt_template_text) > 0:
-                context_message = request_context.prompt_template_text + "\n\n"
-
-            # RAGモードの処理
-            # None以外の場合はvector_search_functionが設定されているので、ベクトル検索を実行する
-            if len(vector_search_requests) > 0 and request_context.rag_mode != ChatRequestContext.rag_mode_name_none:
-                # ベクトル検索用の文字列としてqueryにtarget_messageを設定する
-                for vector_search_request in vector_search_requests:
-                    vector_search_request.query = target_message
-
-                result_documents = await LangChainUtil.vector_search(client.props, vector_search_requests)
-                texts = [doc.page_content for doc in result_documents]  
-                # ベクトル検索結果をcontext_messageに追加する
-                context_message += request_context.related_information_prompt_text + "\n".join(texts) + "\n\n"
-
             # chat_requestをdeepcopyする
             result_chat_request = copy.deepcopy(chat_request)
-            text_message = f"{context_message}\n{target_message}"
             # result_chat_requestのmessagesにtext_messageを追加する
-            result_chat_request.add_user_text_message(text_message)
-
+            result_chat_request.add_text_message(CompletionRequest.user_role_name, 
+                f"{request_context.prompt_template_text}\n{target_message}\n\n{vector_search_result_message}")
             # result_chat_request_listにresult_chat_requestを追加する
             result_chat_request_list.append(result_chat_request)
 
-        # SplitoModeの処理 SplitModeがNone以外の場合はimage_urlsを分割する。
+        # SplitModeがNone以外の場合はimage_urlsを分割する。
         splited_image_urls = []
         if request_context.split_mode != ChatRequestContext.split_mode_name_none:
             max_images_per_request = request_context.max_images_per_request
@@ -239,7 +252,8 @@ class ChatUtil:
             result_chat_request = copy.deepcopy(chat_request)
             # image_urlsをresult_chat_requestに追加する
             for image_url in image_urls:
-                result_chat_request.add_image_message(CompletionRequest.user_role_name, "", image_url)
+                message = f"{request_context.prompt_template_text}\n\n{vector_search_result_message}"
+                result_chat_request.add_image_message(CompletionRequest.user_role_name, message, image_url)
             # result_chat_request_listにresult_chat_requestを追加する
             result_chat_request_list.append(result_chat_request)
 
