@@ -46,3 +46,4 @@ fastmcp
 
 # Personal libraries
 analyze_image_mcp@git+https://github.com/knd3dayo/analyze_image_mcp.git
+web_search_mcp@git+https://github.com/knd3dayo/web_search_mcp.git

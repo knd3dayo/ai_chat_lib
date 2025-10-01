@@ -12,7 +12,7 @@ from ai_chat_lib.api_modules.ai_app_util import *
 from ai_chat_lib.langchain_modules.langchain_util import  LangChainUtil
 from ai_chat_lib.file_modules.excel_util import ExcelUtil
 from ai_chat_lib.file_modules.file_util import FileUtil
-from ai_chat_lib.web_modules.web_util import WebUtil
+from web_search_mcp.web_modules.web_util import WebUtil
 from ai_chat_lib.chat_modules.chat_util import ChatUtil, CompletionOutput
 from ai_chat_lib.db_modules.search_rule import SearchRule
 from ai_chat_lib.db_modules.auto_process_item import AutoProcessItem

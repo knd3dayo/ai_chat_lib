@@ -6,12 +6,12 @@ from dotenv import load_dotenv
 import argparse
 from fastmcp import FastMCP
 from pydantic import Field
-from ai_chat_lib.web_modules.search_wikipedia_ja import search_wikipedia_ja
+from web_search_mcp.web_modules.search_wikipedia_ja import search_wikipedia_ja
 import ai_chat_lib.langchain_modules.vector_db_tools as vector_db_tools
 from ai_chat_lib.db_modules.main_db_util import MainDBUtil
 from ai_chat_lib.file_modules.file_util import FileUtil
 from ai_chat_lib.db_modules.content_folder import ContentFolder
-from ai_chat_lib.web_modules.web_util import WebUtil, WebSearchResult
+from web_search_mcp.web_modules.web_util import WebUtil, WebSearchResult
 from analyze_image_mcp.mcp_modules.mcp_app_server import analyze_image_mcp, analyze_two_images_mcp
 
 mcp = FastMCP("Demo 🚀") #type :ignore
