@@ -89,8 +89,6 @@ def parse_args() -> argparse.Namespace:
     # -d オプションを追加　APP_DATA_PATH を指定する
     parser.add_argument("-d", "--app_data_path", type=str, help="Path to the application data directory.")
     # 引数を解析して返す
-    # -t tools オプションを追加 toolsはカンマ区切りの文字列. search_wikipedia_ja_mcp, vector_search, etc. 指定されていない場合は空文字を設定
-    parser.add_argument("-t", "--tools", type=str, default="", help="Comma-separated list of tools to use, e.g., 'search_wikipedia_ja_mcp,vector_search_mcp'. If not specified, no tools are loaded.")
     # -p オプションを追加　ポート番号を指定する modeがsseの場合に使用.defaultは5001
     parser.add_argument("-p", "--port", type=int, default=5001, help="Port number to run the server on. Default is 5001.")
     # -v LOG_LEVEL オプションを追加 ログレベルを指定する. デフォルトは空白文字
@@ -117,10 +115,13 @@ async def main():
     # ベクトルDBの初期化を行う
     await MainDBUtil.init(upgrade=True)
 
-    # tools オプションが指定されている場合は、ツールを登録
-    if args.tools:
-        tools = [tool.strip() for tool in args.tools.split(",")]
-        for tool_name in tools:
+    # MCP_TOOLSを取得
+    mcp_tools_str = os.getenv("MCP_TOOLS", "")
+    mcp_tools = [tool.strip() for tool in mcp_tools_str.split(",") if tool.strip()]
+    print(f"MCP_TOOLS={mcp_tools}")
+    #  MCP_TOOLSが指定されている場合は、ツールを登録
+    if len(mcp_tools) > 0:
+        for tool_name in mcp_tools:
             # tool_nameという名前の関数が存在する場合は登録
             tool = globals().get(tool_name)
             if tool and callable(tool):
@@ -136,8 +137,8 @@ async def main():
         mcp.tool()(extract_webpage)
         mcp.tool()(extract_text_from_file_mcp)
         mcp.tool()(download_file_mcp)
-        # mcp.tool()(analyze_image_mcp)
-        # mcp.tool()(analyze_two_images_mcp)
+        mcp.tool()(analyze_image_mcp)
+        mcp.tool()(analyze_two_images_mcp)
 
     if mode == "stdio":
         print(f"Running in stdio mode with APP_DATA_PATH: {app_data_path}")
