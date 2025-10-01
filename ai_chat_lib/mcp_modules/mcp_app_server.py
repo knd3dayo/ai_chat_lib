@@ -6,11 +6,12 @@ from dotenv import load_dotenv
 import argparse
 from fastmcp import FastMCP
 from pydantic import Field
-from web_search_mcp.web_modules.search_wikipedia_ja import search_wikipedia_ja
 import ai_chat_lib.langchain_modules.vector_db_tools as vector_db_tools
 from ai_chat_lib.db_modules.main_db_util import MainDBUtil
-from ai_chat_lib.file_modules.file_util import FileUtil
 from ai_chat_lib.db_modules.content_folder import ContentFolder
+
+from web_search_mcp.web_modules.search_wikipedia_ja import search_wikipedia_ja
+from extract_file_mcp.file_modules.file_util import FileUtil
 from web_search_mcp.web_modules.web_util import WebUtil, WebSearchResult
 from analyze_image_mcp.mcp_modules.mcp_app_server import analyze_image_mcp, analyze_two_images_mcp
 
@@ -73,6 +74,13 @@ async def extract_webpage(
     result["urls"] = urls
     return result
 
+# ファイルをダウンロードするツールを登録
+def download_file_mcp(
+    url: Annotated[str, "URL of the file to download"],
+    save_path: Annotated[str, "Path to save the downloaded file"]
+) -> Annotated[bool, "True if the file was downloaded successfully, False otherwise"]:
+    return WebUtil.download_file(url, save_path)
+
 # 引数解析用の関数
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run MCP server with specified mode and APP_DATA_PATH.")
@@ -127,6 +135,7 @@ async def main():
         mcp.tool()(ddgs_search)
         mcp.tool()(extract_webpage)
         mcp.tool()(extract_text_from_file_mcp)
+        mcp.tool()(download_file_mcp)
         # mcp.tool()(analyze_image_mcp)
         # mcp.tool()(analyze_two_images_mcp)
 
