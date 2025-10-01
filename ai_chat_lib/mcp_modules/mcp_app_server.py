@@ -63,6 +63,15 @@ async def ddgs_search(
 ) -> Annotated[list[WebSearchResult], "List of search results from DuckDuckGo"]:
     return await WebUtil.ddgs_search(query, max_results, site, detail)
         
+# 指定したURLのWebページからテキストとリンクを抽出するツールを登録
+async def extract_webpage(
+    url: Annotated[str, "URL of the web page to extract text and links from"]
+) -> Annotated[dict[str, Any], "Dictionary containing 'output' (extracted text) and 'urls' (list of links with href and link text)"]:
+    text, urls = await WebUtil.extract_webpage(url)
+    result: dict[str, Any] = {}
+    result["output"] = text
+    result["urls"] = urls
+    return result
 
 # 引数解析用の関数
 def parse_args() -> argparse.Namespace:
@@ -116,6 +125,7 @@ async def main():
         mcp.tool()(vector_search_mcp)
         mcp.tool()(get_vector_folder_paths_mcp)
         mcp.tool()(ddgs_search)
+        mcp.tool()(extract_webpage)
         mcp.tool()(extract_text_from_file_mcp)
         # mcp.tool()(analyze_image_mcp)
         # mcp.tool()(analyze_two_images_mcp)
