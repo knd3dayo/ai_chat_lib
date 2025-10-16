@@ -256,7 +256,6 @@ class ChatUtil:
                 result_chat_request.add_image_message(CompletionRequest.user_role_name, message, image_url)
             # result_chat_request_listにresult_chat_requestを追加する
             result_chat_request_list.append(result_chat_request)
-
         return result_chat_request_list, [ value for value in result_documents_dict.values()]
 
     @classmethod
@@ -321,7 +320,9 @@ class ChatUtil:
         # OpenAIClientを取得する
         client = OpenAIClient(openai_props)
 
-        pre_processed_chat_request_list, docs_list = await cls.__pre_process_input(client, model, request_context, input_dict, vector_search_requests)
+        pre_processed_chat_request_list, docs_list = await cls.__pre_process_input(
+            client, model, request_context, input_dict, vector_search_requests
+            )
         chat_result_dict_list = []
 
         for pre_processed_chat_request in  pre_processed_chat_request_list:
@@ -331,7 +332,9 @@ class ChatUtil:
             chat_result_dict_list.append(chat_result_dict)
 
         # post_process_outputを実行する
-        result_dict = await cls.__post_process_output_async(client, request_context, input_dict, chat_result_dict_list, docs_list)
+        result_dict = await cls.__post_process_output_async(
+            client, request_context, input_dict, chat_result_dict_list, docs_list
+        )
         return result_dict
     
 
