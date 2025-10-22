@@ -103,25 +103,23 @@ class ChatUtil:
 
 
     @classmethod
-    def split_message(cls, message_list: list[str], model: str, split_token_count: int) -> list[str]:
-        # token_countが80KBを超える場合は分割する
+    def split_message(cls, original_message: list[str], model: str, split_token_count: int) -> list[str]:
+        # token_countがsplit_token_countを超える場合は分割する
         result_message_list = []
-        temp_message_list: list[str] = []
-        total_token_count = 0
-        for i in range(0, len(message_list)):
-            message = message_list[i] + "\n"
-            token_count = cls.get_token_count(model, message)
-            # total_token_count + token_countが80KBを超える場合はtemp_message_listをresult_message_listに追加する
-            if total_token_count + token_count > split_token_count:
-                result_message_list.append("\n".join(temp_message_list))
-                temp_message_list = []
-                total_token_count = 0
-            temp_message_list.append(message)
-            total_token_count += token_count
-        # temp_message_listが空でない場合はresult_message_listに追加する
-        if len(temp_message_list) > 0:
-            result_message_list.append("\n".join(temp_message_list))
-        # result_message_listを返す
+        current_message = ""
+        for line in original_message:
+            line_token_count = cls.get_token_count(model, line + "\n")
+            current_message_token_count = cls.get_token_count(model, current_message)
+            if current_message_token_count + line_token_count > split_token_count:
+                # current_messageをresult_message_listに追加する
+                result_message_list.append(current_message)
+                # current_messageを初期化する
+                current_message = line + "\n"
+            else:
+                current_message += line + "\n"
+        # 最後のcurrent_messageをresult_message_listに追加する
+        if len(current_message) > 0:
+            result_message_list.append(current_message)
         return result_message_list
 
     @classmethod
