@@ -4,15 +4,15 @@ from pydantic import BaseModel, Field
 import copy
 import tiktoken
 
-from ai_chat_lib.llm_modules.openai_util import OpenAIClient, OpenAIProps, CompletionRequest, CompletionOutput
-from ai_chat_lib.langchain_modules.langchain_util import  LangChainUtil
-from ai_chat_lib.langchain_modules.vector_search_request import VectorSearchRequest
+from ai_chat_lib.chat_modules.llm.openai_util import OpenAIClient, OpenAIProps, CompletionRequest, CompletionOutput, MessageItem
+from ai_chat_lib.chat_modules.langchain.langchain_util import  LangChainUtil
+from ai_chat_lib.chat_modules.langchain.vector_search_request import VectorSearchRequest
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
 class ChatRequestContext(BaseModel):
-    chat_request_context_name: ClassVar[str] = "chat_request_context"
+
 
     # split_mode
     split_mode_name_none: ClassVar[str] = "None"
@@ -36,71 +36,7 @@ class ChatRequestContext(BaseModel):
         default="Below are the results retrieved from the vector database related to the main content.\n---\n"
     )
 
-    @classmethod
-    def get_chat_request_context_objects(cls, request_dict: dict) -> "ChatRequestContext":
-        '''
-        {"chat_request_context": {}}の形式で渡される
-        '''
-        chat_request_context_dict = request_dict.get(cls.chat_request_context_name, None)
-        if not chat_request_context_dict:
-            raise ValueError("request_context is not set.")
-        return cls(**chat_request_context_dict)
-
-
 class ChatUtil:
-
-    chat_request_name = "chat_request"
-    @classmethod
-    async def run_openai_chat_async_api(cls, request_dict: dict) -> CompletionOutput:
-
-        openai_props = OpenAIProps.create_from_env()
-        # context_jsonからVectorSearchRequestを生成
-        vector_search_requests = await VectorSearchRequest.get_vector_search_requests_objects(request_dict)
-        # context_jsonからChatRequestContextを生成
-        chat_request_context = ChatRequestContext.get_chat_request_context_objects(request_dict)
-        # chat_requestを取得
-        chat_request_dict = request_dict.get(cls.chat_request_name, None)
-        if not chat_request_dict:
-            raise ValueError("chat_request is not set")
-        # chat_request_dictからChatRequestを生成
-        chat_request_dict = CompletionRequest(**chat_request_dict)
-
-        return await cls.run_openai_chat_async(openai_props, chat_request_context, chat_request_dict, vector_search_requests)
-
-    token_count_request_name = "token_count_request"
-    @classmethod
-    def get_token_count_api(cls, request_json: str):
-        # request_jsonからrequestを作成
-        request_dict: dict = json.loads(request_json)
-
-        # input_textを取得
-        token_count_request = request_dict.get(cls.token_count_request_name, None)
-        if not token_count_request:
-            raise ValueError("token_count_request is not set")
-        model = token_count_request.get("model", None)
-        if not model:
-            raise ValueError("model is not set")
-        input_text = token_count_request.get("input_text", "")
-        if not input_text:
-            raise ValueError("input_text is not set")
-        result: dict = {}
-        result["total_tokens"] = ChatUtil.get_token_count(model, input_text)
-        return result
-
-    chat_contatenate_request_name = "chat_contatenate_request"
-
-    @classmethod
-    def get_token_count_objects(cls, request_dict: dict) -> dict:
-        '''
-        {"context": {"token_count_request": {}}}の形式で渡される
-        '''
-
-        # token_count_request_nameを取得
-        token_count_request = request_dict.get(cls.token_count_request_name, None)
-        if not token_count_request:
-            raise ValueError("token_count_request is not set")
-        return token_count_request
-
 
     @classmethod
     def split_message(cls, original_message: list[str], model: str, split_token_count: int) -> list[str]:
@@ -108,7 +44,7 @@ class ChatUtil:
         result_message_list = []
         current_message = ""
         for line in original_message:
-            line_token_count = cls.get_token_count(model, line + "\n")
+            line_token_count = cls.get_token_count(model, line)
             current_message_token_count = cls.get_token_count(model, current_message)
             if current_message_token_count + line_token_count > split_token_count:
                 # current_messageをresult_message_listに追加する
@@ -120,41 +56,42 @@ class ChatUtil:
         # 最後のcurrent_messageをresult_message_listに追加する
         if len(current_message) > 0:
             result_message_list.append(current_message)
+
         return result_message_list
 
     @classmethod
-    def __get_last_message_image_urls(cls, message_dict: dict) -> tuple[int, list[str]]:
+    def __get_last_message_image_urls(cls, message_dict: MessageItem) -> tuple[int, list[str]]:
         '''
         message_dictのmessagesの最後のimage_url要素を取得する
     
         '''
         image_urls = []
         message_index = -1
-        # "messages"のimage_url要素を取得する       
-        for i in range(0, len(message_dict["content"])):
-            if message_dict["content"][i]["type"] == "image_url":
-                image_urls.append(message_dict["content"][i]["image_url"]["url"])
+        # "messages"のimage_url要素を取得する
+        for i in range(0, len(message_dict.content)):
+            if message_dict.content[i]["type"] == "image_url":
+                image_urls.append(message_dict.content[i]["image_url"]["url"])
                 message_index = i
 
         return message_index, image_urls
 
     @classmethod
-    def __get_last_message_text(cls, message_dict: dict) -> tuple[int, str]:
+    def __get_last_message_text(cls, message_dict: MessageItem) -> tuple[int, str]:
         '''
         message_dictのmessagesの最後のtext要素を取得する
     
         '''
         message_index = -1
         # "messages"のtext要素を取得する       
-        for i in range(0, len(message_dict["content"])):
-            if message_dict["content"][i]["type"] == "text":
+        for i in range(0, len(message_dict.content)):
+            if message_dict.content[i]["type"] == "text":
                 message_index = i
                 break
         # message_indexが-1の場合はエラーをraiseする
         if message_index == -1:
             raise ValueError("last_text_content_index is -1")
         # queryとして最後のtextを取得する
-        last_message = message_dict["content"][message_index]["text"]
+        last_message = message_dict.content[message_index]["text"]
         return message_index, last_message
 
     @classmethod
@@ -219,12 +156,12 @@ class ChatUtil:
 
         # SplitModeがNone以外の場合はoriginal_last_messageを分割する
         splited_messages = cls.split_message(original_last_message.split("\n"), model, request_context.split_token_count)
-
         for i in range(0, len(splited_messages)):
             # 分割したメッセージを取得する毎に、プロンプトテンプレートと関連情報を取得する
             target_message = splited_messages[i]
             # chat_requestをdeepcopyする
             result_chat_request = copy.deepcopy(chat_request)
+            
             # result_chat_requestのmessagesにtext_messageを追加する
             result_chat_request.add_text_message(CompletionRequest.user_role_name, 
                 f"{request_context.prompt_template_text}\n{target_message}\n\n{vector_search_result_message}")
@@ -328,6 +265,10 @@ class ChatUtil:
             chat_result_dict = await client.run_completion_async(pre_processed_chat_request)
             # chat_result_dictをchat_result_dict_listに追加する
             chat_result_dict_list.append(chat_result_dict)
+
+            # 0.5秒待機する
+            import time
+            time.sleep(0.5)
 
         # post_process_outputを実行する
         result_dict = await cls.__post_process_output_async(

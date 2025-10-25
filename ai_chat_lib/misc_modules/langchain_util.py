@@ -22,7 +22,7 @@ from langchain_core.runnables import chain
 from langchain_core.callbacks import (
     CallbackManagerForRetrieverRun,
 )
-from ai_chat_lib.langchain_modules.langchain_doc_store import SQLDocStore
+from ai_chat_lib.chat_modules.langchain.langchain_doc_store import SQLDocStore
 from langchain_core.retrievers import BaseRetriever
 import logging 
 logger = logging.getLogger(__name__)

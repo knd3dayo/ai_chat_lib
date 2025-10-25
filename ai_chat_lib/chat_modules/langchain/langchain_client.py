@@ -1,13 +1,13 @@
 
 import json
 from typing import Any
-from pydantic import BaseModel, Field, field_validator, ValidationInfo
+from pydantic import BaseModel, Field
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_openai import OpenAIEmbeddings
 
-from ai_chat_lib.llm_modules.openai_util import OpenAIProps
+from ai_chat_lib.chat_modules.llm.openai_util import OpenAIProps
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -20,17 +20,14 @@ class LangChainOpenAIClient(BaseModel):
         if not self.embedding_model:
             raise ValueError("embedding_model is not set.")
 
+        params = self.props.create_client_params()
+        params["model"] = self.embedding_model
         if (self.props.azure_openai):
-            params = self.props.create_azure_openai_dict()
             # modelを設定する。
-            params["model"] = self.embedding_model
             embeddings = AzureOpenAIEmbeddings(
                 **params
             )
         else:
-            params =self.props.create_openai_dict()
-            # modelを設定する。
-            params["model"] = self.embedding_model
             embeddings = OpenAIEmbeddings(
                 **params
             )

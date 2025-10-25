@@ -34,7 +34,6 @@ class PromptItem(BaseModel):
     prompt_template_type: int = Field(..., description="Type of the prompt template")
     extended_properties_json: str = Field(..., description="JSON string of extended properties")
 
-    get_prompt_item_requests_name: ClassVar[str] = "prompt_item_requests"
 
     @classmethod
     async def create_table(cls):
@@ -290,72 +289,6 @@ class PromptItem(BaseModel):
             prompt_item = PromptItem(**item)
             await cls.update_prompt_item(prompt_item)
 
-
-    @classmethod
-    def get_prompt_item_objects(cls, request_dict: dict) -> list["PromptItem"]:
-        '''
-        {"prompt_ttem_requests": [] }の形式で渡される
-        '''
-        prompt_items = request_dict.get(cls.get_prompt_item_requests_name, None)
-        if not prompt_items:
-            raise ValueError("prompt_items is not set.")
-        return [cls(**item) for item in prompt_items]
-
-
-    @classmethod
-    async def get_prommt_items_api(cls) -> dict:
-        """
-        PromptItemsテーブルから全てのデータを取得し、API用の辞書形式で返す
-        """
-        prompt_items = await cls.get_prompt_items()
-        return {
-            "prompt_items": [item.model_dump() for item in prompt_items],
-        }
-    
-    @classmethod
-    async def get_prompt_item_api(cls, request_json: str) -> dict:
-        """
-        PromptItemsテーブルから指定されたIDのデータを取得し、API用の辞書形式で返す
-        """
-        request_dict: dict = json.loads(request_json)
-        id: Union[str, None] = cls.get_prompt_item_objects(request_dict)[0].id if cls.get_prompt_item_objects(request_dict) else None
-        if id is None:
-            raise ValueError("id is not set in the request.")
-        prompt_item = await cls.get_prompt_item_by_id(id)
-        if prompt_item is None:
-            return {"prompt_item": None}
-        return{
-            "prompt_item": prompt_item.model_dump()
-        }
-    
-    @classmethod
-    async def update_prompt_items_api(cls, request_json: str) -> dict:
-        """
-        PromptItemsテーブルのデータを更新する
-        """
-        request_dict: dict = json.loads(request_json)
-        prompt_items_data = cls.get_prompt_item_objects(request_dict)
-        if not prompt_items_data:
-            raise ValueError("prompt_items is not set in the request.")
-        for prompt_item_data in prompt_items_data:
-            prompt_item = cls(**prompt_item_data.model_dump())
-            await cls.update_prompt_item(prompt_item)
-    
-        return {}
-    
-    @classmethod
-    async def delete_prompt_items_api(cls, request_json: str) -> dict:
-        """
-        PromptItemsテーブルから指定されたIDのデータを削除する
-        """
-        request_dict: dict = json.loads(request_json)
-        prompt_items_data = cls.get_prompt_item_objects(request_dict)
-        if not prompt_items_data:
-            raise ValueError("prompt_items is not set in the request.")
-        for prompt_item_data in prompt_items_data:
-            await cls.delete_prompt_item(prompt_item_data.id)
-    
-        return {}
 
     @classmethod
     async def get_prompt_items(cls) -> list["PromptItem"]:

@@ -34,8 +34,6 @@ class ContentFolder(BaseModel):
     folder_path: Optional[str] = None
     is_root_folder: bool = False
 
-    get_content_folder_requests_name: ClassVar[str] = "content_folder_requests"
-
     @field_validator("is_root_folder", mode="before")
     @classmethod
     def parse_is_root_folder(cls, v):
@@ -91,19 +89,6 @@ class ContentFolder(BaseModel):
                     CREATE INDEX IF NOT EXISTS idx_folder_name ON ContentFoldersCatalog (folder_name)
                 ''')
                 await conn.commit()
-
-    @classmethod
-    def get_content_folder_request_objects(cls, request_dict: dict) -> List["ContentFolder"]:
-        '''
-        {"content_folder_requests": [] }の形式で渡される
-        '''
-        content_folders = request_dict.get(cls.get_content_folder_requests_name, None)
-        if not content_folders:
-            raise ValueError("content_folder is not set.")
-        return [cls(**item) for item in content_folders]
-    async def to_dict(self) -> dict:
-        result = self.model_dump()
-        return result
 
     # idを指定して、idとfolder_nameとparent_idを取得する.再帰的に親フォルダを辿り、folderのパスを生成する
     @classmethod
@@ -313,7 +298,7 @@ class ContentFolder(BaseModel):
                 else:
                     # idが存在する場合は、更新処理を行う
                     folder.id = id
-                    update_params = await folder.to_dict()
+                    update_params = folder.model_dump()
                     # folder_pathは、ContentFoldersCatalogのテーブルには存在しないので、リセットする
                     update_params["folder_path"] = None
 
@@ -434,102 +419,4 @@ class ContentFolder(BaseModel):
             folder_ids.append(id)
 
         return folder_ids
-
-
-    @classmethod
-    async def get_root_content_folders_api(cls) -> dict:
-        content_folders = await cls.get_root_content_folders()
-        result = {}
-        result["content_folders"] = [await item.to_dict() for item in content_folders]
-        return result
-
-    @classmethod
-    async def get_content_folders_api(cls) -> dict:
-        content_folders = await cls.get_content_folders()
-        result = {}
-        result["content_folders"] = [await item.to_dict() for item in content_folders]
-        return result
-
-    @classmethod
-    async def get_content_folder_by_id_api(cls, request_json: str) -> dict:
-        request_dict: dict = json.loads(request_json)
-        content_folder_id = cls.get_content_folder_request_objects(request_dict)[0].id
-        if not content_folder_id:
-            raise ValueError("content_folder_id is not set")
-        content_folder = await cls.get_content_folder_by_id(content_folder_id)
-        result: dict = {}
-        if content_folder is not None:
-            result["content_folder"] = await content_folder.to_dict()
-        return result
-
-    @classmethod
-    async def get_parent_content_folder_by_id_api(cls, request_json: str) -> dict:
-        request_dict: dict = json.loads(request_json)
-        content_folder_id = cls.get_content_folder_request_objects(request_dict)[0].id
-        if not content_folder_id:
-            raise ValueError("content_folder_id is not set")
-        content_folder = await cls.get_content_folder_by_id(content_folder_id)
-        if not content_folder:
-            raise ValueError("content_folder is not found")
-        parent_content_folder = await cls.get_parent_content_folder_by_id(content_folder)
-        result: dict = {}
-        if parent_content_folder is not None:
-            result["content_folders"] = await parent_content_folder.to_dict()
-        return result
-    
-    @classmethod
-    async def get_child_content_folders_by_id_api(cls, request_json: str) -> dict:
-        request_dict: dict = json.loads(request_json)
-        content_folder_id = cls.get_content_folder_request_objects(request_dict)[0].id
-        if not content_folder_id:
-            raise ValueError("content_folder_id is not set")
-        content_folder = await cls.get_content_folder_by_id(content_folder_id)
-        if not content_folder:
-            raise ValueError("content_folder is not found")
-        child_content_folders = await cls.get_child_content_folders_by_id(content_folder)
-        result: dict = {}
-        result["content_folders"] = [await item.to_dict() for item in child_content_folders]
-        return result
-
-    @classmethod
-    async def update_content_folders_api(cls, request_json: str):
-        request_dict: dict = json.loads(request_json)
-        content_folders = cls.get_content_folder_request_objects(request_dict)
-        for content_folder in content_folders:
-            await cls.update_content_folder(content_folder)
-        result: dict = {}
-        return result
-
-    @classmethod
-    async def delete_content_folders_api(cls, request_json: str):
-        request_dict: dict = json.loads(request_json)
-        content_folders = cls.get_content_folder_request_objects(request_dict)
-        for content_folder in content_folders:
-            await cls.delete_content_folder(content_folder)
-        result: dict = {}
-        return result
-
-    @classmethod
-    async def get_content_folder_by_path_api(cls, request_json: str):
-        request_dict: dict = json.loads(request_json)
-        content_folder_path = request_dict.get("content_folder_path", None)
-        if not content_folder_path:
-            raise ValueError("content_folder_path is not set")
-        content_folder = await cls.get_content_folder_by_path(content_folder_path)
-        result: dict = {}
-        if content_folder is not None:
-            result["content_folder"] = await content_folder.to_dict()
-        return result
-
-    @classmethod
-    async def get_content_folder_path_by_id_api(cls, request_json: str):
-        request_dict: dict = json.loads(request_json)
-        content_folder_id = cls.get_content_folder_request_objects(request_dict)[0].id
-        if not content_folder_id:
-            raise ValueError("content_folder_id is not set")
-        content_folder_path = await cls.get_content_folder_path_by_id(content_folder_id)
-        result: dict = {}
-        if content_folder_path is not None:
-            result["content_folder_path"] = content_folder_path
-        return result
 

@@ -1,9 +1,9 @@
 import os
 
 from typing import Callable, Annotated, Any, Union, List
-from ai_chat_lib.langchain_modules.langchain_util import LangChainUtil
-from ai_chat_lib.llm_modules.openai_util import OpenAIProps
-from ai_chat_lib.langchain_modules.vector_search_request import VectorSearchRequest
+from ai_chat_lib.chat_modules.langchain.langchain_util import LangChainUtil
+from ai_chat_lib.chat_modules.llm.openai_util import OpenAIProps
+from ai_chat_lib.chat_modules.langchain.vector_search_request import VectorSearchRequest
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 
 async def vector_search(
@@ -19,7 +19,7 @@ async def vector_search(
     if "APP_DATA_PATH" not in os.environ:
         raise ValueError("APP_DATA_PATH is not set in the environment variables.")
  
-    openai_props = OpenAIProps.create_from_env()
+    openai_props = OpenAIProps()
     search_kwargs: dict[str, Any] = {
         "k": num_results,
     }

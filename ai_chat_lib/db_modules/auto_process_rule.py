@@ -31,22 +31,6 @@ class AutoProcessRule(BaseModel):
     target_folder_id: Optional[str] = Field(None, description="ID of the target folder for the rule")
     destination_folder_id: Optional[str] = Field(None, description="ID of the destination folder for the rule")
     
-    auto_process_rule_requests_name: ClassVar[str] = "auto_process_rule_requests"
-    @classmethod
-    async def get_auto_process_rule_objects(cls, request_dict: dict) -> list:
-        '''
-        {"auto_process_rule_requests": [{...}, ...]} の形式で渡される
-        '''
-        request: Union[list[dict], None] = request_dict.get(cls.auto_process_rule_requests_name, None)
-        if not request:
-            logger.info("auto process rule request is not set. skipping.")
-            return []
-        auto_process_rules = []
-        for item in request:
-            auto_process_rule = cls(**item)
-            auto_process_rules.append(auto_process_rule)
-        return auto_process_rules
-    
     @classmethod
     async def create_table(cls) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
@@ -78,31 +62,6 @@ class AutoProcessRule(BaseModel):
                     ''')
                     await conn.commit()
 
-    @classmethod
-    async def get_auto_process_rules_api(cls, request_json: str) -> dict:
-        rules = await cls.get_auto_process_rules()
-        result: dict = {}
-        result["auto_process_rules"] = [rule.dict() for rule in rules]
-        return result
-    
-    @classmethod
-    async def update_auto_process_rules_api(cls, request_json: str) -> dict:
-        request_dict = json.loads(request_json)
-        rules = await cls.get_auto_process_rule_objects(request_dict)
-        result: dict = {}
-        result["auto_process_rules"] = [await cls.update_auto_process_rule(rule) for rule in rules]
-        return result
-    
-    @classmethod
-    async def delete_auto_process_rules_api(cls, request_json: str) -> dict:
-        request_dict = json.loads(request_json)
-        rules = await cls.get_auto_process_rule_objects(request_dict)
-        result: dict = {}
-        for rule in rules:
-            await cls.delete_auto_process_rule(rule)
-        result["deleted"] = True
-        return result
-    
     @classmethod
     async def get_auto_process_rules(cls) -> list:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:

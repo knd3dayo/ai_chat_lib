@@ -31,23 +31,6 @@ class SearchRule(BaseModel):
     search_folder_id: Optional[str] = Field(None, description="ID of the folder to search in")
     target_folder_id: Optional[str] = Field(None, description="ID of the target folder for the search results")
 
-    search_rule_requests_name: ClassVar[str] = "search_rule_requests"
-
-    @classmethod
-    async def get_search_rule_objects(cls, request_dict: dict) -> list:
-        '''
-        {"search_rule_requests": [{...}, ...]} の形式で渡される
-        '''
-        request: Union[list[dict], None] = request_dict.get(cls.search_rule_requests_name, None)
-        if not request:
-            logger.info("search rule request is not set. skipping.")
-            return []
-        search_rules = []
-        for item in request:
-            search_rule = cls(**item)
-            search_rules.append(search_rule)
-        return search_rules
-    
     @classmethod
     async def create_table(cls) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
@@ -77,33 +60,7 @@ class SearchRule(BaseModel):
                         )
                     ''')
                     await conn.commit()
-    @classmethod
-    async def get_search_rules_api(cls, request_json: str) -> dict:
-        search_rules = await cls.get_search_rules()
-        result: dict = {}
-        result["search_rules"] = [search_rule.to_dict() for search_rule in search_rules]
 
-        return result
-        
-    @classmethod
-    async def update_search_rules_api(cls, request_json: str):
-        request_dict: dict = json.loads(request_json)
-        search_rules = await cls.get_search_rule_objects(request_dict)
-        for search_rule in search_rules:
-            await cls.update_search_rule(search_rule)
-        result: dict = {}
-        return result
-    @classmethod
-    async def delete_search_rules_api(cls, request_json: str):
-        request_dict: dict = json.loads(request_json)
-        search_rules = await cls.get_search_rule_objects(request_dict)
-        for search_rule in search_rules:
-            await cls.delete_search_rule(search_rule)
-        result: dict = {}
-        return result
-    
-    def to_dict(self) -> dict:
-        return self.model_dump() 
     
     @classmethod
     async def get_search_rules(cls) -> list["SearchRule"]:

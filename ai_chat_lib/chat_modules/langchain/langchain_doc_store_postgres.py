@@ -5,7 +5,7 @@ from langchain_core.stores import BaseStore
 from typing import Sequence, Optional, Tuple, Iterator, Union, TypeVar
 from sqlalchemy import create_engine
 from sqlalchemy import text
-from ai_chat_lib.langchain_modules.langchain_doc_store import SQLDocStore
+from ai_chat_lib.chat_modules.langchain.langchain_doc_store import SQLDocStore
 
 sys.path.append("python")
 K = TypeVar("K")

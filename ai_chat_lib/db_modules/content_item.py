@@ -54,8 +54,6 @@ class ContentItem(BaseModel):
     cached_base64_string: str = Field(..., description="Base64 encoded string of the cached content")
     extended_properties_json: str = Field(..., description="JSON string of extended properties for the content item")
 
-    content_item_requests_name: ClassVar[str] = "content_item_requests"
-
     @classmethod
     async def create_table(cls):
         """
@@ -93,28 +91,6 @@ class ContentItem(BaseModel):
             ''')
             await conn.commit()
 
-    @classmethod
-    def get_content_item_request_objects(cls, request_dict: dict) -> List["ContentItem"]:
-        """
-        APIリクエストdictからContentItemオブジェクトリストを生成する。
-
-        Args:
-            request_dict (dict): {"content_item_requests": [{...}, ...]} 形式のリクエスト
-
-        Returns:
-            List[ContentItem]: ContentItemインスタンスのリスト
-        """
-        request: Union[List[dict], None] = request_dict.get(cls.content_item_requests_name, None)
-        if not request:
-            logger.info("content item request is not set. skipping.")
-            return []
-        
-        content_items = []
-        for item in request:
-            content_item = cls(**item)
-            content_items.append(content_item)
-        
-        return content_items
 
     @classmethod
     async def get_content_items_by_folder_id(cls, folder_id: str) -> List["ContentItem"]:
@@ -323,120 +299,4 @@ class ContentItem(BaseModel):
         """
         content_items = await cls.get_content_items()
         return {"content_items": [item.to_dict() for item in content_items]}
-        
-    @classmethod
-    async def get_content_item_by_id_api(cls, request_json: str) -> dict:
-        """
-        指定IDのContentItemをAPIレスポンス形式で取得する。
 
-        Args:
-            request_json (str): {"content_item_requests": [{"id": ...}]} 形式のJSON
-
-        Returns:
-            dict: {"content_item": {...}}
-        """
-        request_dict: dict = json.loads(request_json)
-        content_item_requests: List[dict] = request_dict.get(cls.content_item_requests_name, [])
-        if not content_item_requests:
-            raise ValueError("content_item_requests is not set in the request.")
-        item_id: str = content_item_requests[0].get("id", "")
-        if not item_id:
-            raise ValueError("id is not set in the request.")
-        
-        content_item = await cls.get_content_item_by_id(item_id)
-        if not content_item:
-            raise ValueError(f"ContentItem with id {item_id} not found.")
-        return {"content_item": content_item.to_dict()}
-    
-    @classmethod
-    async def get_content_items_by_folder_id_api(cls, request_json: str) -> dict:
-        """
-        指定フォルダID配下のContentItemをAPIレスポンス形式で取得する。
-
-        Args:
-            request_json (str): {"content_item_requests": [{"folder_id": ...}]} 形式のJSON
-
-        Returns:
-            dict: {"content_items": [ ... ]}
-        """
-        request_dict: dict = json.loads(request_json)
-        content_item_requests: List[dict] = request_dict.get(cls.content_item_requests_name, [])
-        if not content_item_requests:
-            raise ValueError("content_item_requests is not set in the request.")
-        folder_id: str = content_item_requests[0].get("folder_id", "")
-        if not folder_id:
-            raise ValueError("folder_id is not set in the request.")
-        
-        content_items = await cls.get_content_items_by_folder_id(folder_id)
-        return {"content_items": [item.to_dict() for item in content_items]}
-    
-    @classmethod
-    async def update_content_items_api(cls, request_json: str) -> dict:
-        """
-        ContentItemの追加・更新をAPIリクエスト形式で受け付けて実行する。
-
-        Args:
-            request_json (str): {"content_item_requests": [ ... ]} 形式のJSON
-
-        Raises:
-            ValueError: リクエスト不備時
-        """
-        request_dict: dict = json.loads(request_json)
-        content_item_requests: List[dict] = request_dict.get(cls.content_item_requests_name, [])
-        if not content_item_requests:
-            raise ValueError("content_item_requests is not set in the request.")
-        
-        content_items = cls.get_content_item_request_objects(request_dict)
-        if not content_items:
-            raise ValueError("No valid content items found in the request.")
-        
-        updated_items = []
-        for item in content_items:
-            updated_item = await cls.update_content_item(item)
-            updated_items.append(updated_item.to_dict())
-        return {}
-        
-    @classmethod
-    async def delete_content_items_api(cls, request_json: str) -> dict:
-        """
-        ContentItemの削除をAPIリクエスト形式で受け付けて実行する。
-
-        Args:
-            request_json (str): {"content_item_requests": [{"id": ...}]} 形式のJSON
-
-        Raises:
-            ValueError: リクエスト不備時や該当ID未存在時
-        """
-        request_dict: dict = json.loads(request_json)
-        content_item_requests: List[dict] = request_dict.get(cls.content_item_requests_name, [])
-        if not content_item_requests:
-            raise ValueError("content_item_requests is not set in the request.")
-        
-        item_id: str = content_item_requests[0].get("id", "")
-        if not item_id:
-            raise ValueError("id is not set in the request.")
-        
-        content_item = await cls.get_content_item_by_id(item_id)
-        if not content_item:
-            raise ValueError(f"ContentItem with id {item_id} not found.")
-        
-        await cls.delete_content_item(content_item)
-        return {}
-
-    @classmethod
-    async def search_content_items_api(cls, request_json: str) -> dict:
-        """
-        ContentItemの検索をAPIリクエスト形式で受け付けて実行する。
-
-        Args:
-            request_json (str): {"search_request": { ... }} 形式のJSON
-
-        Returns:
-            dict: {"content_items": [ ... ]}
-        """
-        request_dict: dict = json.loads(request_json)
-        search_condition_data = request_dict.get("search_request", {})
-        search_condition = SearchCondition(**search_condition_data)
-
-        content_items = await cls.search_content_items(search_condition)
-        return {"content_items": [item.to_dict() for item in content_items]}

@@ -39,43 +39,6 @@ class TagItem(BaseModel):
             return v.upper() == "TRUE"
         return False
 
-    @classmethod
-    async def get_tag_item_objects(cls, request_dict: dict) -> List["TagItem"]:
-        '''
-        {"tag_item_requests": []}の形式で渡される
-        '''
-        tag_items: Optional[List[dict]] = request_dict.get("tag_item_requests", None)
-        if not tag_items:
-            raise ValueError("tag_items is not set.")
-        return [cls(**item) for item in tag_items]
-
-    @classmethod
-    async def get_tag_items_api(cls, request_json: str):
-        tag_items = await cls.get_tag_items()
-        result: dict = {}
-        result["tag_items"] = [item.model_dump() for item in tag_items]
-        return result
-
-    @classmethod
-    async def update_tag_items_api(cls, request_json: str):
-        request_dict: dict = json.loads(request_json)
-        tag_items = await TagItem.get_tag_item_objects(request_dict)
-        for tag_item in tag_items:
-            await cls.update_tag_item(tag_item)
-        result: dict = {}
-        return result
-
-    @classmethod
-    async def delete_tag_items_api(cls, request_json: str):
-        request_dict: dict = json.loads(request_json)
-        tag_items = await TagItem.get_tag_item_objects(request_dict)
-        for tag_item in tag_items:
-            await cls.delete_tag_item(tag_item)
-        result: dict = {}
-        return result
-
-    def to_dict(self) -> dict:
-        return self.dict()
 
     @classmethod
     async def get_tag_item(cls, tag_id: str) -> Union["TagItem", None]:

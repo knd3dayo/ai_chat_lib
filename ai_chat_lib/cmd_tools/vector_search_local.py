@@ -1,7 +1,7 @@
 import argparse
 import os
 from dotenv import load_dotenv
-import  ai_chat_lib.langchain_modules.vector_db_tools as vector_db_tools
+import  ai_chat_lib.chat_modules.langchain.vector_db_tools as vector_db_tools
 def parse_args():
     parser = argparse.ArgumentParser(description="Local Vector Search Tool")
     parser.add_argument("-q", "--query", type=str, required=True, help="Search query string")

@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import argparse
 from fastmcp import FastMCP
 from pydantic import Field
-import ai_chat_lib.langchain_modules.vector_db_tools as vector_db_tools
+import ai_chat_lib.chat_modules.langchain.vector_db_tools as vector_db_tools
 from ai_chat_lib.db_modules.main_db_util import MainDBUtil
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 

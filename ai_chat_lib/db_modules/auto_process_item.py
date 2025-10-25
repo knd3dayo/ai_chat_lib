@@ -37,24 +37,6 @@ class AutoProcessItem(BaseModel):
     auto_process_item_type: int = Field(default=1, description="Type of the auto process item, 0 for SystemDefined, 1 for UserDefined")
     action_type: int = Field(..., description="Type of action associated with the auto process item")
 
-    auto_process_item_requests_name: ClassVar[str] = "auto_process_item_requests"
-
-    @classmethod
-    async def get_auto_process_item_objects(cls, request_dict: dict) -> list:
-        '''
-        {"auto_process_item_requests": [{...}, ...]} の形式で渡される
-        '''
-        request: Union[list[dict], None] = request_dict.get(cls.auto_process_item_requests_name, None)
-        if not request:
-            logger.info("auto process item request is not set. skipping.")
-            return []
-        auto_process_items = []
-        for item in request:
-            auto_process_item = cls(**item)
-            auto_process_items.append(auto_process_item)
-        return auto_process_items
-    
-
     @classmethod
     async def create_table(cls) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
@@ -161,31 +143,6 @@ class AutoProcessItem(BaseModel):
         ]:
             await cls.update_auto_process_item(item)
 
-
-    @classmethod
-    async def get_auto_process_items_api(cls, request_json: str) -> dict:
-        items = await cls.get_auto_process_items()
-        result: dict = {}
-        result["auto_process_items"] = [item.dict() for item in items]
-        return result
-    
-    @classmethod
-    async def update_auto_process_items_api(cls, request_json: str) -> dict:
-        request_dict = json.loads(request_json)
-        items = await cls.get_auto_process_item_objects(request_dict)
-        result: dict = {}
-        result["auto_process_items"] = [await cls.update_auto_process_item(item) for item in items]
-        return result
-    
-    @classmethod
-    async def delete_auto_process_items_api(cls, request_json: str) -> dict:
-        request_dict = json.loads(request_json)
-        items = await cls.get_auto_process_item_objects(request_dict)
-        result: dict = {}
-        for item in items:
-            await cls.delete_auto_process_item(item)
-        result["deleted"] = True
-        return result
 
     @classmethod
     async def get_auto_process_items(cls) -> list:

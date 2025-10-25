@@ -9,16 +9,13 @@ from langchain_core.documents import Document
 from langchain_core.vectorstores import VectorStore
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.runnables import chain
-from langchain_core.callbacks import (
-    CallbackManagerForRetrieverRun,
-)
+
 from openai import RateLimitError
 
-from ai_chat_lib.langchain_modules.langchain_client import LangChainOpenAIClient
-from ai_chat_lib.langchain_modules.langchain_doc_store import SQLDocStore
+from ai_chat_lib.chat_modules.langchain.langchain_client import LangChainOpenAIClient
+from ai_chat_lib.chat_modules.langchain.langchain_doc_store import SQLDocStore
 
-from ai_chat_lib.langchain_modules.embedding_data import EmbeddingData
+from ai_chat_lib.chat_modules.langchain.embedding_data import EmbeddingData
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 
 import ai_chat_lib.log_modules.log_settings as log_settings

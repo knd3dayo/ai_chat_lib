@@ -162,66 +162,6 @@ class VectorDBItem(BaseModel):
             return v
         return values.get("description", "")
 
-    @classmethod
-    async def update_vector_db_api(cls, request_json: str):
-        request_dict: dict = json.loads(request_json)
-        vector_db_item = VectorDBItem.get_vector_db_item_object(request_dict)
-        await cls.update_vector_db_item(vector_db_item)
-        result: dict = {}
-        result["vector_db_item"] = vector_db_item.to_dict()
-        return result
-
-    @classmethod
-    async def delete_vector_db_api(cls, request_json: str):
-        request_dict: dict = json.loads(request_json)
-        vector_db_item = VectorDBItem.get_vector_db_item_object(request_dict)
-        await cls.delete_vector_db_item(vector_db_item)
-        result: dict = {}
-        result["vector_db_item"] = vector_db_item.to_dict()
-        return result
-
-    @classmethod
-    async def get_vector_db_items_api(cls):
-        vector_db_list = await cls.get_vector_db_items()
-        result = {}
-        result["vector_db_items"] = [item.to_dict() for item in vector_db_list]
-        return result
-
-    @classmethod
-    async def get_vector_db_item_by_id_api(cls, request_json: str):
-        request_dict: dict = json.loads(request_json)
-        vector_db_id = VectorDBItem.get_vector_db_item_object(request_dict).id
-        if not vector_db_id:
-            raise ValueError("vector_db_id is not set")
-        vector_db_item = await cls.get_vector_db_by_id(vector_db_id)
-        result: dict = {}
-        if vector_db_item is not None:
-            result["vector_db_item"] = vector_db_item.to_dict()
-        return result
-
-    @classmethod
-    async def get_vector_db_item_by_name_api(cls, request_json: str):
-        request_dict: dict = json.loads(request_json)
-        vector_db_name = VectorDBItem.get_vector_db_item_object(request_dict).name
-        if not vector_db_name:
-            raise ValueError("vector_db_name is not set")
-        vector_db = await cls.get_vector_db_by_name(vector_db_name)
-        result: dict = {}
-        if vector_db is not None:
-            result["vector_db_item"] = vector_db.to_dict()
-        return result
-
-    vector_db_item_request_name: ClassVar[str] = "vector_db_item_request"
-
-    @classmethod
-    def get_vector_db_item_object(cls, request_dict: dict) -> "VectorDBItem":
-        vector_db_item_request = request_dict.get(cls.vector_db_item_request_name, None)
-        if not vector_db_item_request:
-            raise ValueError("vector_db_item_request is not set.")
-        return VectorDBItem(**vector_db_item_request)
-
-    def to_dict(self) -> dict:
-        return self.model_dump()
     
     def get_vector_db_type_string(self) -> str:
         '''

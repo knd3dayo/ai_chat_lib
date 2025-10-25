@@ -11,9 +11,13 @@ import time
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
+class MessageItem(BaseModel):
+    role: str = Field(default="user", description="The role of the message sender (e.g., 'user', 'assistant').")
+    content: Any = Field(default=None, description="The content of the message, which can be text or other types.")
+
 class CompletionRequest(BaseModel):
 
-    messages: list[dict] = Field(default=[], description="List of chat messages in the conversation.")
+    messages: list[MessageItem] = Field(default=[], description="List of chat messages in the conversation.")
     model: str = Field(default="gpt-4o", description="The model used for the chat conversation.")
     
     # option fields
@@ -65,7 +69,7 @@ class CompletionRequest(BaseModel):
         if content:
             content_item.append({"type": "text", "text": content})
 
-        self.messages.append({"role": role, "content": content_item})
+        self.messages.append(MessageItem(role=role, content=content_item))
         logger.debug(f"Image message added: {role}: {image_url}")
 
     def append_image_to_last_message_by_path(self, role:str, image_path: str) -> None:
@@ -99,19 +103,19 @@ class CompletionRequest(BaseModel):
             image_url (str): The URL of the image to append to the last message.
         """
         if not self.messages:
-            self.messages.append({"role": role, "content": [{"type": "image_url", "image_url": {"url": image_url}}]})
+            self.messages.append(MessageItem(role=role, content=[{"type": "image_url", "image_url": {"url": image_url}}]))
             logger.debug("No messages to append to. Added new message.")
             return
         
         last_message = self.messages[-1]
-        if last_message["role"] != role:
-            self.messages.append({"role": role, "content": [{"type": "image_url", "image_url": {"url": image_url}}]})
-            logger.debug(f"Added new message as last message role '{last_message['role']}'")
+        if last_message.role != role:
+            self.messages.append(MessageItem(role=role, content=[{"type": "image_url", "image_url": {"url": image_url}}]))
+            logger.debug(f"Added new message as last message role '{last_message.role}'")
             return
         
         # Check if the last content is a list and contains an image item
-        if isinstance(last_message["content"], list):
-            last_message["content"].append({"type": "image_url", "image_url": {"url": image_url}})
+        if isinstance(last_message.content, list):
+            last_message.content.append({"type": "image_url", "image_url": {"url": image_url}})
             logger.debug(f"Added new image item to last message: {image_url}")
         else:
             logger.error("Last message content is not in expected format (list). Cannot append image.")
@@ -125,20 +129,20 @@ class CompletionRequest(BaseModel):
             additional_text (str): The text to append to the last message.
         """
         if not self.messages:
-            self.messages.append({"role": role, "content": [{"type": "text", "text": additional_text}]})
+            self.messages.append(MessageItem(role=role, content=[{"type": "text", "text": additional_text}]))
             logger.debug("No messages to append to. Added new message.")
             return
         last_message = self.messages[-1]
 
-        if last_message["role"] != role:
-            self.messages.append({"role": role, "content": [{"type": "text", "text": additional_text}]})
-            logger.debug(f"Added new message as last message role '{last_message['role']}'")
+        if last_message.role != role:
+            self.messages.append(MessageItem(role=role, content=[{"type": "text", "text": additional_text}]))
+            logger.debug(f"Added new message as last message role '{last_message.role}'")
             return
 
         # Check if the last content is a list and contains a text item
-        if isinstance(last_message["content"], list):
+        if isinstance(last_message.content, list):
             # If no text item found, add a new text item
-            last_message["content"].append({"type": "text", "text": additional_text})
+            last_message.content.append({"type": "text", "text": additional_text})
             logger.debug(f"Added new text item to last message: {additional_text}")
         else:
             logger.error("Last message content is not in expected format (list). Cannot append text.")
@@ -155,15 +159,15 @@ class CompletionRequest(BaseModel):
             logger.error("Role and content must be provided.")
             return
         content_item = [{"type": "text", "text": content}]
-        self.messages.append({"role": role, "content": content_item})
+        self.messages.append(MessageItem(role=role, content=content_item))
         logger.debug(f"Message added: {role}: {content}")
 
-    def get_last_message(self) -> Optional[dict]:
+    def get_last_message(self) -> Optional[MessageItem]:
         """
         Get the last message in the chat history.
         
         Returns:
-            Optional[dict]: The last message dictionary or None if no messages exist.
+            Optional[MessageItem]: The last message or None if no messages exist.
         """
         if self.messages:
             last_message = self.messages[-1]
@@ -173,7 +177,7 @@ class CompletionRequest(BaseModel):
             logger.debug("No messages found.")
             return None
 
-    def add_messages(self, messages: list[dict]) -> None:
+    def add_messages(self, messages: list[MessageItem]) -> None:
         """
         Add multiple messages to the chat history.
         
@@ -210,14 +214,15 @@ class CompletionOutput(BaseModel):
 
 
 class OpenAIProps(BaseModel):
-    openai_key: str = Field(default="", alias="openai_key")
-    azure_openai: bool = Field(default=False, alias="azure_openai")
-    azure_openai_api_version: Optional[str] = Field(default=None, alias="azure_openai_api_version")
-    azure_openai_endpoint: Optional[str] = Field(default=None, alias="azure_openai_endpoint")
-    openai_base_url: Optional[str] = Field(default=None, alias="openai_base_url")
 
-    default_completion_model: str = Field(default="gpt-4o", alias="default_completion_model")
-    default_embedding_model: str = Field(default="text-embedding-3-small", alias="default_embedding_model")
+    openai_key: str = Field(default=os.getenv("OPENAI_API_KEY",""), alias="openai_key")
+    azure_openai: bool = Field(default=os.getenv("AZURE_OPENAI","false").lower() == "true", alias="azure_openai")
+    azure_openai_api_version: Optional[str] = Field(default=os.getenv("AZURE_OPENAI_API_VERSION",""), alias="azure_openai_api_version")
+    azure_openai_endpoint: Optional[str] = Field(default=os.getenv("AZURE_OPENAI_ENDPOINT",""), alias="azure_openai_endpoint")
+    openai_base_url: Optional[str] = Field(default=os.getenv("OPENAI_BASE_URL",""), alias="openai_base_url")
+
+    default_completion_model: str = Field(default=os.getenv("OPENAI_COMPLETION_MODEL", "gpt-4o"), alias="default_completion_model")
+    default_embedding_model: str = Field(default=os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"), alias="default_embedding_model")
 
     @model_validator(mode='before')
     def handle_azure_openai_bool_and_version(cls, values):
@@ -228,15 +233,20 @@ class OpenAIProps(BaseModel):
             values["azure_openai_api_version"] = "2024-02-01"
         return values
 
-
-    def create_openai_dict(self) -> dict:
+    def create_client_params(self) -> dict:
+        if self.azure_openai:
+            return self.__create_azure_openai_dict()
+        else:
+            return self.__create_openai_dict()
+        
+    def __create_openai_dict(self) -> dict:
         completion_dict = {}
         completion_dict["api_key"] = self.openai_key
         if self.openai_base_url:
             completion_dict["base_url"] = self.openai_base_url
         return completion_dict
 
-    def create_azure_openai_dict(self) -> dict:
+    def __create_azure_openai_dict(self) -> dict:
         completion_dict = {}
         completion_dict["api_key"] = self.openai_key
         if self.openai_base_url:
@@ -275,21 +285,6 @@ class OpenAIProps(BaseModel):
         return True
     
     @staticmethod
-    def create_from_env() -> 'OpenAIProps':
-        load_dotenv()
-        props: dict = {
-            "openai_key": os.getenv("OPENAI_API_KEY"),
-            "azure_openai": os.getenv("AZURE_OPENAI"),
-            "azure_openai_api_version": os.getenv("AZURE_OPENAI_API_VERSION"),
-            "azure_openai_endpoint": os.getenv("AZURE_OPENAI_ENDPOINT"),
-            "openai_base_url": os.getenv("OPENAI_BASE_URL"),
-            "default_completion_model": os.getenv("OPENAI_COMPLETION_MODEL", "gpt-4o"),
-            "default_embedding_model": os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
-        }
-        openAIProps = OpenAIProps.model_validate(props)
-        return openAIProps
-
-    @staticmethod
     def local_image_to_data_url(image_path) -> str:
         mime_type, _ = guess_type(image_path)
         if mime_type is None:
@@ -297,17 +292,6 @@ class OpenAIProps(BaseModel):
         with open(image_path, "rb") as image_file:
             base64_encoded_data = base64.b64encode(image_file.read()).decode('utf-8')
         return f"data:{mime_type};base64,{base64_encoded_data}"
-
-    @staticmethod
-    def create_openai_chat_parameter_dict(model: str, messages_json: str, temperature: float = 0.5, json_mode: bool = False) -> dict:
-        params: dict[str, Any] = {}
-        params["model"] = model
-        params["messages"] = json.loads(messages_json)
-        if temperature:
-            params["temperature"] = str(temperature)
-        if json_mode:
-            params["response_format"] = {"type": "json_object"}
-        return params
 
     @staticmethod
     def create_openai_chat_parameter_dict_simple(model: str, prompt: str, temperature: Union[float, None] = 0.5, json_mode: bool = False) -> dict:
@@ -321,30 +305,6 @@ class OpenAIProps(BaseModel):
             params["response_format"] = {"type": "json_object"}
         return params
 
-    @staticmethod
-    def create_openai_chat_with_vision_parameter_dict(
-        model: str,
-        prompt: str,
-        image_file_name_list: List[str],
-        temperature: float = 0.5,
-        json_mode: bool = False,
-        max_tokens=None
-    ) -> dict:
-        content: List[dict[str, Any]] = [{"type": "text", "text": prompt}]
-        for image_file_name in image_file_name_list:
-            image_data_url = OpenAIProps.local_image_to_data_url(image_file_name)
-            content.append({"type": "image_url", "image_url": {"url": image_data_url}})
-        messages = [{"role": "user", "content": content}]
-        params: dict[str, Any] = {}
-        params["messages"] = messages
-        params["model"] = model
-        if temperature:
-            params["temperature"] = temperature
-        if json_mode:
-            params["response_format"] = {"type": "json_object"}
-        if max_tokens:
-            params["max_tokens"] = max_tokens
-        return params
 
 import json
 from openai import AsyncOpenAI, AsyncAzureOpenAI
@@ -359,25 +319,25 @@ class OpenAIClient:
     def get_completion_client(self) -> Union[AsyncOpenAI, AsyncAzureOpenAI]:
         
         if (self.props.azure_openai):
-            params = self.props.create_azure_openai_dict()
+            params = self.props.create_client_params()
             return AsyncAzureOpenAI(
                 **params
             )
 
         else:
-            params =self.props.create_openai_dict()
+            params =self.props.create_client_params()
             return AsyncOpenAI(
                 **params
             )
 
     def get_embedding_client(self) -> Union[AsyncOpenAI, AsyncAzureOpenAI]:
         if (self.props.azure_openai):
-            params = self.props.create_azure_openai_dict()
+            params = self.props.create_client_params()
             return AsyncAzureOpenAI(
                 **params
             )
         else:
-            params =self.props.create_openai_dict()
+            params =self.props.create_client_params()
             return AsyncOpenAI(
                 **params
             )

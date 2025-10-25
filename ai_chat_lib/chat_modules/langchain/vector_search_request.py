@@ -25,24 +25,6 @@ class VectorSearchRequest(BaseModel):
     search_kwargs: Dict[str, Any] = Field(default_factory=dict)
     vector_db_item: Optional["VectorDBItem"] = None
 
-    vector_search_requests_name: ClassVar[str] = "vector_search_requests"
-
-    @classmethod
-    async def get_vector_search_requests_objects(cls, request_dict: dict) -> List["VectorSearchRequest"]:
-        '''
-        {"vector_search_requests": [{...}, ...]} の形式で渡される
-        '''
-        request: Union[List[dict], None] = request_dict.get(cls.vector_search_requests_name, None)
-        if not request:
-            logger.info("vector search request is not set. skipping.")
-            return []
-        vector_search_requests = []
-        for item in request:
-            vector_search_request = VectorSearchRequest(**item)
-            # search_kwargsのアップデート
-            vector_search_request.search_kwargs = await vector_search_request.__update_search_kwargs(vector_search_request.search_kwargs)
-            vector_search_requests.append(vector_search_request)
-        return vector_search_requests
 
     async def __update_search_kwargs(self, kwargs: dict) -> dict:
         filter = kwargs.get("filter", None)
