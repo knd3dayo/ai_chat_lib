@@ -1,5 +1,4 @@
 import pandas as pd
-from typing import List, Optional
 import uuid
 import os
 import asyncio
@@ -7,10 +6,8 @@ import argparse
 from dotenv import load_dotenv
 import pandas as pd
 
-from ai_chat_lib.db_modules.content_folder import ContentFolder
-from ai_chat_lib.chat_modules.langchain.embedding_data import EmbeddingData
-from ai_chat_lib.chat_modules.langchain.langchain_util import LangChainUtil
-from ai_chat_lib.chat_modules.llm.openai_util import OpenAIProps
+from vector_search_mcp.langchain.embedding_data import EmbeddingData
+from vector_search_mcp.langchain.langchain_util import LangChainUtil, LangChainOpenAIClient, VectorDBItemBase
 from ai_chat_lib.cmd_tools.client_util import init_app
 
 async def update_embeddings_from_excel(
@@ -39,7 +36,8 @@ async def update_embeddings_from_excel(
     if "content" not in df.columns:
         raise ValueError("Excel file must contain a 'content' column.")
 
-    openai_props = OpenAIProps()
+    client = LangChainOpenAIClient()
+    vector_db_item = VectorDBItemBase()
 
     for idx, row in df.iterrows():
         content = row.get("content")
@@ -69,7 +67,7 @@ async def update_embeddings_from_excel(
             source_path=source_path or "",
         )
 
-        await LangChainUtil.update_embeddings(openai_props, embedding_data)
+        await LangChainUtil.update_embeddings(client, vector_db_item, embedding_data)
 
     print(f"{len(df)} 件のEmbeddingを更新しました。")
 

@@ -1,8 +1,8 @@
 import json
 from typing import Optional, ClassVar, List, Union
-from ai_chat_lib.chat_modules.langchain.embedding_data import EmbeddingData
-from ai_chat_lib.chat_modules.util.chat_util import ChatRequestContext
-from ai_chat_lib.chat_modules.langchain.vector_search_request import VectorSearchRequest
+from vector_search_mcp.langchain.embedding_data import EmbeddingData
+from vector_search_mcp.langchain.langchain_util import LangChainUtil, VectorSearchRequest
+from ai_chat_mcp.util.chat_util import ChatRequestContext
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 from ai_chat_lib.db_modules.content_item import ContentItem
 from ai_chat_lib.db_modules.prompt_item import PromptItem
@@ -40,24 +40,20 @@ class AIAppData:
         return ChatRequestContext(**chat_request_context_dict)
 
 
-    vector_search_requests_name: ClassVar[str] = "vector_search_requests"
+    vector_search_request_name: ClassVar[str] = "vector_search_request"
 
     @classmethod
-    async def get_vector_search_requests_objects(cls, request_dict: dict) -> List["VectorSearchRequest"]:
+    async def get_vector_search_request_objects(cls, request_dict: dict) -> "VectorSearchRequest":
         '''
         {"vector_search_requests": [{...}, ...]} の形式で渡される
         '''
-        request: Union[List[dict], None] = request_dict.get(cls.vector_search_requests_name, None)
+        request: Union[dict, None] = request_dict.get(cls.vector_search_request_name, None)
         if not request:
-            logger.info("vector search request is not set. skipping.")
-            return []
-        vector_search_requests = []
-        for item in request:
-            vector_search_request = VectorSearchRequest(**item)
-            # search_kwargsのアップデート
-            vector_search_request.search_kwargs = await vector_search_request.__update_search_kwargs(vector_search_request.search_kwargs)
-            vector_search_requests.append(vector_search_request)
-        return vector_search_requests    
+            raise ValueError("vector_search_request is not set.")
+        
+        vector_search_request = VectorSearchRequest(**request)
+
+        return vector_search_request
 
 
     file_request_name = "file_request"

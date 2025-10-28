@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 import argparse
 from fastmcp import FastMCP
 from pydantic import Field
-import ai_chat_lib.chat_modules.langchain.vector_db_tools as vector_db_tools
 from ai_chat_lib.db_modules.main_db_util import MainDBUtil
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 
@@ -14,6 +13,8 @@ from web_search_mcp.web_modules.search_wikipedia_ja import search_wikipedia_ja
 from extract_file_mcp.file_modules.file_util import FileUtil
 from web_search_mcp.web_modules.web_util import WebUtil, WebSearchResult
 from analyze_image_mcp.mcp_modules.mcp_app_server import analyze_image_mcp, analyze_two_images_mcp
+from vector_search_mcp.langchain.langchain_util import LangChainUtil, LangChainOpenAIClient, VectorDBItemBase, VectorSearchRequest
+from langchain_core.documents import Document
 
 mcp = FastMCP("Demo 🚀") #type :ignore
 
@@ -42,11 +43,18 @@ async def vector_search_mcp(
     query: Annotated[str, Field(description="String to search for")], 
     num_results: Annotated[int, Field(description="Maximum number of results to display")],
     target_folder: Annotated[str, Field(description="Target folder for vector search (optional)")] = ""
-    ) -> Annotated[list[dict[str, Any]], Field(description="List of related documents from vector search")]:
+    ) -> Annotated[list[Document], Field(description="List of related documents from vector search")]:
     """
     This function performs a vector search on the specified text and returns the related documents.
     """
-    return await vector_db_tools.vector_search(query, num_results, target_folder)
+    client = LangChainOpenAIClient()
+    vector_db_item = VectorDBItemBase()
+    vector_search_request = VectorSearchRequest(
+        query=query,
+        search_kwargs={"k": num_results, "filter": {"folder_path": target_folder}} if target_folder else {"k": num_results},
+        vector_db_item=vector_db_item
+    )
+    return await LangChainUtil.vector_search(client, vector_db_item, vector_search_request)
 
 # フォルダ情報を取得するツールを登録
 async def get_vector_folder_paths_mcp() -> Annotated[list[ContentFolder], Field(description="List of folders in the vector store")]:

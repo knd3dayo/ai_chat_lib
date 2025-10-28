@@ -14,7 +14,7 @@ from ai_chat_lib.api_modules.ai_app_file_modules import FileUtilAPI, ExcelUtilAP
 from ai_chat_lib.api_modules.ai_app_web_modules import WebUtilAPI
 from ai_chat_lib.api_modules.ai_app_db_modules import *
 
-from ai_chat_lib.chat_modules.util.chat_util import CompletionOutput
+from ai_chat_mcp.util.chat_util import CompletionResponse
 
 # Proxy環境下でのSSLエラー対策。HTTPS_PROXYが設定されていない場合はNO_PROXYを設定する
 if "HTTPS_PROXY" not in os.environ:
@@ -206,7 +206,7 @@ async def delete_tag_items(request_json: str):
 ########################
 @capture_stdout_stderr_async
 async def openai_chat_async(request_dict: dict) -> dict:
-    chat_output: CompletionOutput = await ChatUtilAPI.run_openai_chat_async_api(request_dict)
+    chat_output: CompletionResponse = await ChatUtilAPI.run_openai_chat_async_api(request_dict)
     return chat_output.model_dump()
 
 @capture_stdout_stderr

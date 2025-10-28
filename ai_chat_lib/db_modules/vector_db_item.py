@@ -9,11 +9,12 @@ from typing import Optional
 from typing import Optional, Union, List
 from typing import Optional, List, Union
 
-import ai_chat_lib.log_modules.log_settings as log_settings
 from ai_chat_lib.db_modules.main_db import MainDB
+from vector_search_mcp.langchain.langchain_util import VectorDBItemBase
+import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
-class VectorDBItem(BaseModel):
+class VectorDBItem(VectorDBItemBase):
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE "VectorDBItems" (
@@ -102,36 +103,14 @@ class VectorDBItem(BaseModel):
             # 存在する場合は初期化処理を行わない
             logger.info("VectorDBItem is already exists.")
 
-    # コレクションの指定がない場合はデフォルトのコレクション名を使用
-    DEFAULT_COLLECTION_NAME: ClassVar[str] = "ai_app_default_collection"
-    FOLDER_CATALOG_COLLECTION_NAME: ClassVar[str] = "ai_app_folder_catalog_collection"
-
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    description: str
-    vector_db_url: str
-    is_use_multi_vector_retriever: bool = False
-    doc_store_url: str
-    collection_name: str = DEFAULT_COLLECTION_NAME
-    chunk_size: int = 0
     default_search_result_limit: int = 10
     default_score_threshold: float = 0.5
     is_enabled: bool = False
     is_system: bool = False
-    vector_db_type: int = Field(default=0, ge=0, le=2, description="0: Chroma, 1: PGVector, 2: Other")
     system_message: Optional[str] = None
     folder_id: Optional[str] = ""
 
-    @field_validator("is_use_multi_vector_retriever")
-    @classmethod
-    def parse_bool_multi_vector(cls, v):
-        if isinstance(v, bool):
-            return v
-        if isinstance(v, int):
-            return bool(v)
-        if isinstance(v, str):
-            return v.upper() == "TRUE"
-        return False
 
     @field_validator("is_enabled")
     @classmethod
@@ -162,19 +141,6 @@ class VectorDBItem(BaseModel):
             return v
         return values.get("description", "")
 
-    
-    def get_vector_db_type_string(self) -> str:
-        '''
-        vector_db_typeを文字列で返す
-        '''
-        if self.vector_db_type == 0:
-            return "Chroma"
-        elif self.vector_db_type == 1:
-            return "PGVector"
-        elif self.vector_db_type == 2:
-            return "Other"
-        else:
-            return "Unknown"
 
     # Idを指定してVectorDBItemのdictを取得する
     @classmethod

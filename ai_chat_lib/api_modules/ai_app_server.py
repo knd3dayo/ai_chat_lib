@@ -425,7 +425,7 @@ def main():
     if not app_data_path:
         raise ValueError("APP_DATA_PATH is required")
     # OpenAIProps関連の環境変数をチェック
-    from ai_chat_lib.llm_modules.openai_util import OpenAIProps
+    from ai_chat_mcp.llm.llm_util import OpenAIProps
     if not OpenAIProps.check_env_vars():
         raise ValueError("OpenAI environment variables are not set correctly")
 

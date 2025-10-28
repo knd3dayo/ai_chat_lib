@@ -1,14 +1,13 @@
 from typing import Any
 import json
-from ai_chat_lib.chat_modules.langchain.langchain_util import LangChainUtil
-from ai_chat_lib.chat_modules.langchain.embedding_data import EmbeddingData
-from ai_chat_lib.chat_modules.langchain.langchain_vector_db import LangChainVectorDB
+from vector_search_mcp.langchain.langchain_util import LangChainUtil, LangChainOpenAIClient
+from vector_search_mcp.langchain.embedding_data import EmbeddingData
+from vector_search_mcp.langchain.langchain_vector_db import LangChainVectorDB
 from ai_chat_lib.db_modules.vector_db_item import VectorDBItem
-from ai_chat_lib.chat_modules.langchain.vector_search_request import VectorSearchRequest
-from ai_chat_lib.chat_modules.llm.openai_util import OpenAIProps
+from vector_search_mcp.langchain.langchain_util import VectorSearchRequest
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 from ai_chat_lib.api_modules.ai_app_data import AIAppData
-from ai_chat_lib.chat_modules.util.chat_util import  ChatUtil, CompletionRequest, CompletionOutput
+from ai_chat_mcp.util.chat_util import  ChatUtil, CompletionRequest, CompletionResponse
 
 
 class LangChainUtilAPI:
@@ -19,9 +18,13 @@ class LangChainUtilAPI:
         request_dict: dict = json.loads(request_json)
 
         # queryを取得
-        vector_search_requests: list[VectorSearchRequest] = await AIAppData.get_vector_search_requests_objects(request_dict)
-        openai_props = OpenAIProps()
-        result = await LangChainUtil.vector_search(openai_props, vector_search_requests)
+        vector_search_request: VectorSearchRequest = await AIAppData.get_vector_search_request_objects(request_dict)
+        client = LangChainOpenAIClient()
+        vector_db_item = await VectorDBItem.get_vector_db_by_name(vector_search_request.name)
+        if vector_db_item is None:
+            raise ValueError(f"VectorDBItem with name {vector_search_request.name} not found.")
+
+        result = await LangChainUtil.vector_search(client, vector_db_item, vector_search_request)
         return {"documents": [doc.model_dump() for doc in result]}
 
     @classmethod
@@ -42,12 +45,12 @@ class LangChainUtilAPI:
 
         # ChatRequestContextからVectorDBItemを生成
         embedding_data = AIAppData.get_embedding_request_objects(request_dict)
-        openai_props = OpenAIProps()
+        client = LangChainOpenAIClient()
 
         vector_db_item = await VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
             raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
-        vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
+        vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(client, vector_db_item)
         # delete_collectionを実行
         vector_db.delete_collection()
 
@@ -60,7 +63,7 @@ class LangChainUtilAPI:
 
         # embedding_requestを取得
         embedding_data = AIAppData.get_embedding_request_objects(request_dict)
-        openai_props = OpenAIProps()
+        client = LangChainOpenAIClient()
 
         vector_db_item = await VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
@@ -68,7 +71,7 @@ class LangChainUtilAPI:
             return {}
         
         # LangChainVectorDBを生成
-        vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
+        vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(client, vector_db_item)
 
         folder = await ContentFolder.get_content_folder_by_path(embedding_data.folder_path)
         folder_id = folder.id if folder else None
@@ -86,12 +89,12 @@ class LangChainUtilAPI:
 
         # embedding_requestを取得
         embedding_data = AIAppData.get_embedding_request_objects(request_dict)
-        openai_props = OpenAIProps()
+        client = LangChainOpenAIClient()
 
         vector_db_item = await VectorDBItem.get_vector_db_by_name(embedding_data.name)
         if vector_db_item is None:
             raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
-        vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(openai_props, vector_db_item, embedding_data.model)
+        vector_db: LangChainVectorDB = LangChainUtil.get_vector_db(client, vector_db_item)
         await vector_db.delete_document(embedding_data.source_id)
 
         return {}
@@ -102,19 +105,21 @@ class LangChainUtilAPI:
         request_dict: dict = json.loads(request_json)
         # embedding_requestを取得
         embedding_data: EmbeddingData = AIAppData.get_embedding_request_objects(request_dict)
-        openai_props = OpenAIProps()
+        client = LangChainOpenAIClient()
+
+        vector_db_item = await VectorDBItem.get_vector_db_by_name(embedding_data.name)
+        if vector_db_item is None:
+            raise ValueError(f"VectorDBItem with name {embedding_data.name} not found.")
+
         # update_embeddingsを実行
-        result = await LangChainUtil.update_embeddings(openai_props, embedding_data)
+        result = await LangChainUtil.update_embeddings(client, vector_db_item, embedding_data)
         return result
 
 class ChatUtilAPI:
     chat_request_name = "chat_request"
     @classmethod
-    async def run_openai_chat_async_api(cls, request_dict: dict) -> CompletionOutput:
+    async def run_openai_chat_async_api(cls, request_dict: dict) -> CompletionResponse:
 
-        openai_props = OpenAIProps()
-        # context_jsonからVectorSearchRequestを生成
-        vector_search_requests = await AIAppData.get_vector_search_requests_objects(request_dict)
         # context_jsonからChatRequestContextを生成
         chat_request_context = AIAppData.get_chat_request_context_objects(request_dict)
         # chat_requestを取得
@@ -124,7 +129,7 @@ class ChatUtilAPI:
         # chat_request_dictからChatRequestを生成
         chat_request_dict = CompletionRequest(**chat_request_dict)
 
-        return await ChatUtil.run_openai_chat_async(openai_props, chat_request_context, chat_request_dict, vector_search_requests)
+        return await ChatUtil.run_openai_chat_async(chat_request_dict, chat_request_context)
 
     token_count_request_name = "token_count_request"
     @classmethod

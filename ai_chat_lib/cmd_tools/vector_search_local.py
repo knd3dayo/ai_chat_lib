@@ -1,7 +1,7 @@
 import argparse
 import os
 from dotenv import load_dotenv
-import  ai_chat_lib.chat_modules.langchain.vector_db_tools as vector_db_tools
+from vector_search_mcp.langchain.langchain_util import LangChainUtil, LangChainOpenAIClient, VectorDBItemBase, VectorSearchRequest
 def parse_args():
     parser = argparse.ArgumentParser(description="Local Vector Search Tool")
     parser.add_argument("-q", "--query", type=str, required=True, help="Search query string")
@@ -27,8 +27,17 @@ async def main():
     if not app_data_path:
         raise EnvironmentError("Environment variable APP_DATA_PATH is not set. Please set it before running this tool.")
 
+    client = LangChainOpenAIClient()
+    vector_db_item = VectorDBItemBase()
+
+    vector_search_request = VectorSearchRequest (
+        name="default",
+        query=query,
+        search_kwargs={"k": num_results, "filter": {"folder_path": target_folder}} if target_folder else {"k": num_results}
+    )
+
     # vector_searchを呼び出す
-    results = await vector_db_tools.vector_search(query, num_results, target_folder)
+    results = await LangChainUtil.vector_search(client, vector_db_item, vector_search_request)
 
     # 結果を表示
     print(f"Search Query: {query}")
