@@ -7,7 +7,7 @@ from ai_chat_lib.db_modules.vector_db_item import VectorDBItem
 from vector_search_mcp.langchain.langchain_util import VectorSearchRequest
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 from ai_chat_lib.api_modules.ai_app_data import AIAppData
-from ai_chat_mcp.util.chat_util import  ChatUtil, CompletionRequest, CompletionResponse
+from ai_chat_mcp.chat.chat_util import  ChatUtil, CompletionRequest, CompletionResponse
 
 
 class LangChainUtilAPI:

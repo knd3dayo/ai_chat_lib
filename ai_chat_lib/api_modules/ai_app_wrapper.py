@@ -14,7 +14,7 @@ from ai_chat_lib.api_modules.ai_app_file_modules import FileUtilAPI, ExcelUtilAP
 from ai_chat_lib.api_modules.ai_app_web_modules import WebUtilAPI
 from ai_chat_lib.api_modules.ai_app_db_modules import *
 
-from ai_chat_mcp.util.chat_util import CompletionResponse
+from ai_chat_mcp.chat.chat_util import CompletionResponse
 
 # Proxy環境下でのSSLエラー対策。HTTPS_PROXYが設定されていない場合はNO_PROXYを設定する
 if "HTTPS_PROXY" not in os.environ:

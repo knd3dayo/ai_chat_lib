@@ -2,7 +2,7 @@ import json
 from typing import Optional, ClassVar, List, Union
 from vector_search_mcp.langchain.embedding_data import EmbeddingData
 from vector_search_mcp.langchain.langchain_util import LangChainUtil, VectorSearchRequest
-from ai_chat_mcp.util.chat_util import ChatRequestContext
+from ai_chat_mcp.chat.chat_util import ChatRequestContext
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 from ai_chat_lib.db_modules.content_item import ContentItem
 from ai_chat_lib.db_modules.prompt_item import PromptItem
