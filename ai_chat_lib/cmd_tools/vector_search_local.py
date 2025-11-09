@@ -1,7 +1,11 @@
 import argparse
 import os
 from dotenv import load_dotenv
-from vector_search_mcp.langchain.langchain_util import LangChainUtil, LangChainOpenAIClient, VectorDBItemBase, VectorSearchRequest
+from vector_search_mcp.util.vector_db_client import VectorDBClient
+from vector_search_mcp.langchain.langchain_client import LangChainOpenAIClient
+from vector_search_mcp.model.models import VectorDBItemBase
+from api_modules.ai_app_data import AIAppVectorSearchRequest
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Local Vector Search Tool")
     parser.add_argument("-q", "--query", type=str, required=True, help="Search query string")
@@ -29,15 +33,21 @@ async def main():
 
     client = LangChainOpenAIClient()
     vector_db_item = VectorDBItemBase()
+    vector_db_client = VectorDBClient(langchain_openai_client=client, vector_dbs=[vector_db_item])
 
-    vector_search_request = VectorSearchRequest (
-        name="default",
+    vector_search_request = AIAppVectorSearchRequest (
+        vector_db_name="default",
         query=query,
-        search_kwargs={"k": num_results, "filter": {"folder_path": target_folder}} if target_folder else {"k": num_results}
+        k=num_results,
+        filter={},
     )
+    if target_folder:
+        vector_search_request.filter = {"folder_path": target_folder}
+
+    await vector_search_request.validate_filter()
 
     # vector_searchを呼び出す
-    results = await LangChainUtil.vector_search(client, vector_db_item, vector_search_request)
+    results = await vector_db_client.vector_search(vector_search_request)
 
     # 結果を表示
     print(f"Search Query: {query}")

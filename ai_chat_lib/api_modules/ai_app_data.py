@@ -1,7 +1,7 @@
 import json
 from typing import Optional, ClassVar, List, Union
-from vector_search_mcp.langchain.embedding_data import EmbeddingData
-from vector_search_mcp.langchain.langchain_util import LangChainUtil, VectorSearchRequest
+from vector_search_mcp.model.models import EmbeddingData, VectorSearchRequest
+
 from ai_chat_mcp.chat.chat_util import ChatRequestContext
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 from ai_chat_lib.db_modules.content_item import ContentItem
@@ -13,19 +13,62 @@ from ai_chat_lib.db_modules.vector_db_item import VectorDBItem
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
+class AIAppVectorSearchRequest(VectorSearchRequest):
+
+    async def validate_filter(self):
+        if not isinstance(self.filter, dict):
+            raise ValueError("filter must be a dictionary.")
+
+        # folder_path が存在するかチェック
+        if "folder_path" not in self.filter:
+            logger.info("folder_path is not set.")
+            return
+
+        folder_path = self.filter["folder_path"]
+        folder = await ContentFolder.get_content_folder_by_path(folder_path)
+        if not folder:
+            logger.info(f"folder_path '{folder_path}' does not exist.")
+            return
+
+        # filterのfolder_pathをfolder_idに置換
+        self.filter["folder_id"] = folder.id
+        del self.filter["folder_path"]
+
+
+class AIApppEmbeddingData(EmbeddingData):
+
+    
+    async def validate_metadata(self):
+        if not isinstance(self.metadata, dict):
+            raise ValueError("metadata must be a dictionary.")
+        # folder_path が存在するかチェック
+        if "folder_path" not in self.metadata:
+            raise ValueError("metadata must contain 'folder_path'.")
+        # source_type が存在するかチェック
+        if "source_type" not in self.metadata:
+            raise ValueError("metadata must contain 'source_type'.")
+        # description が存在するかチェック
+        if "description" not in self.metadata:
+            raise ValueError("metadata must contain 'description'.")
+
+        # source_path が存在するかチェック
+        if "source_path" not in self.metadata:
+            raise ValueError("metadata must contain 'source_path'.")
+        # image_url が存在するかチェック
+        if "image_url" not in self.metadata:
+            raise ValueError("metadata must contain 'image_url'.")
+
+        # folder_pathからfolder_idを取得してmetadataに追加
+        folder_path = self.metadata.get("folder_path", "")
+        folder = await ContentFolder.get_content_folder_by_path(folder_path)
+        if not folder:
+            raise ValueError(f"folder_path '{folder_path}' does not exist.")
+        self.metadata["folder_id"] = folder.id if folder else ""
+
+        # folder_pathを削除
+        del self.metadata["folder_path"]
+
 class AIAppData:
-
-    embedding_request_name: ClassVar[str] = "embedding_request"
-
-    @classmethod
-    def get_embedding_request_objects(cls, request_dict: dict) -> EmbeddingData:
-        '''
-        {"embedding_request": {}}の形式で渡される
-        '''
-        request: Optional[dict] = request_dict.get(cls.embedding_request_name, None)
-        if not request:
-            raise ValueError("request is not set.")
-        return EmbeddingData(**request)
 
     chat_request_context_name: ClassVar[str] = "chat_request_context"
 
@@ -39,19 +82,33 @@ class AIAppData:
             raise ValueError("request_context is not set.")
         return ChatRequestContext(**chat_request_context_dict)
 
+    embedding_request_name: ClassVar[str] = "embedding_request"
+
+    @classmethod
+    async def get_embedding_request_objects(cls, request_dict: dict) -> AIApppEmbeddingData:
+        '''
+        {"embedding_request": {}}の形式で渡される
+        '''
+        request: Optional[dict] = request_dict.get(cls.embedding_request_name, None)
+        if not request:
+            raise ValueError("request is not set.")
+        embedding_data = AIApppEmbeddingData(**request)
+        await embedding_data.validate_metadata()
+        return embedding_data
 
     vector_search_request_name: ClassVar[str] = "vector_search_request"
 
     @classmethod
-    async def get_vector_search_request_objects(cls, request_dict: dict) -> "VectorSearchRequest":
+    async def get_vector_search_request_objects(cls, request_dict: dict) -> AIAppVectorSearchRequest:
         '''
         {"vector_search_requests": [{...}, ...]} の形式で渡される
         '''
         request: Union[dict, None] = request_dict.get(cls.vector_search_request_name, None)
         if not request:
             raise ValueError("vector_search_request is not set.")
-        
-        vector_search_request = VectorSearchRequest(**request)
+
+        vector_search_request = AIAppVectorSearchRequest(**request)
+        await vector_search_request.validate_filter()
 
         return vector_search_request
 

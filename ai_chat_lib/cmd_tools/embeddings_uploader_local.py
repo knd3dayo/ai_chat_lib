@@ -6,22 +6,21 @@ import argparse
 from dotenv import load_dotenv
 import pandas as pd
 
-from vector_search_mcp.langchain.embedding_data import EmbeddingData
-from vector_search_mcp.langchain.langchain_util import LangChainUtil, LangChainOpenAIClient, VectorDBItemBase
+from vector_search_mcp.model.models import VectorDBItemBase
+from vector_search_mcp.util.vector_db_client import VectorDBClient
+from vector_search_mcp.langchain.langchain_client import LangChainOpenAIClient
 from ai_chat_lib.cmd_tools.client_util import init_app
-
+from api_modules.ai_app_data import AIApppEmbeddingData
 async def update_embeddings_from_excel(
     excel_path: str,
-    name: str = "default",
-    model: str = "text-embedding-3-small",
+    vector_db_name: str = "default",
 ) -> None:
     """
     Excelファイルの各行のデータからEmbeddingDataを生成し、Embeddingを更新する。
 
     Args:
         excel_path (str): Excelファイルのパス
-        name (str): EmbeddingDataのname
-        model (str): EmbeddingDataのmodel
+        vector_db_name (str): EmbeddingDataのvector_db_name
 
     Excelファイルの必須列:
         - content: 埋め込み対象のテキスト
@@ -38,6 +37,8 @@ async def update_embeddings_from_excel(
 
     client = LangChainOpenAIClient()
     vector_db_item = VectorDBItemBase()
+
+    vector_db_client = VectorDBClient(langchain_openai_client=client, vector_dbs=[vector_db_item])
 
     for idx, row in df.iterrows():
         content = row.get("content")
@@ -56,18 +57,22 @@ async def update_embeddings_from_excel(
             source_path = str(source_path)
 
         source_id = str(uuid.uuid4())
-
-        embedding_data = EmbeddingData(
-            name=name,
-            model=model,
-            source_id=source_id,
-            folder_path=folder_path or "",
+        metadata = {
+            "folder_id": folder_path if folder_path else "",
+            "source_type": 0,  # デフォルト値
+            "description": description if description else "",
+            "source_path": source_path if source_path else "",
+            "image_url": "",
+        }
+        embedding_data = AIApppEmbeddingData(
+            vector_db_name=vector_db_name,
             content=content.strip(),
-            description=description or "",
-            source_path=source_path or "",
+            source_id=source_id,
+            metadata=metadata,
         )
+        await embedding_data.validate_metadata()
 
-        await LangChainUtil.update_embeddings(client, vector_db_item, embedding_data)
+        await vector_db_client.update_embeddings(embedding_data)
 
     print(f"{len(df)} 件のEmbeddingを更新しました。")
 
@@ -90,7 +95,7 @@ async def main():
     # アプリケーションの初期化
     await init_app()
 
-    asyncio.run(update_embeddings_from_excel(excel_path, name, model))
+    asyncio.run(update_embeddings_from_excel(excel_path, vector_db_name=name))
 
 
 if __name__ == "__main__":

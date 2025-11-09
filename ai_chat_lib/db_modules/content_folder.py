@@ -242,6 +242,8 @@ class ContentFolder(BaseModel):
     # 親フォルダを取得する。
     @classmethod
     async def get_parent_content_folder_by_id(cls, folder: "ContentFolder") -> Union["ContentFolder", None]:
+        logger.info(f"Getting parent folder for folder id: {folder.model_dump_json}")
+
         if not folder.parent_id:
             return None
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:

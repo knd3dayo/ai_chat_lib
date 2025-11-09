@@ -173,6 +173,11 @@ async def get_content_folder_by_id(request_json: str):
 @capture_stdout_stderr_async
 async def get_content_folder_by_path(request_json: str):
     return await ContentFolderAPI.get_content_folder_by_path_api(request_json)
+
+@capture_stdout_stderr_async
+async def get_content_folder_path_by_id(request_json: str):
+    return await ContentFolderAPI.get_content_folder_path_by_id_api(request_json)
+
 @capture_stdout_stderr_async
 async def get_parent_content_folder_by_id(request_json: str):
     return await ContentFolderAPI.get_parent_content_folder_by_id_api(request_json)

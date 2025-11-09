@@ -13,7 +13,11 @@ from web_search_mcp.web_modules.search_wikipedia_ja import search_wikipedia_ja
 from extract_file_mcp.file_modules.file_util import FileUtil
 from web_search_mcp.web_modules.web_util import WebUtil, WebSearchResult
 from analyze_image_mcp.mcp_modules.mcp_app_server import analyze_image_mcp, analyze_two_images_mcp
-from vector_search_mcp.langchain.langchain_util import LangChainUtil, LangChainOpenAIClient, VectorDBItemBase, VectorSearchRequest
+from vector_search_mcp.util.vector_db_client import VectorDBClient
+from vector_search_mcp.langchain.langchain_client import LangChainOpenAIClient
+from vector_search_mcp.model.models import  VectorDBItemBase
+from ai_chat_lib.api_modules.ai_app_data import AIAppVectorSearchRequest
+
 from langchain_core.documents import Document
 
 mcp = FastMCP("Demo 🚀") #type :ignore
@@ -49,12 +53,17 @@ async def vector_search_mcp(
     """
     client = LangChainOpenAIClient()
     vector_db_item = VectorDBItemBase()
-    vector_search_request = VectorSearchRequest(
+    vector_db_client = VectorDBClient(langchain_openai_client=client, vector_dbs=[vector_db_item])
+    vector_search_request = AIAppVectorSearchRequest(
         query=query,
-        search_kwargs={"k": num_results, "filter": {"folder_path": target_folder}} if target_folder else {"k": num_results},
-        vector_db_item=vector_db_item
+        k=num_results,
     )
-    return await LangChainUtil.vector_search(client, vector_db_item, vector_search_request)
+    if target_folder:
+        vector_search_request.filter = {"folder_path": target_folder}
+
+    await vector_search_request.validate_filter()
+
+    return await vector_db_client.vector_search(vector_search_request)
 
 # フォルダ情報を取得するツールを登録
 async def get_vector_folder_paths_mcp() -> Annotated[list[ContentFolder], Field(description="List of folders in the vector store")]:

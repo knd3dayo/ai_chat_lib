@@ -10,7 +10,7 @@ from typing import Optional, Union, List
 from typing import Optional, List, Union
 
 from ai_chat_lib.db_modules.main_db import MainDB
-from vector_search_mcp.langchain.langchain_util import VectorDBItemBase
+from vector_search_mcp.model.models import VectorDBItemBase
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
@@ -84,8 +84,9 @@ class VectorDBItem(VectorDBItemBase):
                 "name": "default",
                 "description": "Application default vector db",
                 "vector_db_url": os.path.join(os.getenv("APP_DATA_PATH", ""), "server", "vector_db", "default_vector_db"),
-                "is_use_multi_vector_retriever": True,
-                "doc_store_url": f'sqlite:///{os.path.join(os.getenv("APP_DATA_PATH", ""), "server", "vector_db", "default_doc_store.db")}',
+                # multi_vector_retrieverは廃止
+                "is_use_multi_vector_retriever": False,
+                "doc_store_url": "",
                 "vector_db_type": 1,
                 "collection_name": "ai_app_default_collection",
                 "chunk_size": 4096,
@@ -221,8 +222,9 @@ class VectorDBItem(VectorDBItemBase):
                 if await cls.get_vector_db_by_id(vector_db_item.id) is None:
                     await cur.execute("INSERT INTO VectorDBItems VALUES (?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                 (vector_db_item.id, vector_db_item.name, vector_db_item.description, 
-                                vector_db_item.vector_db_url, vector_db_item.is_use_multi_vector_retriever, 
-                                vector_db_item.doc_store_url, vector_db_item.vector_db_type, 
+                                # multi_vector_retrieverは廃止
+                                vector_db_item.vector_db_url, False, "", 
+                                vector_db_item.vector_db_type, 
                                 vector_db_item.collection_name, 
                                 vector_db_item.chunk_size, vector_db_item.default_search_result_limit, 
                                 vector_db_item.default_score_threshold,
@@ -231,7 +233,8 @@ class VectorDBItem(VectorDBItemBase):
                 else:
                     await cur.execute("UPDATE VectorDBItems SET name=?, description=?, vector_db_url=?, is_use_multi_vector_retriever=?, doc_store_url=?, vector_db_type=?, collection_name=?, chunk_size=?, default_search_result_limit=?, default_score_threshold=?, is_enabled=?, is_system=? WHERE id=?",
                                 (vector_db_item.name, vector_db_item.description, vector_db_item.vector_db_url, 
-                                vector_db_item.is_use_multi_vector_retriever, vector_db_item.doc_store_url, 
+                                 # multi_vector_retrieverは廃止
+                                False, "", 
                                 vector_db_item.vector_db_type, vector_db_item.collection_name, 
                                 vector_db_item.chunk_size, 
                                 vector_db_item.default_search_result_limit, 
