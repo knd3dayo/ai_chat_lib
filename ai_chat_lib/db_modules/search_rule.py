@@ -1,15 +1,16 @@
-from typing import Optional, Union, ClassVar
+from typing import Optional, Union, Sequence
 from pydantic import BaseModel, Field
 import aiosqlite
-import json
 import uuid
+
+import ai_chat_lib.model as model_base
 from ai_chat_lib.resouces import *
 from ai_chat_lib.db_modules.main_db import MainDB
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
-class SearchRule(BaseModel):
+class SearchRule(model_base.SearchRuleModel):
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE "SearchRules" (
@@ -23,13 +24,6 @@ class SearchRule(BaseModel):
     )
     PromptItem,AutoProcessItem,AutoProcessRule,TagItemなどと同様にAPIを提供する
     '''
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the search rule")
-    name: str = Field(..., description="Name of the search rule")
-    search_condition_json: str = Field(..., description="JSON string representing the search conditions")
-    is_include_sub_folder: bool = Field(default=False, description="Whether to include subfolders in the search")
-    is_global_search: bool = Field(default=False, description="Whether the search is a global search")
-    search_folder_id: Optional[str] = Field(None, description="ID of the folder to search in")
-    target_folder_id: Optional[str] = Field(None, description="ID of the target folder for the search results")
 
     @classmethod
     async def create_table(cls) -> None:
@@ -85,7 +79,7 @@ class SearchRule(BaseModel):
         return SearchRule(**search_rule_dict)
     
     @classmethod
-    async def update_search_rule(cls, search_rule: "SearchRule") -> "SearchRule":
+    async def update_search_rule(cls, search_rule: model_base.SearchRuleModel) -> model_base.SearchRuleModel:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             cur = await conn.cursor()
             if await cls.get_search_rule(search_rule.id) is None:
@@ -102,10 +96,23 @@ class SearchRule(BaseModel):
                 ''', (search_rule.name, search_rule.search_condition_json, search_rule.search_folder_id, search_rule.target_folder_id, int(search_rule.is_include_sub_folder), int(search_rule.is_global_search), search_rule.id))
             await conn.commit()
         return search_rule
+    
     @classmethod
-    async def delete_search_rule(cls, search_rule: "SearchRule") -> None:
+    async def update_search_rules(cls, search_rules: Sequence[model_base.SearchRuleModel]) -> Sequence[model_base.SearchRuleModel]:
+        updated_rules = []
+        for rule in search_rules:
+            updated_rule = await cls.update_search_rule(rule)
+            updated_rules.append(updated_rule)
+        return updated_rules
+    
+    @classmethod
+    async def delete_search_rule(cls, search_rule: model_base.SearchRuleModel) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             cur = await conn.cursor()
             await cur.execute("DELETE FROM SearchRules WHERE id=?", (search_rule.id,))
             await conn.commit()
     
+    @classmethod
+    async def delete_search_rules(cls, search_rules: Sequence[model_base.SearchRuleModel]) -> None:
+        for rule in search_rules:
+            await cls.delete_search_rule(rule)

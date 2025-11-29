@@ -6,7 +6,7 @@ ai_app_server_shutdown.py
 """
 
 import sys, os
-import requests # type: ignore
+import requests
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)

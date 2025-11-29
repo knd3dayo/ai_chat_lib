@@ -6,8 +6,8 @@
 
 import sys, os
 import time
-import requests # type: ignore
-import psutil # type: ignore
+import requests
+import psutil
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)

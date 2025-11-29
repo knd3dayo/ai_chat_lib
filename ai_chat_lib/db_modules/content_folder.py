@@ -1,8 +1,8 @@
 import aiosqlite
 import json
-from typing import List, Union, Optional, ClassVar
+from typing import List, Union, Optional, Sequence
 import uuid
-from pydantic import BaseModel, field_validator
+import ai_chat_lib.model as model_base
 from typing import Optional, List, Union
 
 import ai_chat_lib.log_modules.log_settings as log_settings
@@ -11,7 +11,7 @@ logger = log_settings.getLogger(__name__)
 from ai_chat_lib.db_modules.vector_db_item import MainDB
 
 
-class ContentFolder(BaseModel):
+class ContentFolder(model_base.ContentFolderModel):
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE "ContentFoldersCatalog" (
@@ -25,26 +25,6 @@ class ContentFolder(BaseModel):
     )
     '''
     
-    id: Optional[str] = None
-    folder_type_string: Optional[str] = None
-    parent_id: Optional[str] = None
-    folder_name: Optional[str] = None
-    description: Optional[str] = None
-    extended_properties_json: Optional[str] = None
-    folder_path: Optional[str] = None
-    is_root_folder: bool = False
-
-    @field_validator("is_root_folder", mode="before")
-    @classmethod
-    def parse_is_root_folder(cls, v):
-        if isinstance(v, bool):
-            return v
-        if isinstance(v, int):
-            return bool(v)
-        if isinstance(v, str):
-            return v.upper() == "TRUE"
-        return False
-
     @classmethod
     async def create_table(cls):
         # ContentFoldersテーブルが存在しない場合は作成する
@@ -241,10 +221,11 @@ class ContentFolder(BaseModel):
 
     # 親フォルダを取得する。
     @classmethod
-    async def get_parent_content_folder_by_id(cls, folder: "ContentFolder") -> Union["ContentFolder", None]:
-        logger.info(f"Getting parent folder for folder id: {folder.model_dump_json}")
-
-        if not folder.parent_id:
+    async def get_parent_content_folder_by_id(cls, folder_id: str) -> Union["ContentFolder", None]:
+        logger.info(f"Getting parent folder for folder id: {folder_id}")
+        folder = await cls.get_content_folder_by_id(folder_id)
+        if folder is None:
+            logger.info(f"Folder with id {folder_id} not found.")
             return None
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row 
@@ -263,9 +244,12 @@ class ContentFolder(BaseModel):
 
     # 子フォルダを取得する。
     @classmethod
-    async def get_child_content_folders_by_id(cls, folder: "ContentFolder") -> List["ContentFolder"]:
-        if not folder.id:
+    async def get_child_content_folders_by_id(cls, folder_id: str) -> List["ContentFolder"]:
+
+        folder = await cls.get_content_folder_by_id(folder_id)
+        if folder is None:
             return []
+        
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row 
             async with conn.cursor() as cur:
@@ -274,7 +258,7 @@ class ContentFolder(BaseModel):
                 return [ContentFolder(**dict(row)) for row in rows]
 
     @classmethod
-    async def update_content_folder(cls, folder: "ContentFolder"):
+    async def update_content_folder(cls, folder: model_base.ContentFolderModel):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
                 id = None
@@ -311,6 +295,14 @@ class ContentFolder(BaseModel):
                     await cur.execute(sql)
 
                 await conn.commit()
+
+    @classmethod
+    async def update_content_folders(cls, folders: Sequence[model_base.ContentFolderModel]) -> Sequence[model_base.ContentFolderModel]:
+        updated_folders = []
+        for folder in folders:
+            await cls.update_content_folder(folder)
+            updated_folders.append(folder)
+        return updated_folders
 
     @classmethod
     async def update_content_folder_by_path(cls, folder: "ContentFolder"):        
@@ -352,7 +344,7 @@ class ContentFolder(BaseModel):
         await cls.update_content_folder(folder)
 
     @classmethod
-    async def delete_content_folder(cls, folder: "ContentFolder"):
+    async def delete_content_folder(cls, folder: model_base.ContentFolderModel):
         delete_ids = []
         # folder_pathが指定されている場合は、folder_pathからFolderを取得する
         if folder.folder_path:
@@ -375,6 +367,12 @@ class ContentFolder(BaseModel):
                     await cur.execute("DELETE FROM ContentFoldersCatalog WHERE id=?", (delete_id,))
             await conn.commit()
 
+    @classmethod
+    async def delete_content_folders(cls, folders: Sequence[model_base.ContentFolderModel]) -> Sequence[model_base.ContentFolderModel]:
+        for folder in folders:
+            await cls.delete_content_folder(folder)
+        return folders
+    
     # childrenのidを取得する
     @classmethod
     async def get_content_folder_child_ids(cls, folder_id: str) -> list[str]:

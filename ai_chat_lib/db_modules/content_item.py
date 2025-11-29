@@ -5,10 +5,10 @@ ContentItemsテーブルのデータモデルおよび関連DB操作・APIユー
 """
 
 import aiosqlite
-import json
-from typing import List, Union, Optional, ClassVar
-import uuid
+from typing import List, Union, Optional, ClassVar, Sequence
 from pydantic import BaseModel, field_validator, Field
+
+import ai_chat_lib.model as model_base
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
@@ -16,7 +16,8 @@ logger = log_settings.getLogger(__name__)
 from ai_chat_lib.db_modules.vector_db_item import MainDB
 from ai_chat_lib.db_modules.search_condition import SearchCondition
 
-class ContentItem(BaseModel):
+class ContentItem(model_base.ContentItemModel):
+
     """
     ContentItemsテーブルの1レコードを表現するデータモデルクラス。
     DBとのマッピング、APIリクエスト/レスポンス変換、各種DB操作ユーティリティを提供する。
@@ -39,20 +40,6 @@ class ContentItem(BaseModel):
         "extended_properties_json" TEXT NOT NULL
     )
     """
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the content item")
-    folder_id: str = Field(..., description="ID of the folder this content item belongs to")
-    created_at: str = Field(..., description="Creation timestamp of the content item")
-    updated_at: str = Field(..., description="Last updated timestamp of the content item")
-    vectorized_at: str = Field(..., description="Timestamp when the content was vectorized")
-    content: str = Field(..., description="Content of the item, can be text or other data")
-    description: str = Field(..., description="Description of the content item")
-    content_type: int = Field(..., description="Type of content, e.g., text, image, etc.")
-    chat_messages_json: str = Field(..., description="JSON string of chat messages associated with the content item")
-    prompt_chat_result_json: str = Field(..., description="JSON string of the result from the prompt chat")
-    tag_string: str = Field(..., description="Comma-separated string of tags associated with the content item")
-    is_pinned: int = Field(..., description="Flag indicating if the content item is pinned (1 for pinned, 0 for not pinned)")
-    cached_base64_string: str = Field(..., description="Base64 encoded string of the cached content")
-    extended_properties_json: str = Field(..., description="JSON string of extended properties for the content item")
 
     @classmethod
     async def create_table(cls):
@@ -148,15 +135,15 @@ class ContentItem(BaseModel):
                 return None
     
     @classmethod
-    async def update_content_item(cls, item: "ContentItem") -> "ContentItem":
+    async def update_content_item(cls, item: model_base.ContentItemModel) -> model_base.ContentItemModel:
         """
         ContentItemを新規追加または更新する。
 
         Args:
-            item (ContentItem): 追加・更新対象のContentItem
+            item (model_base.ContentItemModel): 追加・更新対象のContentItem
 
         Returns:
-            ContentItem: 追加・更新後のContentItem
+            model_base.ContentItemModel: 追加・更新後のContentItem
         """
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
@@ -199,18 +186,32 @@ class ContentItem(BaseModel):
         return item
 
     @classmethod
-    async def delete_content_item(cls, item: "ContentItem") -> None:
+    async def delete_content_item(cls, item: model_base.ContentItemModel) -> None:
         """
         指定ContentItemを削除する。
 
         Args:
-            item (ContentItem): 削除対象
+            item (model_base.ContentItemModel): 削除対象
         """
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
                 await cur.execute("DELETE FROM ContentItems WHERE id = ?", (item.id,))
                 await conn.commit()
         logger.info(f"ContentItem with id {item.id} deleted.")
+
+    @classmethod
+    async def delete_content_items(cls, items: Sequence[model_base.ContentItemModel]) -> None:
+        """
+        指定ContentItem群を削除する。
+
+        Args:
+            items (Sequence[model_base.ContentItemModel]): 削除対象群
+        """
+        async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
+            async with conn.cursor() as cur:
+                await cur.executemany("DELETE FROM ContentItems WHERE id = ?", [(item.id,) for item in items])
+                await conn.commit()
+        logger.info(f"ContentItems with ids {[item.id for item in items]} deleted.")
 
     @classmethod
     async def search_content_items(cls, search_condition: SearchCondition) -> List["ContentItem"]:
@@ -286,17 +287,26 @@ class ContentItem(BaseModel):
             dict: ContentItemの辞書表現
         """
         return self.model_dump()
-    
-    
 
+    
     @classmethod
-    async def get_content_items_api(cls) -> dict:
+    async def update_content_items(cls, content_items: Sequence[model_base.ContentItemModel]) -> Sequence[model_base.ContentItemModel]:
         """
-        全ContentItemをAPIレスポンス形式で取得する。
+        ContentItemの追加・更新をAPIリクエスト形式で受け付けて実行する。
 
+        Args:
+            content_items (Sequence[model_base.ContentItemModel]): 更新対象のContentItemリスト
         Returns:
-            dict: {"content_items": [ ... ]}
+            Sequence[model_base.ContentItemModel]: 更新結果
+        Raises:
+            ValueError: リクエスト不備時
         """
-        content_items = await cls.get_content_items()
-        return {"content_items": [item.to_dict() for item in content_items]}
+        if not content_items:
+            raise ValueError("No valid content items found in the request.")
+        
+        updated_items = []
+        for item in content_items:
+            updated_item = await ContentItem.update_content_item(item)
+            updated_items.append(updated_item)
 
+        return updated_items

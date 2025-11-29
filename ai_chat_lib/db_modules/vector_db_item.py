@@ -1,6 +1,6 @@
 import aiosqlite
 import json
-from typing import List, Union, Optional, ClassVar
+from typing import List, Union, Optional, Sequence
 import uuid
 import os
 from pydantic import BaseModel, Field, field_validator
@@ -162,7 +162,7 @@ class VectorDBItem(VectorDBItemBase):
 
     # Idを指定してVectorDBItemを取得する
     @classmethod
-    async def get_vector_db_by_id(cls, vector_db_item_id: str) -> Union["VectorDBItem", None]:
+    async def get_vector_db_by_id(cls, vector_db_item_id: str) -> VectorDBItemBase | None:
         vector_db_item_dict = await cls.get_vector_db_item_dict_by_id(vector_db_item_id)
         if vector_db_item_dict is None:
             return None
@@ -248,8 +248,20 @@ class VectorDBItem(VectorDBItemBase):
         return vector_db_item
 
     @classmethod
+    async def update_vector_db_items(cls, vector_db_items: Sequence["VectorDBItem"]) -> Sequence["VectorDBItem"]:
+        updated_items = []
+        for item in vector_db_items:
+            updated_item = await cls.update_vector_db_item(item)
+            updated_items.append(updated_item)
+        return updated_items
+
+    @classmethod
     async def delete_vector_db_item(cls, vector_db_item: "VectorDBItem"):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             cur = await conn.cursor()
             await cur.execute("DELETE FROM VectorDBItems WHERE id=?", (vector_db_item.id,))
             await conn.commit()
+    @classmethod
+    async def delete_vector_db_items(cls, vector_db_items: Sequence["VectorDBItem"]):
+        for item in vector_db_items:
+            await cls.delete_vector_db_item(item)   

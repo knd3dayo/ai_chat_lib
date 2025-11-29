@@ -1,14 +1,15 @@
-from typing import Optional, Union, ClassVar
+from typing import Optional, Sequence
 from pydantic import BaseModel, Field
 import aiosqlite
+import uuid
+
+import ai_chat_lib.model as model_base
 from ai_chat_lib.resouces import *
 from ai_chat_lib.db_modules.main_db import MainDB
-import json
-import uuid
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
-class AutoProcessRule(BaseModel):
+class AutoProcessRule(model_base.AutoProcessRuleModel):
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE "AutoProcessRules" (
@@ -22,14 +23,6 @@ class AutoProcessRule(BaseModel):
         "destination_folder_id" TEXT NULL
     )
     '''
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the auto process rule")
-    rule_name : str = Field(..., description="Name of the auto process rule")
-    is_enabled: bool = Field(default=True, description="Whether the rule is enabled or not")
-    priority: int = Field(default=0, description="Priority of the rule, lower numbers indicate higher priority")
-    conditions_json: str = Field(..., description="JSON string representing the conditions for the rule")
-    auto_process_item_id: Optional[str] = Field(None, description="ID of the auto process item associated with the rule")
-    target_folder_id: Optional[str] = Field(None, description="ID of the target folder for the rule")
-    destination_folder_id: Optional[str] = Field(None, description="ID of the destination folder for the rule")
     
     @classmethod
     async def create_table(cls) -> None:
@@ -84,7 +77,7 @@ class AutoProcessRule(BaseModel):
                 return cls(**dict(row))
             
     @classmethod
-    async def update_auto_process_rule(cls, rule: "AutoProcessRule") -> "AutoProcessRule":
+    async def update_auto_process_rule(cls, rule: model_base.AutoProcessRuleModel) -> model_base.AutoProcessRuleModel:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
                 if await cls.get_auto_process_rule(rule.id) is None:
@@ -97,8 +90,21 @@ class AutoProcessRule(BaseModel):
         return rule
     
     @classmethod
-    async def delete_auto_process_rule(cls, rule: "AutoProcessRule"):
+    async def update_auto_process_rules(cls, rules: Sequence[model_base.AutoProcessRuleModel]) -> Sequence[model_base.AutoProcessRuleModel]:
+        updated_rules = []
+        for rule in rules:
+            updated_rule = await cls.update_auto_process_rule(rule)
+            updated_rules.append(updated_rule)
+        return updated_rules
+
+    @classmethod
+    async def delete_auto_process_rule(cls, rule: model_base.AutoProcessRuleModel) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
                 await cur.execute("DELETE FROM auto_process_rules WHERE id=?", (rule.id,))
                 await conn.commit()
+    
+    @classmethod
+    async def delete_auto_process_rules(cls, rules: Sequence[model_base.AutoProcessRuleModel]) -> None:
+        for rule in rules:
+            await cls.delete_auto_process_rule(rule)

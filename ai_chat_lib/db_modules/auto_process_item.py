@@ -1,15 +1,16 @@
-from typing import Optional, Union, ClassVar
-from pydantic import BaseModel, Field
-import aiosqlite
-import json
+from typing import Optional, Sequence
 import uuid
+
+import aiosqlite
+import ai_chat_lib.model as model_base
+
 from ai_chat_lib.resouces.resource_util import *
 from ai_chat_lib.db_modules.main_db import MainDB
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
-class AutoProcessItem(BaseModel):
+class AutoProcessItem(model_base.AutoProcessItemModel):
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE "AutoProcessItems" (
@@ -31,12 +32,7 @@ class AutoProcessItem(BaseModel):
     - 4:PromptTemplate
  
     '''
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the auto process item")
-    display_name: str = Field(..., description="Display name of the auto process item")
-    description: str = Field(..., description="Description of the auto process item")
-    auto_process_item_type: int = Field(default=1, description="Type of the auto process item, 0 for SystemDefined, 1 for UserDefined")
-    action_type: int = Field(..., description="Type of action associated with the auto process item")
-
+ 
     @classmethod
     async def create_table(cls) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
@@ -145,7 +141,7 @@ class AutoProcessItem(BaseModel):
 
 
     @classmethod
-    async def get_auto_process_items(cls) -> list:
+    async def get_auto_process_items(cls) -> Sequence[model_base.AutoProcessItemModel]:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row
             async with conn.cursor() as cur:
@@ -166,7 +162,7 @@ class AutoProcessItem(BaseModel):
                 return cls(**dict(row))
     
     @classmethod
-    async def update_auto_process_item(cls, item: "AutoProcessItem") -> "AutoProcessItem":
+    async def update_auto_process_item(cls, item: model_base.AutoProcessItemModel) -> model_base.AutoProcessItemModel:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
                 if await cls.get_auto_process_item(item.id) is None:
@@ -179,10 +175,23 @@ class AutoProcessItem(BaseModel):
                                       (item.display_name, item.description, item.auto_process_item_type, item.action_type, item.id))
                 await conn.commit()
         return item
-    
+
     @classmethod
-    async def delete_auto_process_item(cls, item: "AutoProcessItem") -> None:
+    async def update_auto_process_items(cls, items: Sequence[model_base.AutoProcessItemModel]) -> Sequence[model_base.AutoProcessItemModel]:
+        updated_items = []
+        for item in items:
+            updated_item = await cls.update_auto_process_item(item)
+            updated_items.append(updated_item)
+        return updated_items
+        
+    @classmethod
+    async def delete_auto_process_item(cls, item: model_base.AutoProcessItemModel) -> None:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
                 await cur.execute("DELETE FROM AutoProcessItems WHERE id=?", (item.id,))
-                await conn.commit()
+                await conn.commit() 
+
+    @classmethod
+    async def delete_auto_process_items(cls, items: Sequence[model_base.AutoProcessItemModel]) -> None:
+        for item in items:
+            await cls.delete_auto_process_item(item)

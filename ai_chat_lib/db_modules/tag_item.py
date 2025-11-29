@@ -1,21 +1,14 @@
+from typing import List, Union, Sequence
 import aiosqlite
-import json
-from typing import List, Union, Optional, ClassVar
-import uuid
-import os
-from pydantic import BaseModel, Field, field_validator, ValidationInfo
-from typing import Optional, List
-from typing import Optional
-from typing import Optional, Union, List
-from typing import Optional, List, Dict, Any, Union
 
+import ai_chat_lib.model as model_base
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
 from ai_chat_lib.db_modules.main_db import MainDB
 
-class TagItem(BaseModel):
+class TagItem(model_base.TagItemModel):
     '''
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE "TagItems" (
@@ -24,24 +17,9 @@ class TagItem(BaseModel):
     "is_pinned" INTEGER NOT NULL
     )
     '''
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    tag: str
-    is_pinned: bool = False
-
-    @field_validator("is_pinned")
-    @classmethod
-    def parse_is_pinned(cls, v):
-        if isinstance(v, bool):
-            return v
-        if isinstance(v, int):
-            return bool(v)
-        if isinstance(v, str):
-            return v.upper() == "TRUE"
-        return False
-
 
     @classmethod
-    async def get_tag_item(cls, tag_id: str) -> Union["TagItem", None]:
+    async def get_tag_item(cls, tag_id: str) -> Union[model_base.TagItemModel, None]:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row 
             async with conn.cursor() as cur:
@@ -57,7 +35,7 @@ class TagItem(BaseModel):
         return TagItem(**tag_item_dict)
     
     @classmethod
-    async def get_tag_items(cls) -> List["TagItem"]:
+    async def get_tag_items(cls) -> Sequence[model_base.TagItemModel]:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row 
             async with conn.cursor() as cur:
@@ -68,7 +46,7 @@ class TagItem(BaseModel):
         return tag_items
     
     @classmethod
-    async def update_tag_item(cls, tag_item: "TagItem") -> "TagItem":
+    async def update_tag_item(cls, tag_item: model_base.TagItemModel) -> model_base.TagItemModel:
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row 
             async with conn.cursor() as cur:
@@ -82,12 +60,25 @@ class TagItem(BaseModel):
         return tag_item
     
     @classmethod
-    async def delete_tag_item(cls, tag_item: "TagItem"):
+    async def update_tag_items(cls, tag_items: Sequence[model_base.TagItemModel]) -> Sequence[model_base.TagItemModel]:
+        updated_items = []
+        for tag_item in tag_items:
+            updated_item = await cls.update_tag_item(tag_item)
+            updated_items.append(updated_item)
+        return updated_items
+    
+    @classmethod
+    async def delete_tag_item(cls, tag_item: model_base.TagItemModel):
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             conn.row_factory = aiosqlite.Row 
             async with conn.cursor() as cur:
                 await cur.execute("DELETE FROM TagItems WHERE id=?", (tag_item.id,))
                 await conn.commit()
+    
+    @classmethod
+    async def delete_tag_items(cls, tag_items: Sequence[model_base.TagItemModel]) -> None:
+        for tag_item in tag_items:
+            await cls.delete_tag_item(tag_item)
 
     @classmethod
     async def create_table(cls):

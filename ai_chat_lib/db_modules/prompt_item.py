@@ -1,8 +1,8 @@
-from typing import Optional, Union, ClassVar
-from pydantic import BaseModel, Field
+from typing import Optional, Sequence
 import aiosqlite
 import json
 import uuid
+import ai_chat_lib.model as model_base
 from ai_chat_lib.resouces.resource_util import get_string_resources
 from ai_chat_lib.db_modules.main_db import MainDB
 
@@ -10,7 +10,7 @@ import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
 
-class PromptItem(BaseModel):
+class PromptItem(model_base.PromptItemModel):
     """
     以下のテーブル定義のデータを格納するクラス
     CREATE TABLE "PromptItems" (
@@ -27,13 +27,6 @@ class PromptItem(BaseModel):
     - 1: Modified System Defined Prompt
     - 2: User Defined Prompt
     """
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the prompt item")
-    name: str = Field(..., description="Name of the prompt item")
-    description: str = Field(..., description="Description of the prompt item")
-    prompt: str = Field(..., description="The prompt text")
-    prompt_template_type: int = Field(..., description="Type of the prompt template")
-    extended_properties_json: str = Field(..., description="JSON string of extended properties")
-
 
     @classmethod
     async def create_table(cls):
@@ -365,7 +358,7 @@ class PromptItem(BaseModel):
                 return PromptItem(**dict(row))
     
     @classmethod
-    async def update_prompt_item(cls, prompt_item: "PromptItem") -> None:
+    async def update_prompt_item(cls, prompt_item: model_base.PromptItemModel) -> model_base.PromptItemModel:
         """
         PromptItemsテーブルのデータを更新する
         idに一致したデータを更新する
@@ -389,13 +382,31 @@ class PromptItem(BaseModel):
                     ''', (prompt_item.name, prompt_item.description, prompt_item.prompt,
                           prompt_item.prompt_template_type, prompt_item.extended_properties_json, prompt_item.id))
                 await conn.commit()
+        return prompt_item
 
     @classmethod
-    async def delete_prompt_item(cls, id: str) -> None:
+    async def update_prompt_items(cls, prompt_items: Sequence[model_base.PromptItemModel]) -> Sequence[model_base.PromptItemModel]:
+        """
+        PromptItemsテーブルのデータを複数更新する
+        """
+        for item in prompt_items:
+            await cls.update_prompt_item(item)
+        return prompt_items
+
+    @classmethod
+    async def delete_prompt_item(cls, item: model_base.PromptItemModel) -> None:
         """
         PromptItemsテーブルから指定されたIDのデータを削除する
         """
         async with aiosqlite.connect(MainDB.get_main_db_path()) as conn:
             async with conn.cursor() as cur:
-                await cur.execute("DELETE FROM PromptItems WHERE id=?", (id,))
+                await cur.execute("DELETE FROM PromptItems WHERE id=?", (item.id,))
                 await conn.commit()
+
+    @classmethod
+    async def delete_prompt_items(cls, items: Sequence[model_base.PromptItemModel]) -> None:
+        """
+        PromptItemsテーブルから指定されたIDのデータを複数削除する
+        """
+        for item in items:
+            await cls.delete_prompt_item(item)
