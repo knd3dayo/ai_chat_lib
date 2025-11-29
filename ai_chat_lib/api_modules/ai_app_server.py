@@ -9,412 +9,399 @@ AIチャットアプリケーションのAPIサーバ本体。
 
 
 import os, sys
+from fastapi import FastAPI, Request, Response
+import uvicorn
 
-from aiohttp import web
-from aiohttp.web import Request, Response
 from ai_chat_lib.api_modules import ai_app_wrapper
 from ai_chat_lib.api_modules import ai_app_util
-
-# CORS対応のためaiohttp_corsをインポート
-import aiohttp_cors
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
-routes = web.RouteTableDef()
-app = web.Application(client_max_size=1024*1024*300) # 300MB
+app = FastAPI()
+
 ########################
 # ContentItem関連
 ########################
-@routes.post('/api/get_content_items')
+@app.post('/api/get_content_items')
 async def get_content_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_content_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/update_content_items')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/update_content_items')
 async def update_content_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.update_content_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/delete_content_items')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/delete_content_items')
 async def delete_content_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.delete_content_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/get_content_items_by_folder_id')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/get_content_items_by_folder_id')
 async def get_content_items_by_folder_id(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_content_items_by_folder_id(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/get_content_item_by_id')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/get_content_item_by_id')
 async def get_content_item_by_id(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_content_item_by_id(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 ########################
 # ContentFolders関連
 ########################
-@routes.post('/api/get_root_content_folders')
+@app.post('/api/get_root_content_folders')
 async def get_root_content_folders(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_root_content_folders()
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/get_content_folders')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/get_content_folders')
 async def get_content_folders(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_content_folders()
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/get_content_folder_by_id')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/get_content_folder_by_id')
 async def get_content_folder_by_id(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_content_folder_by_id(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/get_content_folder_by_path')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/get_content_folder_by_path')
 async def get_content_folder_by_path(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_content_folder_by_path(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/get_content_folder_path_by_id')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/get_content_folder_path_by_id')
 async def get_content_folder_path_by_id(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_content_folder_path_by_id(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/get_parent_content_folder_by_id')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/get_parent_content_folder_by_id')
 async def get_parent_content_folder_by_id(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_parent_content_folder_by_id(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/get_child_content_folders_by_id')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/get_child_content_folders_by_id')
 async def get_child_content_folders_by_id(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_child_content_folders_by_id(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
-@routes.post('/api/update_content_folders')
+@app.post('/api/update_content_folders')
 async def update_content_folders(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.update_content_folders(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/delete_content_folders')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/delete_content_folders')
 async def delete_content_folders(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.delete_content_folders(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 ########################
 # AutoProcessItem関連
 ########################
-@routes.post('/api/get_auto_process_items')
+@app.post('/api/get_auto_process_items')
 async def get_auto_process_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_auto_process_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/update_auto_process_items')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/update_auto_process_items')
 async def update_auto_process_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.update_auto_process_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json') 
-@routes.post('/api/delete_auto_process_items')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/delete_auto_process_items')
 async def delete_auto_process_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.delete_auto_process_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 ########################
 # SearchRule関連
 ########################
-@routes.post('/api/get_search_rules')
+@app.post('/api/get_search_rules')
 async def get_search_rules(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_search_rules(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/update_search_rules')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/update_search_rules')
 async def update_search_rules(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.update_search_rules(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/delete_search_rules')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/delete_search_rules')
 async def delete_search_rules(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.delete_search_rules(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 #search_content_items
-@routes.post('/api/search_content_items')
+@app.post('/api/search_content_items')
 async def search_content_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.search_content_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
+    return Response(content=response, status_code=200, media_type='application/json')
 ########################
 # AutoProcessRule関連
 ########################
-@routes.post('/api/get_auto_process_rules')
+@app.post('/api/get_auto_process_rules')
 async def get_auto_process_rules(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_auto_process_rules(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/update_auto_process_rules')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/update_auto_process_rules')
 async def update_auto_process_rules(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.update_auto_process_rules(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/delete_auto_process_rules')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/delete_auto_process_rules')
 async def delete_auto_process_rules(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.delete_auto_process_rules(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 ########################
 # PromptItem関連
 ########################
-@routes.post('/api/get_prompt_items')
+@app.post('/api/get_prompt_items')
 async def get_prompt_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_prompt_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/get_prompt_item')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/get_prompt_item')
 async def get_prompt_item(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_prompt_item(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/update_prompt_items')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/update_prompt_items')
 async def update_prompt_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.update_prompt_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-@routes.post('/api/delete_prompt_items')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/delete_prompt_items')
 async def delete_prompt_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.delete_prompt_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 
-@routes.post('/api/get_tag_items')
+@app.post('/api/get_tag_items')
 async def get_tag_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_tag_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
-@routes.post('/api/update_tag_items')
+    return Response(content=response, status_code=200, media_type='application/json')
+@app.post('/api/update_tag_items')
 async def update_tag_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.update_tag_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
-@routes.post('/api/delete_tag_items')
+@app.post('/api/delete_tag_items')
 async def delete_tag_items(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.delete_tag_items(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
-@routes.post('/api/openai_chat')
+@app.post('/api/openai_chat')
 async def openai_chat(request: Request) -> Response:
     request_dict: dict = await request.json()
     response = await ai_app_wrapper.openai_chat_async(request_dict)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
-@routes.post('/api/get_token_count')
+@app.post('/api/get_token_count')
 async def get_token_count(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = ai_app_wrapper.get_token_count(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 # update_vector_db
-@routes.post('/api/update_vector_db_item')
+@app.post('/api/update_vector_db_item')
 async def update_vector_db(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.update_vector_db(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
+    return Response(content=response, status_code=200, media_type='application/json')
 # delete_vector_db
-@routes.post('/api/delete_vector_db_item')
+@app.post('/api/delete_vector_db_item')
 async def delete_vector_db(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.delete_vector_db(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 # get_vector_db_items
-@routes.post('/api/get_vector_db_items')
+@app.post('/api/get_vector_db_items')
 async def get_vector_db_items(request: Request) -> Response:
     response = await ai_app_wrapper.get_vector_db_items()
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 # get_vector_db_by_id
-@routes.post('/api/get_vector_db_item_by_id')
+@app.post('/api/get_vector_db_item_by_id')
 async def get_vector_db_by_id(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_vector_db_item_by_id(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
+    return Response(content=response, status_code=200, media_type='application/json')
 # get_vector_db_by_name
-@routes.post('/api/get_vector_db_item_by_name')
+@app.post('/api/get_vector_db_item_by_name')
 async def get_vector_db_by_name(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.get_vector_db_item_by_name(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 # vector_search
-@routes.post('/api/vector_search')
+@app.post('/api/vector_search')
 async def vector_search(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.vector_search(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
+    return Response(content=response, status_code=200, media_type='application/json')
 # delete_collection
-@routes.post('/api/delete_collection')
+@app.post('/api/delete_collection')
 async def delete_collection(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.delete_collection(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 # delete_embeddings_by_folder
-@routes.post('/api/delete_embeddings_by_folder')
+@app.post('/api/delete_embeddings_by_folder')
 async def delete_embeddings_by_folder(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.delete_embeddings_by_folder(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
+    return Response(content=response, status_code=200, media_type='application/json')
 # delete_embeddings
-@routes.post('/api/delete_embeddings')
+@app.post('/api/delete_embeddings')
 async def delete_embeddings(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.delete_embeddings(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 # update_embeddings
-@routes.post('/api/update_embeddings')
+@app.post('/api/update_embeddings')
 async def update_embeddings(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.update_embeddings(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
+    return Response(content=response, status_code=200, media_type='application/json')
 
 # get_mime_type
-@routes.post('/api/get_mime_type')
+@app.post('/api/get_mime_type')
 async def get_mime_type(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = ai_app_wrapper.get_mime_type(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
+    return Response(content=response, status_code=200, media_type='application/json')
 # get_sheet_names
-@routes.post('/api/get_sheet_names')
+@app.post('/api/get_sheet_names')
 async def get_sheet_names(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = ai_app_wrapper.get_sheet_names(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 # extract_excel_sheet
-@routes.post('/api/extract_excel_sheet')
+@app.post('/api/extract_excel_sheet')
 async def extract_excel_sheet(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = ai_app_wrapper.extract_excel_sheet(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
+    return Response(content=response, status_code=200, media_type='application/json')
 # extract_text_from_file
-@routes.post('/api/extract_text_from_file')
+@app.post('/api/extract_text_from_file')
 async def extract_text_from_file(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response: dict = await ai_app_wrapper.extract_text_from_file_async(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 
 # extract_base64_to_text
-@routes.post('/api/extract_base64_to_text')
+@app.post('/api/extract_base64_to_text')
 async def extract_base64_to_text(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.extract_base64_to_text_async(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 
 # extract_webpage
-@routes.post('/api/extract_webpage')
+@app.post('/api/extract_webpage')
 async def extract_webpage(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = await ai_app_wrapper.extract_webpage(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 # export_to_excel
-@routes.post('/api/export_to_excel')
+@app.post('/api/export_to_excel')
 async def export_to_excel(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = ai_app_wrapper.export_to_excel(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
-
+    return Response(content=response, status_code=200, media_type='application/json')
 # import_from_excel
-@routes.post('/api/import_from_excel')
+@app.post('/api/import_from_excel')
 async def import_from_excel(request: Request) -> Response:
-    request_json = await request.text()
+    request_json = await request.json()
     response = ai_app_wrapper.import_from_excel(request_json)
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
 # hello_world
-@routes.post('/api/hello_world')
+@app.post('/api/hello_world')
 async def hello_world(request: Request) -> Response:
     response = ai_app_wrapper.hello_world()
     logger.debug(response)
-    return web.Response(body=response, status=200, content_type='application/json')
+    return Response(content=response, status_code=200, media_type='application/json')
 
-@routes.post('/api/shutdown')
+@app.post('/api/shutdown')
 async def shutdown_server(request: Request) -> Response:
     pid = os.getpid()
     # Ctrl+CでSIGINTを送信してもらう
     os.kill(pid, 2)
-    return web.Response(body="{}", status=200, content_type='application/json')
+    return Response(content="{}", status_code=200, media_type='application/json')
 
-def main():
+async def main():
     """
     APIサーバのエントリーポイント。
     - APP_DATA_PATH等の環境変数を初期化
@@ -436,25 +423,15 @@ def main():
         raise ValueError("OpenAI environment variables are not set correctly")
 
     # アプリケーション初期化
-    asyncio.run( ai_app_util.init_app())
+    await ai_app_util.init_app()
 
     port = os.getenv("API_SERVER_PORT", "5000")
     logger.info(f"port={port}")
+    uvicorn_config = uvicorn.Config(app, host="0.0.0.0", port=int(port))
+    server = uvicorn.Server(uvicorn_config)
+    await server.serve()
 
-    app.add_routes(routes)
-
-    # CORS設定: 全てのオリジン・メソッド・ヘッダーを許可
-    cors = aiohttp_cors.setup(app, defaults={
-        "*": aiohttp_cors.ResourceOptions(
-            allow_credentials=True,
-            expose_headers="*",
-            allow_headers="*",
-        )
-    })
-    for route in list(app.router.routes()):
-        cors.add(route)
-
-    web.run_app(app, port=int(port) )
 
 if __name__ == ('__main__'):
-    main()
+    import asyncio
+    asyncio.run(main())
