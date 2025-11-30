@@ -16,8 +16,8 @@ fastapi
 
 
 # Personal libraries
-analyze_image_mcp@git+https://github.com/knd3dayo/analyze_image_mcp.git
-web_search_mcp@git+https://github.com/knd3dayo/web_search_mcp.git
-extract_file_mcp@git+https://github.com/knd3dayo/extract_file_mcp.git
-ai_chat_mcp@git+https://github.com/knd3dayo/ai_chat_mcp.git
-vector_search_mcp@git+https://github.com/knd3dayo/vector_search_mcp.git
+analyze_image_util@git+https://github.com/knd3dayo/analyze_image_util.git
+web_search_util@git+https://github.com/knd3dayo/web_search_util.git
+file_util@git+https://github.com/knd3dayo/file_util.git
+ai_chat_util@git+https://github.com/knd3dayo/ai_chat_util.git
+vector_search_util@git+https://github.com/knd3dayo/vector_search_util.git

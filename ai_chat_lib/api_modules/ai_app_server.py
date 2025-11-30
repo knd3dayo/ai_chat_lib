@@ -9,7 +9,7 @@ AIチャットアプリケーションのAPIサーバ本体。
 
 from typing import Sequence
 import os, sys
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 import uvicorn
 
 from langchain_core.documents import Document
@@ -23,10 +23,10 @@ from ai_chat_lib.db_modules.auto_process_rule import AutoProcessRule
 from ai_chat_lib.db_modules.search_rule import SearchRule
 from ai_chat_lib.db_modules.prompt_item import PromptItem
 from ai_chat_lib.db_modules.tag_item import TagItem
-from ai_chat_mcp.chat.chat_util import CompletionResponse, CompletionRequest, ChatRequestContext, ChatUtil
-
-from vector_search_mcp.model.models import VectorDBItemBase
-from vector_search_mcp.model.models import EmbeddingData, VectorSearchRequest
+from ai_chat_util.model import ChatResponse, ChatHistory, ChatRequestContext, ChatMessage
+from ai_chat_util.llm.llm_client import LLMClient
+from ai_chat_util.llm.llm_config import LLMConfig
+from vector_search_util.model.models import EmbeddingData, VectorSearchRequest, VectorDBItemBase
 
 from ai_chat_lib.api_modules.misc import *
 
@@ -47,27 +47,28 @@ async def get_content_items() -> Sequence[model_base.ContentItemModel]:
     content_items = await ContentItem.get_content_items()
     return content_items
 
-@app.post('/api/update_content_items')
-async def update_content_items(content_items: Sequence[model_base.ContentItemModel]) -> Sequence[model_base.ContentItemModel]:
-    response = await ContentItem.update_content_items(content_items)
-    return response
-
-@app.post('/api/delete_content_items')
-async def delete_content_items(items: Sequence[model_base.ContentItemModel]) -> None:
-    response = await ContentItem.delete_content_items(items)
-    return response
-
-@app.post('/api/get_content_items_by_folder_id')
+@app.get('/api/get_content_items_by_folder_id')
 async def get_content_items_by_folder_id(folder_id: str) -> Sequence[model_base.ContentItemModel]:
     content_items = await ContentItem.get_content_items_by_folder_id(folder_id)
     logger.debug(content_items)
     return content_items
 
-@app.post('/api/get_content_item_by_id')
+@app.get('/api/get_content_item_by_id')
 async def get_content_item_by_id(item_id: str) -> model_base.ContentItemModel | None:
     content_item = await ContentItem.get_content_item_by_id(item_id)
     logger.debug(content_item)
     return content_item
+
+
+@app.post('/api/update_content_items')
+async def update_content_items(content_items: Sequence[model_base.ContentItemModel]) -> Sequence[model_base.ContentItemModel]:
+    response = await ContentItem.update_content_items(content_items)
+    return response
+
+@app.delete('/api/delete_content_items')
+async def delete_content_items(items: Sequence[model_base.ContentItemModel]) -> None:
+    response = await ContentItem.delete_content_items(items)
+    return response
 
 ########################
 # ContentFolders関連
@@ -81,28 +82,28 @@ async def get_root_content_folders() -> Sequence[model_base.ContentFolderModel]:
 async def get_content_folders() -> Sequence[model_base.ContentFolderModel]:
     response = await ContentFolder.get_content_folders()
     return response
-
-@app.post('/api/get_content_folder_by_id')
+    
+@app.get('/api/get_content_folder_by_id')
 async def get_content_folder_by_id(folder_id: str) -> model_base.ContentFolderModel | None:
     content_folder = await ContentFolder.get_content_folder_by_id(folder_id)
     return content_folder
 
-@app.post('/api/get_content_folder_by_path')
+@app.get('/api/get_content_folder_by_path')
 async def get_content_folder_by_path(folder_path: str) -> model_base.ContentFolderModel | None:
     content_folder = await ContentFolder.get_content_folder_by_path(folder_path)
     return content_folder
 
-@app.post('/api/get_content_folder_path_by_id')
+@app.get('/api/get_content_folder_path_by_id')
 async def get_content_folder_path_by_id(folder_id: str) -> str | None:
     content_folder_path = await ContentFolder.get_content_folder_path_by_id(folder_id)
     return content_folder_path
 
-@app.post('/api/get_parent_content_folder_by_id')
+@app.get('/api/get_parent_content_folder_by_id')
 async def get_parent_content_folder_by_id(folder_id: str) -> model_base.ContentFolderModel | None:
     parent_content_folder = await ContentFolder.get_parent_content_folder_by_id(folder_id)
     return parent_content_folder
 
-@app.post('/api/get_child_content_folders_by_id')
+@app.get('/api/get_child_content_folders_by_id')
 async def get_child_content_folders_by_id(folder_id: str) -> Sequence[model_base.ContentFolderModel]:
     child_content_folders = await ContentFolder.get_child_content_folders_by_id(folder_id)
     return child_content_folders
@@ -112,7 +113,7 @@ async def update_content_folders(folders: Sequence[model_base.ContentFolderModel
     response = await ContentFolder.update_content_folders(folders)
     return response
 
-@app.post('/api/delete_content_folders')
+@app.delete('/api/delete_content_folders')
 async def delete_content_folders(folders: Sequence[model_base.ContentFolderModel]) -> Sequence[model_base.ContentFolderModel]:
     response = await ContentFolder.delete_content_folders(folders)
     return response
@@ -130,7 +131,7 @@ async def update_auto_process_items(items: Sequence[model_base.AutoProcessItemMo
     response = await AutoProcessItem.update_auto_process_items(items)
     return response
 
-@app.post('/api/delete_auto_process_items')
+@app.delete('/api/delete_auto_process_items')
 async def delete_auto_process_items(items: Sequence[model_base.AutoProcessItemModel]) -> None:
     response = await AutoProcessItem.delete_auto_process_items(items)
     return response
@@ -148,7 +149,7 @@ async def update_auto_process_rules(rules: Sequence[model_base.AutoProcessRuleMo
     response = await AutoProcessRule.update_auto_process_rules(rules)
     return response
 
-@app.post('/api/delete_auto_process_rules')
+@app.delete('/api/delete_auto_process_rules')
 async def delete_auto_process_rules(rules: Sequence[model_base.AutoProcessRuleModel]) -> None:
     response = await AutoProcessRule.delete_auto_process_rules(rules)
     return response
@@ -166,7 +167,7 @@ async def update_search_rules(rules: Sequence[model_base.SearchRuleModel]) -> Se
     response = await SearchRule.update_search_rules(rules)
     return response
 
-@app.post('/api/delete_search_rules')
+@app.delete('/api/delete_search_rules')
 async def delete_search_rules(rules: Sequence[model_base.SearchRuleModel]) -> None:
     response = await SearchRule.delete_search_rules(rules)
     return response
@@ -179,7 +180,7 @@ async def get_prompt_items() -> Sequence[model_base.PromptItemModel]:
     response = await PromptItem.get_prompt_items()
     return response
 
-@app.post('/api/get_prompt_item_by_id')
+@app.get('/api/get_prompt_item_by_id')
 async def get_prompt_item(item_id: str) -> model_base.PromptItemModel | None:
     response = await PromptItem.get_prompt_item_by_id(item_id)
     return response
@@ -189,7 +190,7 @@ async def update_prompt_items(items: Sequence[model_base.PromptItemModel]) -> Se
     response = await PromptItem.update_prompt_items(items)
     return response
 
-@app.post('/api/delete_prompt_items')
+@app.delete('/api/delete_prompt_items')
 async def delete_prompt_items(items: Sequence[model_base.PromptItemModel]) -> None:
     response = await PromptItem.delete_prompt_items(items)
     return response
@@ -207,7 +208,7 @@ async def update_tag_items(items: Sequence[model_base.TagItemModel]) -> Sequence
     response = await TagItem.update_tag_items(items)
     return response
 
-@app.post('/api/delete_tag_items')
+@app.delete('/api/delete_tag_items')
 async def delete_tag_items(items: Sequence[model_base.TagItemModel]) -> None:
     response = await TagItem.delete_tag_items(items)
     return response
@@ -216,13 +217,14 @@ async def delete_tag_items(items: Sequence[model_base.TagItemModel]) -> None:
 # OpenAI Chat関連
 ########################
 @app.post('/api/openai_chat')
-async def openai_chat(request: CompletionRequest, context: ChatRequestContext) -> CompletionResponse:
-    response = await ChatUtil.run_openai_chat_async(request, context)
+async def openai_chat(request: ChatMessage, chat_history: ChatHistory, context: ChatRequestContext) -> ChatResponse:
+    client = LLMClient.create_llm_client(LLMConfig(), chat_history=chat_history, request_context=context)
+    response = await client.run_chat(request)
     return response
 
-@app.post('/api/get_token_count')
+@app.get('/api/get_token_count')
 async def get_token_count(model: str, text: str) -> int:
-    response = ChatUtil.get_token_count(model, text)
+    response = LLMClient.get_token_count(model, text)
     return response
 
 ########################
@@ -236,13 +238,13 @@ async def get_vector_db_items() -> Sequence[VectorDBItemBase]:
     return response
 
 # get_vector_db_by_id
-@app.post('/api/get_vector_db_item_by_id')
+@app.get('/api/get_vector_db_item_by_id')
 async def get_vector_db_by_id(id: str) -> VectorDBItemBase | None:
     response = await VectorDBItem.get_vector_db_by_id(id)
     return response
 
 # get_vector_db_by_name
-@app.post('/api/get_vector_db_item_by_name')
+@app.get('/api/get_vector_db_item_by_name')
 async def get_vector_db_by_name(name: str) -> VectorDBItemBase | None:
     response = await VectorDBItem.get_vector_db_by_name(name)
     return response
@@ -254,19 +256,19 @@ async def update_vector_db_items(items: Sequence[VectorDBItem]) -> Sequence[Vect
     return response
 
 # delete_vector_db
-@app.post('/api/delete_vector_db_items')
+@app.delete('/api/delete_vector_db_items')
 async def delete_vector_db_items(items: Sequence[VectorDBItem]) -> None:
     response = await VectorDBItem.delete_vector_db_items(items)
     return response
 
 # フォルダ内のベクトルDBインデックスを削除する
-@app.post('/api/delete_embeddings_by_folder')
+@app.delete('/api/delete_embeddings_by_folder')
 async def delete_embeddings_by_folder(embedding_data_list: Sequence[EmbeddingData]) -> None:
     response = await LangChainUtilAPI.delete_embeddings_by_folder_api(embedding_data_list)
     return response
 
 # delete_embeddings
-@app.post('/api/delete_embeddings')
+@app.delete('/api/delete_embeddings')
 async def delete_embeddings(embedding_data_list: Sequence[EmbeddingData]) -> None:
     response = await LangChainUtilAPI.delete_embeddings_api(embedding_data_list)
     return response
@@ -293,7 +295,7 @@ async def get_mime_type(file_path: str) -> str:
     return response
 
 # get_sheet_names
-@app.post('/api/get_sheet_names')
+@app.get('/api/get_sheet_names')
 async def get_sheet_names(file_path: str) -> Sequence[str]:
     response = ExcelUtil.get_sheet_names(file_path)
     return response
@@ -311,26 +313,26 @@ async def extract_text_from_file(file_path: str) -> str:
     return response
 
 # extract_base64_to_text
-@app.post('/api/extract_base64_to_text')
+@app.get('/api/extract_base64_to_text')
 async def extract_base64_to_text(extension: str, base64_data: str) -> str:
     response = await FileUtilAPI.extract_base64_to_text_async_api(extension, base64_data)
     return response
 
 # extract_webpage
-@app.post('/api/extract_webpage')
+@app.get('/api/extract_webpage')
 async def extract_webpage(url: str) -> WebPage:
     response = await WebUtilAPI.extract_webpage_api(url)
     return response
 
 # export_to_excel
-@app.post('/api/export_to_excel')
+@app.get('/api/export_to_excel')
 async def export_to_excel(file_path: str, columns: Sequence[str]) -> None:
 
     response = ExcelUtil.export_to_excel(file_path, columns)
     return response
 
 # import_from_excel
-@app.post('/api/import_from_excel')
+@app.get('/api/import_from_excel')
 async def import_from_excel(file_path: str) -> Sequence[dict]:
     response = ExcelUtil.import_from_excel(file_path)
     return response
@@ -339,7 +341,6 @@ async def import_from_excel(file_path: str) -> Sequence[dict]:
 @app.get('/api/hello_world')
 async def hello_world() -> str:
     return "Hello, World!"
-
 
 @app.post('/api/shutdown')
 async def shutdown_server() -> None:
@@ -363,10 +364,6 @@ async def main():
     app_data_path = os.getenv("APP_DATA_PATH", None)
     if not app_data_path:
         raise ValueError("APP_DATA_PATH is required")
-    # OpenAIProps関連の環境変数をチェック
-    from ai_chat_mcp.llm.llm_util import OpenAIProps
-    if not OpenAIProps.check_env_vars():
-        raise ValueError("OpenAI environment variables are not set correctly")
 
     # アプリケーション初期化
     """

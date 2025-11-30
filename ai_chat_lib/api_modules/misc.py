@@ -8,7 +8,6 @@ from vector_search_mcp.langchain.langchain_vector_db import LangChainVectorDB
 from ai_chat_lib.db_modules.vector_db_item import VectorDBItem, VectorDBItemBase
 from ai_chat_lib.db_modules.content_folder import ContentFolder
 from vector_search_mcp.model.models import EmbeddingData, VectorSearchRequest
-from ai_chat_mcp.chat.chat_util import  ChatUtil, CompletionRequest, CompletionResponse
 
 import ai_chat_lib.log_modules.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
