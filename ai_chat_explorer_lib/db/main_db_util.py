@@ -6,17 +6,11 @@ main_db_util.py
 
 import os
 import sqlite3
-from typing import Union
-import ai_chat_lib.log_modules.log_settings as log_settings
-from ai_chat_lib.db_modules.main_db import MainDB
-from ai_chat_lib.db_modules.content_folder import ContentFolder
-from ai_chat_lib.db_modules.content_item import ContentItem
-from ai_chat_lib.db_modules.vector_db_item import VectorDBItem
-from ai_chat_lib.db_modules.tag_item import TagItem
-from ai_chat_lib.db_modules.prompt_item import PromptItem
-from ai_chat_lib.db_modules.auto_process_item import AutoProcessItem
-from ai_chat_lib.db_modules.auto_process_rule import AutoProcessRule
-from ai_chat_lib.db_modules.search_rule import SearchRule
+import ai_chat_explorer_lib.log.log_settings as log_settings
+from ai_chat_explorer_lib.db.main_db import MainDB
+from ai_chat_explorer_lib.db.prompt_item import PromptItem
+from ai_chat_explorer_lib.db.auto_process import AutoProcessItem, AutoProcessRule
+from ai_chat_explorer_lib.db.search import SearchRule, SearchCondition
 
 logger = log_settings.getLogger(__name__)
 
@@ -77,10 +71,6 @@ class MainDBUtil:
         """
         # DBPropertiesテーブルを初期化
         await MainDB.create_table()
-        # ContentFoldersテーブルを初期化
-        await ContentFolder.create_table()
-        # ContentItemテーブルを初期化
-        await ContentItem.create_table()
         # PromptItemsテーブルを初期化
         await PromptItem.create_table()
         # AutoProcessItemテーブルを初期化
@@ -89,7 +79,3 @@ class MainDBUtil:
         await AutoProcessRule.create_table()
         # SearchRuleテーブルを初期化
         await SearchRule.create_table()
-        # TagItemテーブルを初期化
-        await TagItem.create_table()
-        # VectorDBItemsテーブルを初期化
-        await VectorDBItem.create_table()

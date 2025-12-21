@@ -2,11 +2,11 @@ from typing import Optional, Sequence
 import aiosqlite
 import json
 import uuid
-import ai_chat_lib.model as model_base
-from ai_chat_lib.resouces.resource_util import get_string_resources
-from ai_chat_lib.db_modules.main_db import MainDB
+import ai_chat_explorer_lib.model as model_base
+from ai_chat_explorer_lib.resouces.resource_util import get_string_resources
+from ai_chat_explorer_lib.db.main_db import MainDB
 
-import ai_chat_lib.log_modules.log_settings as log_settings
+import ai_chat_explorer_lib.log.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
 

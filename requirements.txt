@@ -16,8 +16,7 @@ fastapi
 
 
 # Personal libraries
-analyze_image_util@git+https://github.com/knd3dayo/analyze_image_util.git
-web_search_util@git+https://github.com/knd3dayo/web_search_util.git
-file_util@git+https://github.com/knd3dayo/file_util.git
-ai_chat_util@git+https://github.com/knd3dayo/ai_chat_util.git
-vector_search_util@git+https://github.com/knd3dayo/vector_search_util.git
+ai-chat-util@git+https://github.com/knd3dayo/ai-chat-util.git
+web-search-util@git+https://github.com/knd3dayo/web-search-util.git
+file-util@git+https://github.com/knd3dayo/file-util.git
+vector-search-util@git+https://github.com/knd3dayo/vector-search-util.git

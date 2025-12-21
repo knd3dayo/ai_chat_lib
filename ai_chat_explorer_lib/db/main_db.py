@@ -3,7 +3,7 @@ import uuid
 import os
 from typing import Union
 
-import ai_chat_lib.log_modules.log_settings as log_settings
+import ai_chat_explorer_lib.log.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
         

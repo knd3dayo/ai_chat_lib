@@ -8,7 +8,7 @@ ai_app_server_shutdown.py
 import sys, os
 import requests
 
-import ai_chat_lib.log_modules.log_settings as log_settings
+import ai_chat_explorer_lib.log.log_settings as log_settings
 logger = log_settings.getLogger(__name__)
 
 def stop_process(url: str):
