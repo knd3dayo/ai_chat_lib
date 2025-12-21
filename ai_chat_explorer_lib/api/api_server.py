@@ -13,17 +13,12 @@ logger = log_settings.getLogger(__name__)
 
 app = FastAPI()
 
+########################
+# OpenAI Chat関連
+########################
+import ai_chat_explorer_lib.api.api_server as ai_chat_api
+app.mount( "/ai_chat", ai_chat_api.app)
 
-########################
-# ContentItem関連
-########################
-from ai_chat_explorer_lib.api.sub_api.content_api import app as content_item_app
-app.mount("/content_item", content_item_app)
-
-########################
-# ContentFolders関連
-########################
-from ai_chat_explorer_lib.api.sub_api.content_api import app as content_item_app
 ########################
 # AutoProcess関連
 ########################
@@ -36,6 +31,18 @@ app.mount("/auto_process", auto_process_app)
 from ai_chat_explorer_lib.api.sub_api.prompt_item_api import app as prompt_item_app
 app.mount("/prompt_item", prompt_item_app)
 
+
+########################
+# ContentItem関連
+########################
+from ai_chat_explorer_lib.api.sub_api.content_api import app as content_item_app
+app.mount("/content_item", content_item_app)
+
+########################
+# ContentFolders関連
+########################
+from ai_chat_explorer_lib.api.sub_api.content_api import app as content_item_app
+
 ########################
 # SearchRule関連
 ########################
@@ -43,15 +50,10 @@ from ai_chat_explorer_lib.api.sub_api.search_api import app as search_rule_app
 app.mount("/search_rule", search_rule_app)
 
 ########################
-# Content Item関連
+# TagItem関連
 ########################
-app.mount("/content_item", content_item_app)
-
-########################
-# OpenAI Chat関連
-########################
-import ai_chat_explorer_lib.api.api_server as ai_chat_api
-app.mount( "/ai_chat", ai_chat_api.app)
+from ai_chat_explorer_lib.api.sub_api.tag_item_api import app as tag_item_app
+app.mount("/tag_item", tag_item_app)
 
 ########################
 # ベクトルDB関連

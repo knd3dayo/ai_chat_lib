@@ -1,6 +1,4 @@
-from typing import Sequence
 from fastapi import FastAPI
-from ai_chat_explorer_lib.db.search import SearchRule
 
 import ai_chat_explorer_lib.model as model_base
 
@@ -13,17 +11,17 @@ app = FastAPI()
 ########################
 # SearchRule関連
 ########################
-@app.get('/api/get_search_rules')
-async def get_search_rules() -> Sequence[model_base.SearchRuleModel]:
-    response = await SearchRule.get_search_rules()
+@app.get('/get_search_rules')
+async def get_search_rules() -> list[model_base.SearchRuleModel]:
+    response = await model_base.SearchRuleModel.get_search_rules()
     return response
 
-@app.post('/api/update_search_rules')
-async def update_search_rules(rules: Sequence[model_base.SearchRuleModel]) -> Sequence[model_base.SearchRuleModel]:
-    response = await SearchRule.update_search_rules(rules)
+@app.post('/update_search_rules')
+async def update_search_rules(rules: list[model_base.SearchRuleModel]):
+    response = await model_base.SearchRuleModel.update_search_rules(rules)
     return response
 
-@app.delete('/api/delete_search_rules')
-async def delete_search_rules(rules: Sequence[model_base.SearchRuleModel]) -> None:
-    response = await SearchRule.delete_search_rules(rules)
+@app.delete('/delete_search_rules')
+async def delete_search_rules(name_list: list[str]) -> None:
+    response = await model_base.SearchRuleModel.delete_search_rules(name_list)
     return response

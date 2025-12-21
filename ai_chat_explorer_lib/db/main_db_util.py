@@ -10,7 +10,6 @@ import ai_chat_explorer_lib.log.log_settings as log_settings
 from ai_chat_explorer_lib.db.main_db import MainDB
 from ai_chat_explorer_lib.db.prompt_item import PromptItem
 from ai_chat_explorer_lib.db.auto_process import AutoProcessItem, AutoProcessRule
-from ai_chat_explorer_lib.db.search import SearchRule, SearchCondition
 
 logger = log_settings.getLogger(__name__)
 
@@ -77,5 +76,3 @@ class MainDBUtil:
         await AutoProcessItem.create_table()
         # AutoProcessRuleテーブルを初期化
         await AutoProcessRule.create_table()
-        # SearchRuleテーブルを初期化
-        await SearchRule.create_table()

@@ -121,7 +121,6 @@ class ContentFolderModel(ModelBase):
     description: str = Field(default="", description="Description of the folder")
 
     parent: str = Field(default="", description="ID of the parent folder, empty if root folder")
-
     folder_type: str = Field(..., description="Type of the folder")
     parent_id: Optional[str] = Field(None, description="ID of the parent folder, None if root folder")
     is_root_folder: bool = Field(False, description="Flag indicating if the folder is a root folder")
@@ -288,6 +287,95 @@ class ContentFolderModel(ModelBase):
 
         response = await vector_db_api.delete_categories(categories)
 
+
+class SearchRuleModel(ModelBase):
+    '''
+    検索ルールモデル
+    '''
+    name: str = Field(..., description="Name of the search rule")
+    conditions: vector_model.ConditionContainer = Field(..., description="Conditions for the search rule")
+
+    is_include_sub_folder: bool = Field(default=False, description="Whether to include subfolders in the search")
+    is_global_search: bool = Field(default=False, description="Whether the search is a global search")
+    search_folder_id: Optional[str] = Field(None, description="ID of the folder to search in")
+    target_folder_id: Optional[str] = Field(None, description="ID of the target folder for the search results")
+
+    @classmethod
+    def to_condition_data(cls, search_rule: "SearchRuleModel") -> vector_model.ConditionContainer: 
+        '''
+        Convert SearchRuleModel to ConditionContainer
+        '''
+        # Here we assume that search_condition_json is a JSON string that can be converted to ConditionContainer
+
+        condition_data = vector_model.ConditionContainer(
+            name =search_rule.name,
+            conditions = search_rule.conditions.conditions,
+            metadata = {
+                "is_include_sub_folder": search_rule.is_include_sub_folder,
+                "is_global_search": search_rule.is_global_search,
+                "search_folder_id": search_rule.search_folder_id,
+                "target_folder_id": search_rule.target_folder_id 
+            }  
+        )
+        return condition_data
+
+    @classmethod
+    def from_condition_data(cls, condition: vector_model.ConditionContainer) -> "SearchRuleModel":
+        '''
+        Create SearchRuleModel from ConditionContainer
+        '''
+        metadata = condition.metadata.copy()
+        is_include_sub_folder = metadata.pop("is_include_sub_folder", False)
+        is_global_search = metadata.pop("is_global_search", False)
+        search_folder_id = metadata.pop("search_folder_id", None)
+        target_folder_id = metadata.pop("target_folder_id", None)
+
+        search_rule = SearchRuleModel(
+            name=condition.name,
+            conditions=vector_model.ConditionContainer(conditions=condition.conditions),
+            is_include_sub_folder=is_include_sub_folder,
+            is_global_search=is_global_search,
+            search_folder_id=search_folder_id,
+            target_folder_id=target_folder_id
+        )
+        return search_rule
+
+    @classmethod
+    async def get_search_rules(cls, name_list: list[str] =[]) -> list["SearchRuleModel"]:
+        conditions = await vector_db_api.get_conditions(name_list=name_list)
+        search_rules = [SearchRuleModel.from_condition_data(cond) for cond in conditions]
+        return search_rules
+
+    @classmethod
+    async def update_search_rules(cls, search_rules: list["SearchRuleModel"]):
+        conditions = [SearchRuleModel.to_condition_data(rule) for rule in search_rules]
+        await vector_db_api.upsert_conditions(conditions)
+
+    @classmethod
+    async def delete_search_rules(cls, name_list: list[str]):
+        await vector_db_api.delete_conditions(name_list)
+
+
+class TagItemModel(vector_model.TagData):
+    '''
+    タグアイテムモデル
+    '''
+    @classmethod
+    async def get_tag_items(cls) -> list["TagItemModel"]:
+        tags = await vector_db_api.get_tags()
+        tag_items = [TagItemModel(**tag.model_dump()) for tag in tags]
+        return tag_items
+
+    @classmethod
+    async def update_tag_items(cls, tag_items: list["TagItemModel"]):
+        tags = [vector_model.TagData(**tag.model_dump()) for tag in tag_items]
+        await vector_db_api.upsert_tags(tags)
+    
+    @classmethod
+    async def delete_tag_items(cls, tag_names: list[str]):
+        await vector_db_api.delete_tags(tag_names)
+
+
 class AutoProcessItemModel(ModelBase):
     '''
     自動処理アイテムモデル
@@ -320,18 +408,6 @@ class AutoProcessRuleModel(ModelBase):
     target_folder_id: Optional[str] = Field(None, description="ID of the target folder for the rule")
     destination_folder_id: Optional[str] = Field(None, description="ID of the destination folder for the rule")
 
-class SearchRuleModel(ModelBase):
-    '''
-    検索ルールモデル
-    '''
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the search rule")
-    name: str = Field(..., description="Name of the search rule")
-    search_condition_json: str = Field(..., description="JSON string representing the search conditions")
-    is_include_sub_folder: bool = Field(default=False, description="Whether to include subfolders in the search")
-    is_global_search: bool = Field(default=False, description="Whether the search is a global search")
-    search_folder_id: Optional[str] = Field(None, description="ID of the folder to search in")
-    target_folder_id: Optional[str] = Field(None, description="ID of the target folder for the search results")
-
 class PromptItemModel(ModelBase):
     '''
     プロンプトアイテムモデル
@@ -342,23 +418,4 @@ class PromptItemModel(ModelBase):
     prompt: str = Field(..., description="The prompt text")
     prompt_template_type: int = Field(..., description="Type of the prompt template")
     extended_properties_json: str = Field(..., description="JSON string of extended properties")
-
-class TagItemModel(ModelBase):
-    '''
-    タグアイテムモデル
-    '''
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    tag: str
-    is_pinned: bool = False
-
-    @field_validator("is_pinned")
-    @classmethod
-    def parse_is_pinned(cls, v):
-        if isinstance(v, bool):
-            return v
-        if isinstance(v, int):
-            return bool(v)
-        if isinstance(v, str):
-            return v.upper() == "TRUE"
-        return False
 
