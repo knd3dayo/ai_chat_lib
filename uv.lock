@@ -4369,7 +4369,7 @@ wheels = [
 [[package]]
 name = "web-search-util"
 version = "0.1.2"
-source = { git = "https://github.com/knd3dayo/web-search-util.git#b933fbf293ac4a98967a55d8b6259de14d0a37eb" }
+source = { git = "https://github.com/knd3dayo/web-search-util.git#89cfb2e71790d836ab81259772d90bf6666ff280" }
 dependencies = [
     { name = "ddgs" },
     { name = "fastapi" },
